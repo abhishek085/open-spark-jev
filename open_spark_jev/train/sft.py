@@ -48,6 +48,12 @@ class Example:
     target_dist: list[float] | None
     qtype: str
     domain: str
+    record: Record | None = None  # the source Record, so downstream code (e.g. train/rlcd.py's
+    # exact policy gradient, which needs question_obj()/domain for reward shaping) never has to
+    # re-derive which Example came from which Record by re-running this function's filters --
+    # doing that by position previously mismatched silently whenever a record was dropped here
+    # for length but not marked suspect (a filter build_examples applies that callers did not
+    # replicate). Keep this field in sync with `records` below; do not filter examples without it.
 
 
 def build_examples(scorer: MenuScorer, records: list[Record], max_len: int) -> list[Example]:
@@ -67,6 +73,7 @@ def build_examples(scorer: MenuScorer, records: list[Record], max_len: int) -> l
                 target_dist=r.target_dist(),
                 qtype=q.type,
                 domain=r.domain,
+                record=r,
             )
         )
     return out

@@ -259,10 +259,7 @@ def train_policy(cfg: dict) -> None:
     train_recs, val_recs = split_records(recs, 0.1, cfg.get("seed", 0))
     train_ex = build_examples(policy, train_recs, cfg.get("max_len", 2048))
     val_ex = build_examples(policy, val_recs, cfg.get("max_len", 2048))
-    # Keep the Record next to each example (build_examples filters, so rebuild by index alignment).
-    kept = [r for r in train_recs if not r.meta.get("suspect")]
-    assert len(kept) >= len(train_ex)
-    rec_by_ex = {id(e): r for e, r in zip(train_ex, kept)}
+    rec_by_ex = {id(e): e.record for e in train_ex}
     log.info("policy train %d val %d", len(train_ex), len(val_ex))
 
     # Pre-compute per-action RM scores (expensive, done once).
