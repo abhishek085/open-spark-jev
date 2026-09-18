@@ -48,6 +48,28 @@ milliseconds in-process; through trtllm-serve with prefix reuse the per-question
 dominated by HTTP + scheduler overhead, which batching questions per state amortises.
 `python -m open_spark_jev.eval.latency` produces the grid; fill `docs/BENCHMARKS.md` from it.
 
+## Thermal management (hard rule for this box)
+
+The Spark's small form factor throttles/protectively shuts down around 92-95C package/SoC
+or GPU temperature. Sustained near-100% GPU utilization for hours -- exactly what SFT/RLCD/GRPO
+training back to back looks like -- can drive it there; a suspected thermal shutdown (not
+confirmed, no crash log was available, but the timing and load pattern matched) interrupted
+this project's own training pipeline once. **Always run `scripts/ops/thermal_guard.sh` in the
+background before any sustained training/serving job on this box**:
+
+```bash
+nohup bash scripts/ops/thermal_guard.sh "python -m open_spark_jev.train" > /tmp/thermal_guard.log 2>&1 &
+```
+
+It polls GPU temp (`nvidia-smi`) and the max of the ACPI thermal zones (SoC/package) every
+15s, and SIGSTOPs every process matching the given pattern once either sensor hits 91C
+(configurable via `THERMAL_PAUSE_C`), resuming with SIGCONT only once both are back under 85C
+(`THERMAL_RESUME_C` - hysteresis, avoids rapid pause/resume flapping). SIGSTOP freezes a
+process without killing it or releasing its GPU memory/context, so a paused training run
+resumes exactly where it left off once the box cools. Adjust the pattern argument to match
+whatever job you're protecting (e.g. `vllm` for a teacher-serving container, matched via
+`docker exec` + `pgrep` inside the container if needed).
+
 ## Serving-path facts verified on 1.2.1
 * `/v1/completions` rejects `logprobs` ("logprobs is not supported"); `/v1/chat/completions`
   accepts `logprobs: true, top_logprobs: 20` and `chat_template_kwargs: {enable_thinking: false}`.
