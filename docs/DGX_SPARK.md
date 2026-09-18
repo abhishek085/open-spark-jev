@@ -54,21 +54,28 @@ The Spark's small form factor throttles/protectively shuts down around 92-95C pa
 or GPU temperature. Sustained near-100% GPU utilization for hours -- exactly what SFT/RLCD/GRPO
 training back to back looks like -- can drive it there; a suspected thermal shutdown (not
 confirmed, no crash log was available, but the timing and load pattern matched) interrupted
-this project's own training pipeline once. **Always run `scripts/ops/thermal_guard.sh` in the
-background before any sustained training/serving job on this box**:
+this project's own training pipeline once. **Installed once as a cron-managed service, not something to launch or watch per job**:
 
 ```bash
-nohup bash scripts/ops/thermal_guard.sh "python -m open_spark_jev.train" > /tmp/thermal_guard.log 2>&1 &
+bash scripts/ops/install_thermal_cron.sh   # one-time; installs the crontab entries below
 ```
 
-It polls GPU temp (`nvidia-smi`) and the max of the ACPI thermal zones (SoC/package) every
-15s, and SIGSTOPs every process matching the given pattern once either sensor hits 91C
-(configurable via `THERMAL_PAUSE_C`), resuming with SIGCONT only once both are back under 85C
-(`THERMAL_RESUME_C` - hysteresis, avoids rapid pause/resume flapping). SIGSTOP freezes a
-process without killing it or releasing its GPU memory/context, so a paused training run
-resumes exactly where it left off once the box cools. Adjust the pattern argument to match
-whatever job you're protecting (e.g. `vllm` for a teacher-serving container, matched via
-`docker exec` + `pgrep` inside the container if needed).
+This installs two crontab entries: `@reboot` starts the guard immediately after any reboot
+(including a thermal one - directly closes the gap that caused this project's own incident),
+and `*/2 * * * *` restarts it if it's ever not running for any other reason. Nobody needs to
+launch it manually or watch it in a session again; cron owns its lifecycle from here on -
+checking on it in a Monitor loop is wasted effort, since the daemon and its watchdog already
+self-heal without supervision.
+
+The daemon itself (`scripts/ops/thermal_guard.sh`, invoked by the watchdog, not run directly)
+polls GPU temp (`nvidia-smi`) and the max of the ACPI thermal zones (SoC/package) every 15s,
+and SIGSTOPs every process matching `python -m open_spark_jev.train` once either sensor hits
+91C (configurable via `THERMAL_PAUSE_C` in the watchdog's `nohup bash "$GUARD" ...` call),
+resuming with SIGCONT only once both are back under 85C (`THERMAL_RESUME_C` - hysteresis,
+avoids rapid pause/resume flapping). SIGSTOP freezes a process without killing it or releasing
+its GPU memory/context, so a paused training run resumes exactly where it left off once the
+box cools. To protect a different kind of job (e.g. a teacher-serving container), edit the
+pattern argument in `scripts/ops/thermal_guard_watchdog.sh`.
 
 ## Serving-path facts verified on 1.2.1
 * `/v1/completions` rejects `logprobs` ("logprobs is not supported"); `/v1/chat/completions`
