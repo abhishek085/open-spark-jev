@@ -75,6 +75,59 @@ support, served model id differs (`Qwen3-1.7B` vs the full path) but the client 
 resolves this via `GET /v1/models` rather than hardcoding it. No changes needed to
 `serve/client.py` or `prompting.py` to move between versions.
 
+## M7: SFT (Phase 1) vs zero-shot base, held-out test set
+
+`runs/eval_sft.json` against `data/benchmarks/sim_test.jsonl` (1800 records; read
+moderation/incident/game with the leakage caveat above, routing/risk/security are clean).
+
+| slice | acc | ECE | Brier |
+|---|---|---|---|
+| choice/game | 0.780 | 0.061 | 0.346 |
+| choice/incident | 0.830 | 0.031 | 0.253 |
+| choice/moderation | 0.800 | 0.029 | 0.286 |
+| choice/routing | 0.837 | 0.030 | 0.272 |
+| noul/security | 0.983 | 0.010 | 0.023 |
+| score/risk | 0.617 | 0.042 | 0.510 |
+| **overall** | **0.808** | **0.020** | 0.282 |
+
+injection flip rate **0.038** (down from the untrained base model's 0.67). Two epochs,
+soft-target cross-entropy + Brier regularizer, temperature fit per question type -
+`docs/COOKBOOK.md` section 7's recipe, unmodified.
+
+## M8a: RLCD-direct, first attempt - a real negative result from a real bug
+
+`configs/train/rlcd_direct.yaml`'s exact-policy-gradient reward included an **unweighted**
+per-action term rewarding full confidence on the single *sampled* hard label, active
+regardless of config (not gated by `reward_weights` at all - a bug, not a deliberate choice).
+For any record where the true posterior isn't one-hot (most of them), that term directly
+fights the Brier distributional term next to it. Result, on the same held-out test set:
+
+| slice | SFT acc | RLCD-direct acc | SFT ECE | RLCD-direct ECE |
+|---|---|---|---|---|
+| choice/game | 0.780 | 0.783 | 0.061 | 0.073 |
+| choice/incident | 0.830 | 0.837 | 0.031 | 0.060 |
+| choice/moderation | 0.800 | 0.813 | 0.029 | 0.053 |
+| choice/routing | 0.837 | 0.840 | 0.030 | 0.049 |
+| noul/security | 0.983 | 0.987 | 0.010 | 0.010 |
+| score/risk | 0.617 | 0.600 | 0.042 | 0.050 |
+| **overall** | **0.808** | **0.810** | **0.020** | **0.036** |
+
+ECE got worse on every single domain; injection flip rate rose from 0.038 to 0.065; accuracy
+barely moved (+0.002 overall). **This is a genuine finding about reward composition, not
+noise**: an unweighted hard-label term and a distributional calibration term fighting to a
+standstill on accuracy while calibration loses is exactly the failure mode Claim A in
+`docs/RESEARCH.md` R1 predicted for *sampled* RL (mechanism 3/GRPO) - finding it had crept
+into mechanism 2 as well, via a bug rather than by design, is itself useful evidence for how
+easy this failure mode is to introduce by accident. Root-caused and fixed same-day (the hard
+label term is now `reward_weights["correctness"]`, off by default); full checkpoint, eval,
+and training log preserved at `runs/archive_buggy_rlcd_direct_20260918/` rather than deleted.
+Corrected rerun below.
+
+## M8b: RLCD-direct, corrected (`correctness: 0.0`, pure Brier + shaping reward)
+
+Pending - training in progress as of this writing. Will replace this line with the same
+table once `runs/eval_rlcd_direct.json` is regenerated against the fix.
+
 ## Teacher comparison (ground-truth anchored, `eval/teacher_benchmark.py`)
 20 records/domain from `sim_test.jsonl`, known posteriors. `qwen27b` = `nvidia/Qwen3.6-27B-NVFP4`
 via the sibling project's already-running vLLM server (reused read-only, not launched by this
