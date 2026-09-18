@@ -3,7 +3,7 @@ model: models/Qwen3-1.7B
 output_dir: checkpoints/sft-qwen3-1.7b
 data:
   - data/synthetic/sim_train.jsonl        # osj simulate --n 3000 --out data/synthetic/sim_train.jsonl
-  - data/raw/public_train.jsonl           # osj public --limit 2000 --out data/raw/public_train.jsonl
+  # - data/raw/public_train.jsonl       # osj public --limit 2000 --out data/raw/public_train.jsonl (see docs/DATA.md known-issue: ag_news repo id needs a namespace on newer datasets/huggingface_hub)
   # - data/synthetic/teacher_train.jsonl  # osj synth --distill ...
 seed: 0
 val_frac: 0.1

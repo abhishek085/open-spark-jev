@@ -35,9 +35,9 @@ def _load(path: str, split: str, config: str | None = None, limit: int = 0, seed
 @register("ag_news")
 def ag_news(limit: int = 2000, seed: int = 0) -> Iterator[Record]:
     names = ["world", "sports", "business", "sci_tech"]
-    for i, row in enumerate(_load("ag_news", "train", limit=limit, seed=seed)):
+    for i, row in enumerate(_load("fancyzhx/ag_news", "train", limit=limit, seed=seed)):
         yield Record(
-            id=f"ag_news-{i}", domain="classification", source="public:ag_news",
+            id=f"ag_news-{i}", domain="classification", source="public:fancyzhx/ag_news",
             state={"content": row["text"], "schema_hint": "news headline and lead", "domain": "classification"},
             question={"type": "choice", "prompt": "Which section does this news item belong to?", "options": names},
             target={"label": names[row["label"]]},
@@ -58,10 +58,15 @@ def emotion(limit: int = 2000, seed: int = 0) -> Iterator[Record]:
 
 @register("banking77_top20")
 def banking77(limit: int = 3000, seed: int = 0) -> Iterator[Record]:
-    """Intent routing. 77 intents exceed the 26-slot menu, so keep the 20 most frequent."""
+    """Intent routing. 77 intents exceed the 26-slot menu, so keep the 20 most frequent.
+
+    Uses ``legacy-datasets/banking77`` (parquet-backed, ClassLabel names intact) rather than
+    ``PolyAI/banking77`` (the canonical repo, but still a loading-script dataset that
+    ``datasets>=4`` refuses to run) - see docs/DATA.md known-issues.
+    """
     from collections import Counter
 
-    ds = _load("PolyAI/banking77", "train", limit=0, seed=seed)
+    ds = _load("legacy-datasets/banking77", "train", limit=0, seed=seed)
     names = ds.features["label"].names
     top = [c for c, _ in Counter(ds["label"]).most_common(20)]
     keep = [names[c] for c in top]
@@ -70,7 +75,7 @@ def banking77(limit: int = 3000, seed: int = 0) -> Iterator[Record]:
         if row["label"] not in top:
             continue
         yield Record(
-            id=f"banking77-{i}", domain="routing", source="public:PolyAI/banking77",
+            id=f"banking77-{i}", domain="routing", source="public:legacy-datasets/banking77",
             state={"content": row["text"], "schema_hint": "customer message to a bank", "domain": "routing"},
             question={"type": "choice", "prompt": "Which intent best matches this customer message?", "options": keep},
             target={"label": names[row["label"]]},
@@ -115,7 +120,17 @@ def yelp(limit: int = 2000, seed: int = 0) -> Iterator[Record]:
 
 
 def build(names: list[str], limit: int, seed: int = 0) -> list[Record]:
+    """Pool records from each named adapter. One adapter failing (a dataset repo moved, a
+    loading-script dataset datasets>=4 refuses to run, network hiccup) logs a warning and is
+    skipped rather than discarding every other adapter's output - public mirrors move more
+    often than this repo's release cadence."""
+    import logging
+
+    log = logging.getLogger("osj.data.public")
     out: list[Record] = []
     for n in names:
-        out.extend(REGISTRY[n](limit, seed))
+        try:
+            out.extend(REGISTRY[n](limit, seed))
+        except Exception as e:  # noqa: BLE001
+            log.warning("adapter %r failed, skipping: %s", n, e)
     return out
