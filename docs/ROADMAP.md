@@ -7,8 +7,8 @@
 | M2 | Phase 1 SFT loop with soft targets + temperature fitting | code done, first run pending |
 | M3 | Phase 2 RLCD: pairs, Noul reward model, exact menu policy gradient, GRPO baseline | code done, needs a local teacher up |
 | M4 | Gateway (`/v1/decide`, Jev-format `/v1/evaluate`), OpenAI-completions backend | done |
-| M5 | TRT-LLM on Spark: container pulled (1.2.1), serve/quantize scripts | scripts done, first serve run pending |
-| M6 | Baseline numbers: base Qwen3-1.7B zero-shot on sim_test | pending |
+| M5 | TRT-LLM on Spark: container 1.2.1, `trtllm-serve` chat-logprobs path and Python-API backend both verified against HF | done (bf16; quantized engines pending) |
+| M6 | Baseline numbers: base Qwen3-1.7B zero-shot on sim_test (HF + served parity) | done, docs/BENCHMARKS.md |
 | M7 | SFT run + eval, BENCHMARKS.md | pending |
 | M8 | RLCD run (needs teacher on :8010) + ablation vs GRPO | pending |
 | M9 | FP8 / NVFP4 engines, temperature re-fit, latency grid | pending |

@@ -45,5 +45,25 @@ Smoke test: 4 questions on a 188-token state, cached prefix, 61.9 ms total, 3.9 
 Full grid: `python -m open_spark_jev.eval.latency --backend hf --model models/Qwen3-1.7B`
 (to be filled in with M9).
 
-## Served engine parity (trtllm-serve 1.2.1, PyTorch backend, bf16)
-Pending: see the section appended after the first served run.
+## Served engine parity (trtllm-serve 1.2.1, PyTorch backend, bf16, chat logprobs path)
+`runs/eval_base_trtllm_serve_300.json`: first 300 records of sim_test (all routing), base
+model, gateway-style chat backend (`top_logprobs=20`, `enable_thinking=false`) vs the
+in-process HF run on the same slice.
+
+| backend | acc | ECE | Brier | soft Brier vs posterior | injection flip |
+|---|---|---|---|---|---|
+| HF bf16 in-process (state KV cache) | 0.440 | 0.531 | 1.093 | 0.817 | 0.67 (all domains) |
+| trtllm-serve 1.2.1, chat `top_logprobs` | 0.433 | 0.535 | 1.099 | 0.819 | 0.73 (routing only) |
+
+Differences are at bf16 noise level (label logits are O(50), kernels differ). Served
+throughput here is 15 decisions/s from a *single sequential* client with one HTTP call per
+question; concurrency and per-state batching are the M9 work.
+
+## In-container TRT-LLM Python API backend (`serve/trtllm_backend.py`)
+`scripts/trtllm_api_smoke.py` on the smoke-test state (4 questions, 188 state tokens),
+`return_generation_logits=True`, full-vocab gather, prefix reuse on:
+
+| backend | decisions | latency | notes |
+|---|---|---|---|
+| HF bf16 in-process | abstain / medium / no / no | 62.7 ms | 3.9 GB peak |
+| TRT-LLM 1.2.1 Python API | abstain / medium / no / no | 53.8 ms | label logits within ~1 of HF (bf16) |
