@@ -59,6 +59,38 @@ Differences are at bf16 noise level (label logits are O(50), kernels differ). Se
 throughput here is 15 decisions/s from a *single sequential* client with one HTTP call per
 question; concurrency and per-state batching are the M9 work.
 
+## Teacher comparison (ground-truth anchored, `eval/teacher_benchmark.py`)
+20 records/domain from `sim_test.jsonl`, known posteriors. `qwen27b` = `nvidia/Qwen3.6-27B-NVFP4`
+via the sibling project's already-running vLLM server (reused read-only, not launched by this
+repo). `nemotron120b` / `gptoss120b` are queued: both refused their memory preflight (need
+65-70GB available; box had ~56GB with the sibling project's containers up) rather than risk an
+OOM on a shared box - re-run once memory is free, see docs/COOKBOOK.md.
+
+| teacher | domain | n | soft Brier vs posterior | argmax agreement |
+|---|---|---|---|---|
+| qwen27b | routing | 20 | 0.120 | 0.90 |
+| qwen27b | security | 20 | 0.014 | 1.00 |
+| qwen27b | risk | 20 | 0.172 | 0.65 |
+| qwen27b | moderation | 20 | 0.137 | 0.80 |
+| qwen27b | incident | 20 | 0.256 | 0.65 |
+| qwen27b | game | 20 | 0.155 | 0.75 |
+| **qwen27b overall** | | **120** | **0.142** | **0.79** |
+| nemotron120b | - | - | pending (memory) | |
+| gptoss120b | - | - | pending (download + memory) | |
+
+For scale: the untrained 1.7B student's own Brier on the same slices is ~1.1-1.7 (see M6
+above); a 0.142 soft Brier from the 27B teacher is close to the theoretical floor set by the
+domains' inherent ambiguity (routing/game/risk posteriors top out around 0.75-0.82 max
+probability by construction, see the Bayes-ceiling table). This is the calibration target
+Phase 1 distillation and Phase 2 RLCD are trying to close the gap toward.
+
+**Incident during this run**: the shared `nokast-teacher-vllm` container crashed under 6-way
+concurrent grading requests (`EngineDeadError`, a latent flashinfer/cuDNN fp8-GEMM-autotune
+CUDA kernel-launch failure - unrelated to JSON mode or to this session's other downloads; see
+full traceback in the session log). It was restarted with the sibling project's own
+`ops/teacher_server.sh start` and re-run cleanly at concurrency 3, which is now the enforced
+default for this teacher in `configs/teachers.yaml` (`max_concurrency: 3`).
+
 ## In-container TRT-LLM Python API backend (`serve/trtllm_backend.py`)
 `scripts/trtllm_api_smoke.py` on the smoke-test state (4 questions, 188 state tokens),
 `return_generation_logits=True`, full-vocab gather, prefix reuse on:

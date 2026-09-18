@@ -1,0 +1,59 @@
+# Registry of local teacher models used ONLY for offline data generation (scenario authoring +
+# distribution grading). None of these are shipped or served as the product model — the product
+# is the Qwen3-1.7B backbone trained in configs/model/. Three teachers, three labs, three
+# architectures, chosen to test whether the choice of teacher actually matters for downstream
+# student quality (see docs/COOKBOOK.md "Multi-teacher data generation").
+#
+# All weights live in the SHARED HF cache (~/.cache/huggingface), not in this repo's models/ dir,
+# because they are tooling, not the deliverable. Only one fits in memory at a time alongside
+# whatever else is running on this box — see `mem_preflight_gb` and scripts/teachers/*.sh.
+teachers:
+  qwen27b:
+    hf_id: nvidia/Qwen3.6-27B-NVFP4
+    family: Qwen (Alibaba), dense 27B, NVFP4
+    base_url: http://localhost:8010/v1
+    already_running: true          # served persistently by the sibling nokast-foundry project
+    max_concurrency: 3             # shared service; also: this vLLM build has a latent
+                                    # flashinfer/cuDNN fp8-GEMM-autotune crash under concurrent
+                                    # load (observed 2026-09-18, EngineDeadError, container
+                                    # exited) -- keep concurrency low, see docs/DATA.md
+    notes: >
+      Reuses nokast-foundry's long-running nokast-teacher-vllm container (read-only client
+      use; never stop it from this repo -- if it crashes, restart it with
+      `bash ~/llm-workspace/nokast-foundry/ops/teacher_server.sh start`, not a container this
+      repo owns).
+
+  nemotron120b:
+    hf_id: nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4
+    family: NVIDIA Nemotron 3, hybrid Mamba-2/MoE, 120B total / 12B active, NVFP4-native
+    base_url: http://localhost:8012/v1
+    port: 8012
+    container: osj-teacher-nemotron
+    gpu_memory_utilization: 0.55
+    mem_preflight_gb: 65           # required free/available memory before launch
+    launch: scripts/teachers/serve_nemotron.sh
+    notes: >
+      Already cached on this box (82 GB, ~17 NVFP4 shards). MoE architecture gives strong
+      quality per active-compute-dollar; good test of whether a bigger, differently-trained
+      teacher improves label quality over the 27B dense Qwen.
+
+  gptoss120b:
+    hf_id: openai/gpt-oss-120b
+    family: OpenAI gpt-oss, MoE, 120B total / ~5.1B active, native MXFP4
+    base_url: http://localhost:8013/v1
+    port: 8013
+    container: osj-teacher-gptoss
+    gpu_memory_utilization: 0.55
+    mem_preflight_gb: 70
+    launch: scripts/teachers/serve_gptoss.sh
+    hf_cache: ~/.cache/huggingface-osj   # ~/.cache/huggingface/hub is root-owned on this box;
+                                          # gpt-oss-120b downloads here instead (scripts/download_gptoss.sh)
+    notes: >
+      Apache-2.0. Third lab/architecture for diversity; configurable reasoning effort (we use
+      "medium" via chat_template_kwargs).
+
+# Nemotron and gpt-oss each need ~60-70GB of the box's 121GB unified memory. They do NOT fit
+# alongside each other, and may not fit alongside the sibling project's nokast-teacher-vllm /
+# nokast-student-vllm containers (~20-25GB combined). scripts/teachers/*.sh check available
+# memory before launching and abort with instructions rather than risk an OOM; they never stop
+# another project's containers automatically (see docs/DATA.md "Memory budget for teachers").
