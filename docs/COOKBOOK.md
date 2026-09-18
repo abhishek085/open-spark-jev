@@ -190,26 +190,46 @@ worth keeping:
 Adapt `configs/train/sft.yaml`'s `data:` list to point at your own corpora; everything else
 (collation, length bucketing, LoRA-or-full-finetune switch) is domain-agnostic.
 
-## 8. Phase 2: RLCD (optional but where calibration really tightens)
+## 8. Phase 2: toward calibrated decisions (optional but where calibration really tightens)
 
-`train/rlcd.py` implements three stages:
+A naming note before the recipe. If you're doing this because you want "the same RLCD
+TypeSafe uses" - you can't, not exactly, because they've only published the goal ("a
+confidence score that actually matches how often it's right"), not the mechanism. What you
+*can* do, and what this repo does, is implement multiple independent mechanisms that all
+target that same goal and let the numbers tell you which one earns its cost on your data.
+`train/rlcd.py`'s module docstring has the full reasoning; here is the practical version.
+
+**Mechanism 1 - academic RLCD** (Yang et al. 2023, a real, citable, different "RLCD" that
+happens to share the acronym), three stages:
 
 1. **Contrastive pairs** - prompt one of your teachers twice per (state, question), once with
    principles favoring calibration/abstention/state-as-data, once with principles favoring
-   overconfidence/instruction-following/automation. No human labels needed (this is the RLCD
-   trick: contrast comes from the prompt, not from paired human annotations).
+   overconfidence/instruction-following/automation. No human labels needed (this is the
+   Yang et al. trick: contrast comes from the prompt, not from paired human annotations).
 2. **A reward model that is itself a Noul** - "is this proposed decision correct, safe,
    appropriately confident, and uninfluenced by injected instructions?" - trained with a
    standard Bradley-Terry pairwise loss on the contrastive pairs. Reusing the same
    architecture means the RM inherits the calibration machinery for free and can be served the
    same way.
-3. **An exact menu policy gradient**, not PPO/GRPO. Because the action space is a handful of
-   labels, the full policy distribution is available in one forward pass, so
-   `E_a~p[R(a)] + R_dist(p) - beta*KL(p||p_ref)` is differentiated directly - zero sampling
-   variance, and critically, it lets the reward include **proper scoring rules evaluated on
-   the distribution itself**, which sampled-action RL cannot see. `train/rlcd_grpo.py` is kept
-   as a TRL-based sampled-token baseline specifically so you can verify this matters on your
-   own data (see [RESEARCH.md](RESEARCH.md) R1) rather than take it on faith.
+3. **An exact menu policy gradient**, not PPO/GRPO, with the RM's per-action score as one
+   reward term. Because the action space is a handful of labels, the full policy distribution
+   is available in one forward pass, so `E_a~p[R(a)] + R_dist(p) - beta*KL(p||p_ref)` is
+   differentiated directly - zero sampling variance.
+
+**Mechanism 2 - direct calibration objective**, one stage: run the same exact policy
+gradient as step 3 above, but with the reward model term weighted to zero, so the reward is
+just the proper scoring rule (Brier) against whatever soft target you already have (a
+simulator posterior, a teacher's graded distribution, an ensemble of teachers). No pairs, no
+RM, no extra teacher calls. This is the cheapest mechanism to try and, on your data, may or
+may not need mechanism 1's extra machinery at all - that comparison is the point.
+
+Both share `train/rewards.py`'s composable terms (Brier, abstention, "conservative action"
+asymmetric penalty, injection consistency) and both let the reward include **proper scoring
+rules evaluated on the distribution itself**, which sampled-action RL cannot see.
+`train/rlcd_grpo.py` is kept as a TRL-based sampled-token baseline, and
+`eval/calibration_baseline.py` as a no-RL, temperature-only control, specifically so you can
+verify any of this matters on your own data (see [RESEARCH.md](RESEARCH.md) R1) rather than
+take it on faith - run all four, plot `ece` and `soft_brier_vs_posterior` for each.
 
 `train/rewards.py`'s composable terms (Brier, abstention, "conservative action" asymmetric
 penalty, injection consistency, RM score) are domain-agnostic; the one thing to set per domain

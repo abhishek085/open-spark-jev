@@ -1,4 +1,8 @@
-# Phase 2: RLCD (contrastive pairs -> reward model -> exact menu policy gradient).
+# Phase 2, mechanism 1: academic RLCD (Yang et al. 2023) -- contrastive-principle pairs ->
+# Bradley-Terry reward model -> exact menu policy gradient with the RM's per-action score
+# folded in. See open_spark_jev/train/rlcd.py module docstring for why this is "RLCD" in the
+# strict, citable sense, as distinct from TypeSafe's same-acronym, undisclosed mechanism.
+# Run: scripts/train_rlcd_contrastive.sh
 seed: 0
 data:
   - data/synthetic/sim_train.jsonl
@@ -18,7 +22,7 @@ rm_batch_size: 4
 # policy
 policy_init: checkpoints/sft-qwen3-1.7b
 rm_path: checkpoints/rm-qwen3-1.7b
-output_dir: checkpoints/rlcd-qwen3-1.7b
+output_dir: checkpoints/rlcd-contrastive-qwen3-1.7b
 epochs: 1
 batch_size: 8
 grad_accum: 2
@@ -31,5 +35,5 @@ reward_weights:
   abstain: 0.3        # abstain when posterior is flat, not otherwise
   conservative: 0.3   # asymmetric penalty around the domain's safe action
   injection: 0.5      # consistency between injected and clean twins (needs clean twins in data)
-  rm: 0.5             # learned reward model, per action
+  rm: 0.5             # learned reward model, per action -- the part that makes this mechanism 1
 log_every: 10

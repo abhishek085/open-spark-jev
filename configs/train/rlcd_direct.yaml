@@ -1,0 +1,31 @@
+# Phase 2, mechanism 2: direct calibration objective, no contrastive pairs, no reward model.
+# The exact menu policy gradient optimizes proper scoring rules (Brier) directly against
+# ground-truth/teacher soft-label distributions already present in the training data
+# (target.dist from the simulators or a teacher's label_distribution()). This is our most
+# literal reconstruction of TypeSafe's own description of RLCD's reward: "producing a
+# confidence score that actually matches how often it's right" -- reward IS calibration,
+# nothing else in the loop. No `pairs` or `rm` stage needed; run `policy` directly:
+#   python -m open_spark_jev.train.rlcd policy --config configs/train/rlcd_direct.yaml
+# or: scripts/train_rlcd_direct.sh
+seed: 0
+data:
+  - data/synthetic/sim_train.jsonl
+  - data/synthetic/teacher_train.jsonl
+
+policy_init: checkpoints/sft-qwen3-1.7b
+rm_path: null            # no reward model -- see module docstring, mechanism 2
+output_dir: checkpoints/rlcd-direct-qwen3-1.7b
+epochs: 1
+batch_size: 8
+grad_accum: 2
+lr: 5.0e-6
+kl_beta: 0.05
+max_len: 2048
+gradient_checkpointing: true
+reward_weights:
+  brier: 1.0          # the entire reward signal in this mechanism, plus the shaping terms below
+  abstain: 0.3
+  conservative: 0.3
+  injection: 0.5
+  rm: 0.0             # explicitly off -- this is what distinguishes mechanism 2 from mechanism 1
+log_every: 10

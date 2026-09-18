@@ -3,16 +3,55 @@
 What in open-spark-Jev is a contribution rather than an integration, and the experiments that
 would establish it. Each experiment is runnable from this repo.
 
-## R1. Exact menu policy gradient vs. sampled-token RL
-**Claim.** For single-step decisions over a small menu, the policy distribution is available in
-closed form, so the RL objective `E_a~p[R(a)] + R_dist(p) - β KL(p‖p_ref)` can be
-differentiated exactly. This removes sampling variance, makes PPO/GRPO machinery
-unnecessary, and, more importantly, lets the reward include **proper scoring rules evaluated on
-the distribution itself** (Brier vs. posterior), which sampled-action RL cannot express.
-**Prediction.** Sampled GRPO with 0/1 correctness improves accuracy but *worsens* ECE
-(argmax collapse); the exact objective improves both.
-**Run.** `scripts/train_rlcd.sh` (exact) vs. `python -m open_spark_jev.train.rlcd_grpo`
-(sampled), evaluate both with `scripts/eval.sh`, compare `ece`, `soft_brier_vs_posterior`.
+## R1. What is "RLCD," when the only public definition is a goal?
+
+TypeSafe names their training method "RLCD" - "Reinforcement Learning for Calibrated
+Decisions" - and defines it only as an objective: reward "a confidence score that actually
+matches how often it's right," contrasted with RLHF (human preference) and RLVR (verifiable
+task reward). No reward formulation, loss, or supervised-stage details are published. The
+name collides with a *different*, fully published technique: RLCD, Yang et al. 2023,
+"Reinforcement Learning from Contrastive Distillation" - generate preference pairs by
+prompting one model with contrasting principles, train a reward model on the pairs, optimize
+against it. There is no way to know from public information whether TypeSafe's method is that
+technique, a relative of it, or something unrelated that happens to share an acronym.
+
+Rather than guess at one mechanism and call it done, this repo runs **four**, all targeting
+TypeSafe's stated goal, and scores all four the same way:
+
+| # | mechanism | config | needs a teacher? |
+|---|---|---|---|
+| 1 | academic RLCD (Yang et al.): contrastive pairs → Bradley-Terry RM → exact policy gradient with the RM's per-action score included | `configs/train/rlcd_contrastive.yaml` | yes |
+| 2 | direct calibration objective: same exact policy gradient, RM term off, reward is Brier against ground-truth/teacher soft labels only | `configs/train/rlcd_direct.yaml` | no (simulator posteriors suffice) |
+| 3 | sampled-token GRPO (TRL): standard RL baseline, reward is per-sample 0/1 correctness + a conservative-action penalty, policy distribution never directly observed | `configs/train/rlcd_grpo.yaml` | no |
+| 4 | no-RL control: post-hoc temperature scaling on the SFT checkpoint only | `eval/calibration_baseline.py` | no |
+
+**Claim A** (exact vs. sampled, independent of the RLCD-naming question). For single-step
+decisions over a small menu, the policy distribution is available in closed form, so
+`E_a~p[R(a)] + R_dist(p) - β KL(p‖p_ref)` can be differentiated exactly - no PPO/GRPO
+sampling variance, and critically the reward can include **proper scoring rules evaluated on
+the distribution itself** (Brier vs. posterior), which mechanism 3 cannot express because it
+only ever sees one sampled token per rollout. **Prediction**: mechanism 3's 0/1-correctness
+reward improves accuracy but *worsens* ECE (argmax collapse); mechanisms 1 and 2 improve
+both.
+
+**Claim B** (does the contrastive/RM detour help, or is direct calibration reward enough).
+Mechanism 1 spends a full extra training stage (pairs + RM) to get a learned, per-action
+reward signal; mechanism 2 skips straight to the proper scoring rule. If 2 matches or beats 1
+on `soft_brier_vs_posterior` and `ece`, the contrastive-pairs machinery is not pulling its
+weight for *this* objective, which would itself be a useful negative result about what "RLCD"
+plausibly needs to contain.
+
+**Claim C** (does RL earn its cost at all). Mechanism 4 costs nothing beyond the SFT run
+already required for 1-3's initialization. If it closes most of the SFT-to-RL gap on its own,
+that bounds how much credit any RL mechanism, ours or TypeSafe's undisclosed one, can claim
+for calibration specifically (as opposed to other things RL might be doing, like shifting
+accuracy or abstention behavior).
+
+**Run.** `scripts/train_rlcd_direct.sh`, `scripts/train_rlcd_contrastive.sh`,
+`python -m open_spark_jev.train.rlcd_grpo --config configs/train/rlcd_grpo.yaml`,
+`python -m open_spark_jev.eval.calibration_baseline`, then `scripts/eval.sh` on each
+checkpoint; compare `accuracy`, `ece`, `soft_brier_vs_posterior`, `injection_flip_rate`
+across all four in `docs/BENCHMARKS.md`.
 
 ## R2. Known-posterior decision benchmark
 **Claim.** Calibration should be measured against the true posterior, not one realised label.

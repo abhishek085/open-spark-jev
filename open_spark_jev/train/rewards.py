@@ -23,7 +23,8 @@ Principle-driven
                          ``clean_probs``). This is the direct anti-prompt-injection signal.
 * ``rm_reward``        : a learned reward model score in [0, 1] (see rlcd.py), rescaled.
 
-The composite reward used in configs/train/rlcd.yaml is:
+The composite reward used in configs/train/rlcd_contrastive.yaml (mechanism 1) and
+configs/train/rlcd_direct.yaml (mechanism 2, rm weight forced to 0) is:
     R = 1.0*brier + 0.3*abstain + 0.3*conservative + 0.5*injection + 0.5*rm
 """
 

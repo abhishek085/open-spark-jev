@@ -48,11 +48,21 @@ full-vocabulary logits. Verified against trtllm-serve 1.2.1. Details: [docs/ARCH
 * **Phase 1, supervised** (`train/sft.py`): multi-task menu heads over simulator, public and
   teacher-generated corpora, cross-entropy against *soft targets* + Brier regulariser,
   per-type temperature fitting.
-* **Phase 2, RLCD** (`train/rlcd.py`): contrastive pairs from a local teacher prompted with
-  opposed principles → a reward model that is itself a Noul → an **exact menu policy
-  gradient** (the full action distribution is available, so the expected reward is
-  differentiated directly, no PPO/GRPO sampling) with Brier, abstention, conservative-action,
-  injection-consistency and RM terms. A TRL GRPO baseline is included as an ablation.
+* **Phase 2, toward calibrated decisions** (`train/rlcd.py`): TypeSafe names their method
+  "RLCD" but has published only the goal (a reward for "a confidence score that actually
+  matches how often it's right"), not a mechanism - so this repo implements and compares
+  *two* independent ones. **Mechanism 1**, the academic RLCD (Yang et al. 2023,
+  `configs/train/rlcd_contrastive.yaml`): contrastive-principle pairs from a local teacher →
+  a reward model that is itself a Noul → the exact menu policy gradient with the RM's
+  per-action score folded in. **Mechanism 2**, a direct calibration objective
+  (`configs/train/rlcd_direct.yaml`): the same exact policy gradient with the RM term off,
+  optimizing proper scoring rules (Brier) directly against ground-truth/teacher soft labels -
+  our most literal reading of TypeSafe's stated reward. Both use the same exact menu policy
+  gradient machinery (the full action distribution is available in one forward pass, so the
+  expected reward is differentiated directly, no PPO/GRPO sampling), with abstention,
+  conservative-action and injection-consistency terms shared by both. A sampled-token TRL
+  GRPO baseline and a no-RL temperature-only control (`eval/calibration_baseline.py`) round
+  out the comparison.
 
 Data: [docs/DATA.md](docs/DATA.md). Research angles and experiments: [docs/RESEARCH.md](docs/RESEARCH.md).
 
@@ -68,8 +78,9 @@ scripts/download_weights.sh Qwen/Qwen3-1.7B   # -> models/Qwen3-1.7B
 
 scripts/make_data.sh                          # simulators (+ public sets, + teacher if TEACHER_BASE_URL)
 scripts/train_sft.sh                          # Phase 1  -> checkpoints/sft-qwen3-1.7b
-scripts/train_rlcd.sh                         # Phase 2  -> checkpoints/rlcd-qwen3-1.7b (needs a teacher on :8010)
-scripts/eval.sh hf checkpoints/rlcd-qwen3-1.7b
+scripts/train_rlcd_direct.sh                  # Phase 2, mechanism 2 -> checkpoints/rlcd-direct-qwen3-1.7b (no teacher needed)
+scripts/train_rlcd_contrastive.sh             # Phase 2, mechanism 1 -> checkpoints/rlcd-contrastive-qwen3-1.7b (needs a teacher on :8010)
+scripts/eval.sh hf checkpoints/rlcd-direct-qwen3-1.7b
 
 deploy/spark/pull_trtllm.sh                   # TensorRT-LLM container (arm64, CUDA 13)
 deploy/spark/quantize.sh configs/quant/fp8.yaml checkpoints/rlcd-qwen3-1.7b
