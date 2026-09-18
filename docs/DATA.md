@@ -31,3 +31,24 @@ generator in `data/public.py`.
 * teacher agreement histogram; inspect the suspect tail
 * duplicate states across records (exact match on `state.content`)
 * injected fraction ~10%; abstain fraction ~30%
+
+
+## Multi-teacher generation and comparison
+
+Generating and grading data with **more than one** teacher serves two separate purposes: (a)
+authoring diversity in the synthetic corpus, tagged per-record by source teacher so it can be
+ablated later, and (b) an honest, ground-truth-anchored answer to "which teacher should I
+trust," rather than assuming a bigger model is automatically a better grader.
+
+`configs/teachers.yaml` registers three teachers from three labs/architectures:
+`nvidia/Qwen3.6-27B-NVFP4` (dense), `nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4` (hybrid
+Mamba/MoE), `openai/gpt-oss-120b` (MoE, native MXFP4). `eval/teacher_benchmark.py` grades each
+reachable teacher's `label_distribution()` against the known-posterior simulator benchmark
+(the same soft-Brier/ECE metrics used to score the student) and scores an equal-weight
+ensemble across whichever teachers answered. First run (qwen27b only; the two 120B-class
+teachers were memory-preflight-gated on this box) is in
+[docs/BENCHMARKS.md](BENCHMARKS.md#teacher-comparison-ground-truth-anchored-evalteacher_benchmarkpy).
+
+Large teachers need launching one at a time on a memory-constrained box; see
+`scripts/teachers/` and the "Memory budget for teachers" note in `configs/teachers.yaml`.
+Full walkthrough: [docs/COOKBOOK.md](COOKBOOK.md#6-multi-teacher-synthetic-data-generation).

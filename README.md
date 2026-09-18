@@ -56,6 +56,9 @@ full-vocabulary logits. Verified against trtllm-serve 1.2.1. Details: [docs/ARCH
 
 Data: [docs/DATA.md](docs/DATA.md). Research angles and experiments: [docs/RESEARCH.md](docs/RESEARCH.md).
 
+**Want to build your own domain-specific version of this, not just run this one?**
+[docs/COOKBOOK.md](docs/COOKBOOK.md) is a start-to-finish, reusable recipe: pick a backbone, write known-posterior simulators for your domains, generate and grade synthetic data with multiple teachers, run SFT + RLCD, evaluate, quantize, serve - with a reusability matrix showing what ports over as-is versus what you rewrite.
+
 ## Quickstart on DGX Spark
 ```bash
 git clone <this repo> && cd Open-Spark-Jev
