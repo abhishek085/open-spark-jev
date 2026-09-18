@@ -127,8 +127,9 @@ def _security() -> NaiveBayesSpec:
 
     def render(f, rng):
         rows = [
-            {"event": "auth.attempt", "user": f"u{rng.randint(100, 999)}", "failed_attempts_last_10m": f["failed_attempts"],
-             "geo": f["geo"], "local_hour_bucket": f["hour"], "user_agent_class": f["user_agent"], "mfa": f["mfa"]}
+            {"event": "auth.attempt", "user": f"u{rng.randint(10**5, 10**6)}", "session": rng.randint(10**8, 10**9),
+             "failed_attempts_last_10m": f["failed_attempts"], "geo": f["geo"], "local_hour_bucket": f["hour"],
+             "user_agent_class": f["user_agent"], "mfa": f["mfa"]}
         ]
         return {"content": rows, "schema_hint": "authentication events (JSON rows)", "domain": "security"}
 
@@ -189,7 +190,8 @@ def _moderation() -> NaiveBayesSpec:
     }
 
     def render(f, rng):
-        return {"content": {"message": templates[f["content_kind"]], "author_history": f["history"], "user_reports": f["reports"]},
+        return {"content": {"message_id": f"msg-{rng.randint(10**7, 10**8)}", "message": templates[f["content_kind"]],
+                            "author_history": f["history"], "user_reports": f["reports"]},
                 "schema_hint": "chat message with moderation context", "domain": "moderation"}
 
     return NaiveBayesSpec(
@@ -213,8 +215,9 @@ def _incident() -> NaiveBayesSpec:
     }
 
     def render(f, rng):
+        ts = f"2026-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}T{rng.randint(0, 23):02d}:{rng.randint(0, 59):02d}:00Z"
         lines = [
-            f"[svc=checkout] error_rate_5m={f['error_rate']} p99_latency={f['p99_latency']} traffic={f['traffic']}",
+            f"[incident={rng.randint(10**5, 10**6)} ts={ts} svc=checkout] error_rate_5m={f['error_rate']} p99_latency={f['p99_latency']} traffic={f['traffic']}",
             f"[deploys] last_deploy={f['recent_deploy']}",
         ]
         return {"content": "\n".join(lines), "schema_hint": "service health summary (log lines)", "domain": "incident"}
@@ -240,7 +243,7 @@ def _game() -> NaiveBayesSpec:
     }
 
     def render(f, rng):
-        return {"content": {"agent": {"pos": [rng.randint(0, 9), rng.randint(0, 9)], "energy": f["energy"]},
+        return {"content": {"tick": rng.randint(0, 10**6), "agent": {"pos": [rng.randint(0, 999), rng.randint(0, 999)], "energy": f["energy"]},
                             "sensors": {"goal_direction": f["goal_dir"], "hazard_adjacent": f["hazard"]}},
                 "schema_hint": "grid-world agent observation", "domain": "game"}
 
