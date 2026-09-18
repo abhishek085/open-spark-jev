@@ -69,7 +69,7 @@ def main() -> None:
     val_recs: list[Record] = []
     for p in a.val_data:
         val_recs.extend(read_jsonl(p))
-    val_recs, _ = split_records(val_recs, 1 - a.val_frac, 0)  # take the held-out slice
+    _, val_recs = split_records(val_recs, a.val_frac, 0)  # split_records returns (rest, val_frac-slice)
     val_ex = build_examples(scorer, val_recs, a.max_len)
     log.info("fitting temperature on %d validation examples", len(val_ex))
     val_logits = collect_logits(scorer, val_ex)
