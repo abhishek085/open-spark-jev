@@ -125,8 +125,35 @@ Corrected rerun below.
 
 ## M8b: RLCD-direct, corrected (`correctness: 0.0`, pure Brier + shaping reward)
 
-Pending - training in progress as of this writing. Will replace this line with the same
-table once `runs/eval_rlcd_direct.json` is regenerated against the fix.
+Same held-out test set, checkpoint retrained from scratch with the fix from M8a.
+
+| slice | SFT acc | RLCD acc | SFT ECE | RLCD ECE | SFT Brier | RLCD Brier |
+|---|---|---|---|---|---|---|
+| choice/game | 0.780 | 0.777 | 0.061 | 0.043 | 0.346 | 0.336 |
+| choice/incident | 0.830 | 0.843 | 0.031 | 0.040 | 0.253 | 0.245 |
+| choice/moderation | 0.800 | 0.810 | 0.029 | 0.044 | 0.286 | 0.281 |
+| choice/routing | 0.837 | 0.837 | 0.030 | 0.042 | 0.272 | 0.273 |
+| noul/security | 0.983 | 0.987 | 0.010 | 0.014 | 0.023 | 0.024 |
+| score/risk | 0.617 | 0.623 | 0.042 | 0.042 | 0.510 | 0.496 |
+| **overall** | **0.808** | **0.813** | **0.020** | **0.020** | 0.282 | 0.276 |
+
+injection flip rate **0.038 -> 0.027** (down ~30% relative). Fitted per-type temperatures on
+this run's own validation split came back close to 1.0 (0.71-1.02) versus the buggy run's
+1.09-2.07 - direct confirmation the policy is no longer producing artificially sharp logits
+that needed heavy post-hoc cooling. KL-to-reference stayed an order of magnitude smaller
+throughout training (0.001-0.03 vs the buggy run's 0.04-0.15), consistent with a policy that
+only has reason to drift when chasing calibration, not when also chasing hard-label
+confidence.
+
+**Reading**: no dramatic calibration win over SFT alone - overall ECE is flat, and a few
+individual domains (routing, security) show a small ECE regression even under the corrected
+reward. What moved clearly and consistently: Brier (a proper scoring rule, the reward's
+actual optimization target) improved on 5 of 6 domains, and injection robustness improved
+substantially. This is a modest, defensible result, not the "no-RL is just as good" finding
+the buggy run misleadingly suggested, nor a dramatic calibration breakthrough - "does RL earn
+its cost at all" (RESEARCH.md Claim C) reads as a qualified yes here: yes for Brier and
+injection resistance specifically, not yet demonstrated for ECE over what SFT + temperature
+scaling already achieves. Mechanism 1 (contrastive) and GRPO below are the next data points.
 
 ## Teacher comparison (ground-truth anchored, `eval/teacher_benchmark.py`)
 20 records/domain from `sim_test.jsonl`, known posteriors. `qwen27b` = `nvidia/Qwen3.6-27B-NVFP4`
