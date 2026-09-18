@@ -9,7 +9,15 @@ data:
   - data/synthetic/teacher_train.jsonl
 teacher_base_url: http://localhost:8010/v1     # local vLLM/SGLang/trtllm-serve hosting a big open model
 teacher_model: null                             # null = first model the server lists
-max_pairs: 4000
+max_pairs: 500      # capped: this teacher's real single-request throughput is ~5 tok/s
+                     # (measured, not contention -- persisted with the GPU otherwise idle), so
+                     # 4000 pairs x 2 calls each was projected at 60+ hours even before
+                     # accounting for serialization. 500 pairs x 2 calls / concurrency 3 is
+                     # closer to ~1 hour and is plenty of signal for a Bradley-Terry RM.
+concurrency: 3       # matches configs/teachers.yaml's qwen27b max_concurrency (this teacher
+                     # crashed once under 6-way concurrent load earlier in this project, see
+                     # docs/BENCHMARKS.md's teacher-comparison section) -- do not raise this
+                     # against a shared/long-running teacher without good reason.
 pairs_path: data/synthetic/rlcd_pairs.jsonl
 
 # reward model (itself a menu scorer answering a Noul)

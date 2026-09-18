@@ -124,6 +124,17 @@ def _teacher_decide(teacher: Teacher, rec: Record, principles: str) -> dict[str,
 
 
 def make_pairs(cfg: dict) -> None:
+    """Generate contrastive pairs concurrently (ThreadPoolExecutor, same pattern as
+    eval/teacher_benchmark.py's grade_all). A first real run of this function called the
+    teacher sequentially, one record at a time, two calls each -- at this teacher's actual
+    single-request throughput (~5 tok/s for a 27B NVFP4 model with no request batching, not
+    primarily a GPU-contention artifact: it persisted with no other job on the GPU), 4000
+    records would have taken in excess of 60 hours. cfg["concurrency"] defaults to 6; keep it
+    modest if `teacher_base_url` points at a shared/long-running server (see
+    configs/teachers.yaml's per-teacher max_concurrency and the crash noted in
+    docs/BENCHMARKS.md from over-concurrent grading requests earlier in this project)."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     teacher = Teacher(cfg.get("teacher_base_url"), cfg.get("teacher_model"))
     recs: list[Record] = []
     for p in cfg["data"]:
@@ -131,13 +142,26 @@ def make_pairs(cfg: dict) -> None:
     rng = random.Random(cfg.get("seed", 0))
     rng.shuffle(recs)
     recs = recs[: cfg.get("max_pairs", 4000)]
-    pairs: list[Record] = []
-    for r in recs:
+    concurrency = cfg.get("concurrency", 6)
+
+    def _one(r: Record) -> Record | None:
         pos, neg = _teacher_decide(teacher, r, POS_PRINCIPLES), _teacher_decide(teacher, r, NEG_PRINCIPLES)
         if not pos or not neg:
-            continue
-        pairs.append(Record(id=f"pair-{r.id}", domain=r.domain, source="rlcd-pairs", state=r.state, question=r.question,
-                            target=r.target, meta={**r.meta, "chosen": pos, "rejected": neg}))
+            return None
+        return Record(id=f"pair-{r.id}", domain=r.domain, source="rlcd-pairs", state=r.state, question=r.question,
+                       target=r.target, meta={**r.meta, "chosen": pos, "rejected": neg})
+
+    pairs: list[Record] = []
+    done = 0
+    with ThreadPoolExecutor(max_workers=concurrency) as ex:
+        futs = [ex.submit(_one, r) for r in recs]
+        for fut in as_completed(futs):
+            done += 1
+            result = fut.result()
+            if result is not None:
+                pairs.append(result)
+            if done % 100 == 0:
+                log.info("pairs progress: %d/%d records processed, %d pairs so far", done, len(recs), len(pairs))
     n = write_jsonl(cfg["pairs_path"], pairs)
     log.info("wrote %d pairs to %s", n, cfg["pairs_path"])
 
