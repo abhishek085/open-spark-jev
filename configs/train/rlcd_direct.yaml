@@ -28,4 +28,11 @@ reward_weights:
   conservative: 0.3
   injection: 0.5
   rm: 0.0             # explicitly off -- this is what distinguishes mechanism 2 from mechanism 1
+  correctness: 0.0    # explicitly off -- see train/rlcd.py train_policy(): this is a hard-label
+                       # confidence term that fights the Brier term above whenever the true
+                       # posterior isn't one-hot. Leaving it > 0 defeats mechanism 2's whole
+                       # point ("reward is calibration, nothing else"). A first real run left
+                       # this term unweighted at effective 1.0 by a code bug and measurably
+                       # worsened ECE on every domain -- see runs/archive_buggy_rlcd_direct_20260918/
+                       # and docs/BENCHMARKS.md for the before/after.
 log_every: 10

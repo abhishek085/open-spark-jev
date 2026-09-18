@@ -294,21 +294,32 @@ def train_policy(cfg: dict) -> None:
 
             # Per-action reward R(a) and distribution reward R_dist(p), computed exactly.
             J = torch.zeros(len(b), device=z.device)
+            w = cfg["reward_weights"]
             for j, e in enumerate(b):
                 r = rec_by_ex[id(e)]
                 labels = r.question_obj().labels
                 K = len(labels)
                 pj = p[j, :K]
                 per_action = torch.zeros(K, device=z.device)
-                for a in range(K):
-                    per_action[a] = 1.0 if a == e.target_idx else 0.0
+                # Hard-label correctness on the single *sampled* target, weighted and OFF by
+                # default (reward_weights["correctness"], default 0.0). This term rewards full
+                # confidence on one sampled outcome, which directly fights the Brier term below
+                # whenever the true posterior isn't already one-hot -- i.e. on most records. A
+                # earlier version of this loop added it unconditionally at effective weight 1.0,
+                # which silently defeated mechanism 2's "reward is calibration, nothing else"
+                # design and measurably worsened ECE on every domain in the first real run (see
+                # docs/BENCHMARKS.md). Leave at 0 for a clean calibration-only reward; set > 0
+                # deliberately if you want to blend in argmax-correctness pressure and are
+                # prepared for the calibration tradeoff that implies.
+                correctness_w = w.get("correctness", 0.0)
+                if correctness_w:
+                    per_action[e.target_idx] = correctness_w
                 if id(e) in rm_cache:
-                    per_action = per_action + cfg["reward_weights"]["rm"] * (2 * torch.tensor(rm_cache[id(e)], device=z.device) - 1)
+                    per_action = per_action + w["rm"] * (2 * torch.tensor(rm_cache[id(e)], device=z.device) - 1)
                 expected = (pj * per_action).sum()
                 # distribution-level terms are differentiable in p directly
                 tdist = e.target_dist or [1.0 if i == e.target_idx else 0.0 for i in range(K)]
                 td = torch.tensor(tdist, device=z.device)
-                w = cfg["reward_weights"]
                 dist_r = w.get("brier", 1.0) * (1.0 - ((pj - td) ** 2).sum())
                 if "abstain" in labels and w.get("abstain", 0):
                     ai = labels.index("abstain")

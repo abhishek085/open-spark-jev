@@ -36,4 +36,8 @@ reward_weights:
   conservative: 0.3   # asymmetric penalty around the domain's safe action
   injection: 0.5      # consistency between injected and clean twins (needs clean twins in data)
   rm: 0.5             # learned reward model, per action -- the part that makes this mechanism 1
+  correctness: 0.0    # explicitly off -- keeps mechanism 1's per-action reward driven only by
+                       # the RM (which was itself trained toward calibrated/safe/uninfluenced
+                       # decisions), not mixed with a raw hard-label-matching term. See
+                       # train/rlcd.py train_policy() and configs/train/rlcd_direct.yaml for why.
 log_every: 10
