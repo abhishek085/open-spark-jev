@@ -12,11 +12,12 @@ distribution over that menu from a single forward pass.
       ┌──────────────────────────┼──────────────────────────┐
       ▼                          ▼                          ▼
   Q1 suffix                  Q2 suffix                  Q3 suffix
-  "...Options: A. B. C.       "...Levels: A. B. C. D."    "Claim ... A. Yes B. No"
-   Answer:"                    Answer:"                    Answer:"
+  "...Options: A. B. C."      "...Levels: A. B. C. D."    "Claim ... A. Yes B. No"
+  + <|im_start|>assistant     + <|im_start|>assistant     + <|im_start|>assistant
+    <think></think>             <think></think>             <think></think>
       │                          │                          │
-  next-token logits          next-token logits          next-token logits
-  gather {" A"," B"," C"}    gather {" A".." D"}         gather {" A"," B"}
+  first-token logits         first-token logits         first-token logits
+  gather {"A","B","C"}       gather {"A".."D"}          gather {"A","B"}
   ÷ T_choice, softmax        ÷ T_score, softmax         ÷ T_noul, softmax
       │                          │                          │
   Choice answer              Score answer               Noul answer
@@ -30,16 +31,22 @@ fits Spark's latency budget with headroom for a co-resident teacher. `Qwen3-0.6B
 the smoke-test size; `Qwen3-4B` is the accuracy-ceiling probe (see RESEARCH.md, Exp. 5).
 
 ## 2. Menu scoring = restricted LM head
-The "menu head" is the backbone's own LM head restricted to ≤26 rows (`" A"`..`" Z"`).
+The "menu head" is the backbone's own LM head restricted to ≤26 rows (bare `A`..`Z`, each a
+single Qwen token). The answer is the **first assistant token** after the non-thinking header.
 Consequences:
 
-* **Zero extra parameters, zero custom kernels.** Any engine that can return next-token
-  logprobs can serve decisions. `serve/client.py` shows this with
-  `/v1/completions` + `max_tokens=1` + `logprobs`, which is exactly what `trtllm-serve` exposes.
+* **Zero extra parameters, zero custom kernels, zero custom server.** Any OpenAI-compatible
+  chat endpoint that returns `top_logprobs` serves decisions unchanged. `serve/client.py`
+  does this with `/v1/chat/completions` + `max_tokens=1` + `logprobs` +
+  `chat_template_kwargs={"enable_thinking": false}`; verified on `trtllm-serve` 1.2.1 (whose
+  `/v1/completions` does *not* accept `logprobs`). `serve/trtllm_backend.py` uses the TRT-LLM
+  Python API in-container for full-vocabulary first-token logits when a menu exceeds the
+  endpoint's `top_logprobs` cap (20).
 * **Structured-output error rate is 0 by construction.** The answer space is closed; there is
   nothing to parse.
-* **One prompt format for training and serving.** `prompting.py` renders plain text (no
-  tokenizer chat-template call), so HF and TRT-LLM see identical token sequences.
+* **One prompt format for training and serving.** `prompting.render_prompt` is byte-identical
+  to `apply_chat_template(render_messages(...), add_generation_prompt=True, enable_thinking=False)`
+  (unit-tested), so HF training and every serving path see the same tokens.
 
 An optional learned linear head (`aux_head: true`) exists purely as an ablation.
 

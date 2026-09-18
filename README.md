@@ -33,14 +33,16 @@ answers = m.decide(state, [
 
 ## How it works (short version)
 1. The state is rendered once inside hard fences and run through the decoder; its KV cache is kept.
-2. Each question is rendered as a menu (`A. ... B. ...`) ending in `Answer:` and appended to a copy of that cache.
-3. The next-token logits are **restricted to the label tokens** (`" A"`, `" B"`, ...), divided by a
-   calibrated temperature, and softmaxed. That distribution *is* the answer.
+2. Each question is rendered as a menu (`A. ... B. ...`) plus the Qwen3 non-thinking assistant
+   header, and appended to a copy of that cache.
+3. The logits of the **first assistant token** are restricted to the bare label tokens
+   (`A`, `B`, ...), divided by a calibrated temperature, and softmaxed. That distribution *is* the answer.
 
-Because the "menu head" is the backbone's own LM head over ≤26 rows, any engine that returns
-next-token logprobs can serve it. On Spark that engine is `trtllm-serve` (PyTorch backend,
-prefix caching on), and the gateway reproduces the exact same computation via
-`/v1/completions` + `logprobs`. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Because the "menu head" is the backbone's own LM head over ≤26 rows and the prompt is exactly the
+chat template's non-thinking output, any OpenAI-compatible chat endpoint that returns
+`top_logprobs` serves it unchanged. On Spark that is `trtllm-serve` (PyTorch backend, prefix
+caching on); the gateway also has an in-container backend on the TRT-LLM Python API for
+full-vocabulary logits. Verified against trtllm-serve 1.2.1. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Training
 * **Phase 1, supervised** (`train/sft.py`): multi-task menu heads over simulator, public and
@@ -69,7 +71,8 @@ scripts/eval.sh hf checkpoints/rlcd-qwen3-1.7b
 deploy/spark/pull_trtllm.sh                   # TensorRT-LLM container (arm64, CUDA 13)
 deploy/spark/quantize.sh configs/quant/fp8.yaml checkpoints/rlcd-qwen3-1.7b
 deploy/spark/serve.sh engines/rlcd-qwen3-1.7b-fp8     # trtllm-serve :8355
-deploy/spark/gateway.sh checkpoints/rlcd-qwen3-1.7b   # System One API :8400
+deploy/spark/gateway.sh checkpoints/rlcd-qwen3-1.7b   # System One API :8400 (chat logprobs path)
+#   or: deploy/spark/gateway_trtllm.sh <model>          # gateway inside the container, TRT-LLM Python API
 deploy/spark/smoke_curl.sh
 ```
 Spark specifics (container tags, kernels, memory, quantization + temperature re-fit):

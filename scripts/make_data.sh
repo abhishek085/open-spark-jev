@@ -4,6 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 . .venv/bin/activate
+export TRITON_CACHE_DIR="$PWD/.triton_cache"
 osj simulate --n 3000 --seed 0 --out data/synthetic/sim_train.jsonl
 osj simulate --n 500  --seed 1 --out data/benchmarks/sim_test.jsonl
 osj public --limit 2000 --seed 0 --out data/raw/public_train.jsonl || echo "public datasets skipped (offline?)"

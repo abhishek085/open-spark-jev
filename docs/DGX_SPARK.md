@@ -48,7 +48,18 @@ milliseconds in-process; through trtllm-serve with prefix reuse the per-question
 dominated by HTTP + scheduler overhead, which batching questions per state amortises.
 `python -m open_spark_jev.eval.latency` produces the grid; fill `docs/BENCHMARKS.md` from it.
 
+## Serving-path facts verified on 1.2.1
+* `/v1/completions` rejects `logprobs` ("logprobs is not supported"); `/v1/chat/completions`
+  accepts `logprobs: true, top_logprobs: 20` and `chat_template_kwargs: {enable_thinking: false}`.
+* Assistant-message prefill is not continued (the template closes the message), which is why
+  the prompt convention makes the answer letter the *first* assistant token.
+* `usage.prompt_tokens_details.cached_tokens` shows prefix reuse working when questions on
+  the same state are sent back-to-back.
+* The Python LLM API exposes `SamplingParams(logprobs=..., return_generation_logits=True)`;
+  `serve/trtllm_backend.py` uses that for full-vocab gathering.
+
 ## Gotchas specific to this box
+* `~/.triton` may be root-owned; export `TRITON_CACHE_DIR=$PWD/.triton_cache` (scripts do).
 * GB10 is SM121: FlashAttention-3 is unsupported; TRT-LLM's PyTorch backend picks its own
   kernels, and for HF use `sdpa` (default) rather than `flash_attention_2`.
 * `nvidia-smi` reports `[N/A]` for memory on Spark; use `free -g` (unified memory) and

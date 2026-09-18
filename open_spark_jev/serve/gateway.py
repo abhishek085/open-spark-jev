@@ -10,7 +10,8 @@ GET  /v1/models, /healthz
 
 Backends (``--backend``):
   hf       in-process MenuScorer (dev / small-batch)
-  openai   an OpenAI-compatible server, normally trtllm-serve on the same Spark (production)
+  openai   an OpenAI-compatible chat server, normally trtllm-serve on the same Spark (production)
+  trtllm   in-process TensorRT-LLM Python API (run inside the TRT-LLM container; full-vocab logits)
 
 Run:
   python -m open_spark_jev.serve.gateway --backend openai --upstream http://localhost:8355/v1 --port 8400
@@ -112,6 +113,13 @@ def build_backend(kind: str, model: str | None, upstream: str | None):
         from ..model import MenuScorer
 
         BACKEND = MenuScorer(model or os.environ.get("OSJ_MODEL", "models/Qwen3-1.7B"))
+    elif kind == "trtllm":
+        from ..model import Calibration
+        from .trtllm_backend import TRTLLMBackend
+
+        path = model or os.environ.get("OSJ_MODEL", "models/Qwen3-1.7B")
+        cal = Calibration.load(os.path.join(path, "calibration.json")) if os.path.exists(os.path.join(path, "calibration.json")) else None
+        BACKEND = TRTLLMBackend(path, calibration=cal)
     else:
         from ..model import Calibration
         from .client import OpenAICompletionsBackend
@@ -127,7 +135,7 @@ def main() -> None:
     import uvicorn
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", choices=["hf", "openai"], default="openai")
+    ap.add_argument("--backend", choices=["hf", "openai", "trtllm"], default="openai")
     ap.add_argument("--model", help="HF path (also used to load calibration.json for openai backend)")
     ap.add_argument("--upstream", default="http://localhost:8355/v1")
     ap.add_argument("--host", default="0.0.0.0")

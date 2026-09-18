@@ -3,17 +3,18 @@
 The whole trick of menu scoring is that every answer is exactly **one token** drawn from a
 small, fixed set. We therefore:
 
-1. Render ``state + question`` into a chat-formatted prompt that ends right before the
-   answer token (``"... Answer:"``).
-2. Map answer slot *i* to the label token ``" A"``, ``" B"``, ... (a leading space so the
-   token is the natural continuation of ``"Answer:"``).
-3. Read the next-token logits at the last position, gather the label token ids, softmax.
+1. Render ``state + question`` as a system + user message pair and close it with the Qwen3
+   non-thinking assistant header (``<|im_start|>assistant\n<think>\n\n</think>\n\n``).
+2. Map answer slot *i* to the bare label token ``"A"``, ``"B"``, ... - the **first token the
+   assistant emits**. (Bare letters are single tokens in the Qwen tokenizer; verified at init.)
+3. Read the next-token logits at the last prompt position, gather the label ids, softmax.
 
-Because the rendering is plain text (no tokenizer-side chat template tricks), the exact
-same prompt can be sent to HF Transformers in-process or to ``trtllm-serve`` /
-vLLM / SGLang via ``/v1/completions`` with ``max_tokens=1, logprobs=N`` and produce the same
-distribution. That is what keeps the menu heads "TensorRT-LLM compatible" without a single
-custom kernel.
+The plain-text rendering is byte-identical to ``tokenizer.apply_chat_template(messages,
+add_generation_prompt=True, enable_thinking=False)``. So the exact same distribution can be
+obtained in-process (HF) or from any OpenAI-compatible chat endpoint - ``trtllm-serve``,
+vLLM, SGLang - with ``max_tokens=1, logprobs=true, top_logprobs=N`` and
+``chat_template_kwargs={"enable_thinking": false}``. That is what keeps the menu heads
+"TensorRT-LLM compatible" without a custom kernel or a custom server.
 
 Prompt-injection posture: the state is wrapped in ``<<<STATE ... STATE>>>`` fences and the
 system prompt tells the model the state is untrusted data. The answer space being a closed
@@ -42,8 +43,8 @@ SYSTEM_PROMPT = (
 STATE_OPEN = "<<<STATE"
 STATE_CLOSE = "STATE>>>"
 
-# Letters as labels: 26 slots. Chosen because " A" ... " Z" are single tokens in the Qwen
-# tokenizer (verified at scorer init by LabelSpace.verify).
+# Letters as labels: 26 slots. Bare "A" ... "Z" are single tokens in the Qwen tokenizer
+# (verified at scorer init by LabelSpace.build).
 LABEL_CHARS = string.ascii_uppercase
 
 
@@ -51,11 +52,11 @@ LABEL_CHARS = string.ascii_uppercase
 class LabelSpace:
     """Maps answer slot index -> label text -> token id."""
 
-    texts: tuple[str, ...]  # e.g. (" A", " B", ...)
+    texts: tuple[str, ...]  # e.g. ("A", "B", ...)
     token_ids: tuple[int, ...]
 
     @classmethod
-    def build(cls, tokenizer, n: int = 26, prefix: str = " ") -> LabelSpace:
+    def build(cls, tokenizer, n: int = 26, prefix: str = "") -> LabelSpace:
         texts = tuple(f"{prefix}{c}" for c in LABEL_CHARS[:n])
         ids = []
         for t in texts:
@@ -123,6 +124,23 @@ def render_state_block(state: State, max_chars: int = 12_000) -> str:
     return "\n".join(parts)
 
 
+ASSISTANT_HEADER = "<|im_start|>assistant\n<think>\n\n</think>\n\n"
+
+
+def render_user_content(state: State, q: Question, max_chars: int = 12_000) -> str:
+    return f"{render_state_block(state, max_chars)}\n\n{render_question_block(q)}"
+
+
+def render_messages(
+    state: State, q: Question, system_prompt: str = SYSTEM_PROMPT, max_chars: int = 12_000
+) -> list[dict[str, str]]:
+    """Chat-API form. Send with enable_thinking=False, max_tokens=1, logprobs on."""
+    return [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": render_user_content(state, q, max_chars)},
+    ]
+
+
 def render_prefix(state: State, system_prompt: str = SYSTEM_PROMPT, max_chars: int = 12_000) -> str:
     """Everything that depends only on the state. This is the KV-cache prefix."""
     return (
@@ -132,16 +150,14 @@ def render_prefix(state: State, system_prompt: str = SYSTEM_PROMPT, max_chars: i
 
 
 def render_suffix(q: Question) -> str:
-    """Everything that depends on the question. Appended after the prefix; ends with 'Answer:'.
+    """Everything that depends on the question. Appended after the prefix; ends with the
+    non-thinking assistant header so the very next token is the answer letter.
 
     The empty ``<think>`` block is the Qwen3 convention for non-thinking mode, which keeps the
-    model in the same regime it was fine-tuned in (we never want chain-of-thought at decision
+    model in the regime it was fine-tuned in (we never want chain-of-thought at decision
     time: System One is single-pass).
     """
-    return (
-        f"{render_question_block(q)}<|im_end|>\n"
-        f"<|im_start|>assistant\n<think>\n\n</think>\n\nAnswer:"
-    )
+    return f"{render_question_block(q)}<|im_end|>\n{ASSISTANT_HEADER}"
 
 
 def render_prompt(state: State, q: Question, **kw) -> str:
@@ -156,4 +172,4 @@ def label_texts(q: Question, space: LabelSpace | None = None) -> list[str]:
     n = len(q.labels)
     if space is not None:
         return list(space.texts[:n])
-    return [f" {c}" for c in LABEL_CHARS[:n]]
+    return list(LABEL_CHARS[:n])

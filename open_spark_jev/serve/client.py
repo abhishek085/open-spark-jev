@@ -1,11 +1,20 @@
 """Backends and clients.
 
 ``OpenAICompletionsBackend`` reproduces menu scoring against *any* OpenAI-compatible server
-(trtllm-serve, vLLM, SGLang) using ``/v1/completions`` with ``max_tokens=1`` and ``logprobs``:
-the prompt is the exact same text HF sees, the server returns top-k next-token logprobs, we
-pick the label tokens out of them and renormalise. Prefix caching on the server (TRT-LLM
-``enable_block_reuse``) plays the role of our in-process state cache: all questions for one
-state share the prefix, so sending them together is what makes it fast.
+(trtllm-serve, vLLM, SGLang). Default ``mode="chat"``: ``/v1/chat/completions`` with the
+system+user messages from ``prompting.render_messages``, ``chat_template_kwargs=
+{"enable_thinking": false}``, ``max_tokens=1``, ``logprobs=true``, ``top_logprobs=N``. The
+rendered prompt is byte-identical to what HF sees, the server returns the top-N first-token
+logprobs, we pick the label tokens out of them and renormalise. ``mode="completions"`` sends
+the raw prompt to ``/v1/completions`` for servers that support ``logprobs`` there (vLLM,
+SGLang; trtllm-serve 1.2.1 does not).
+
+Caveat: OpenAI-style ``top_logprobs`` is capped (20 on trtllm-serve). Labels outside the top-N
+get ``floor_logprob``; for menus with more than ~15 options or exact full-vocab gathering use
+``serve/trtllm_backend.py`` (in-container TRT-LLM Python API) or the HF backend.
+
+Prefix caching on the server (TRT-LLM ``enable_block_reuse``) plays the role of our in-process
+state cache: all questions for one state share the prefix, so send them together.
 
 ``GatewayClient`` talks to the open-spark-Jev gateway's ``/v1/decide``.
 """
@@ -18,41 +27,62 @@ from collections.abc import Sequence
 import httpx
 
 from ..model import Calibration
-from ..prompting import label_texts, render_prompt
+from ..prompting import label_texts, render_messages, render_prompt
 from ..schema import Answer, Question, State
 
 
 class OpenAICompletionsBackend:
-    def __init__(self, base_url: str, model: str | None = None, calibration: Calibration | None = None,
-                 top_logprobs: int = 30, timeout: float = 60.0, api_key: str = "EMPTY", floor_logprob: float = -30.0):
+    def __init__(
+        self,
+        base_url: str,
+        model: str | None = None,
+        calibration: Calibration | None = None,
+        top_logprobs: int = 20,
+        timeout: float = 60.0,
+        api_key: str = "EMPTY",
+        floor_logprob: float = -30.0,
+        mode: str = "chat",
+    ):
         self.base_url = base_url.rstrip("/")
         self.client = httpx.Client(base_url=self.base_url, timeout=timeout, headers={"Authorization": f"Bearer {api_key}"})
         self.model = model or self.client.get("/models").json()["data"][0]["id"]
         self.calibration = calibration or Calibration()
         self.top_logprobs = top_logprobs
         self.floor = floor_logprob
+        self.mode = mode
         self.name = self.model
 
-    def _label_logits(self, prompt: str, labels: list[str]) -> list[float]:
-        body = {"model": self.model, "prompt": prompt, "max_tokens": 1, "temperature": 0.0, "logprobs": self.top_logprobs}
+    def _top_logprobs(self, state: State, q: Question) -> dict[str, float]:
+        if self.mode == "chat":
+            body = {
+                "model": self.model,
+                "messages": render_messages(state, q),
+                "max_tokens": 1,
+                "temperature": 0.0,
+                "logprobs": True,
+                "top_logprobs": self.top_logprobs,
+                "chat_template_kwargs": {"enable_thinking": False},
+            }
+            r = self.client.post("/chat/completions", json=body)
+            r.raise_for_status()
+            content = r.json()["choices"][0]["logprobs"]["content"]
+            return {t["token"]: float(t["logprob"]) for t in content[0]["top_logprobs"]} if content else {}
+        body = {"model": self.model, "prompt": render_prompt(state, q), "max_tokens": 1, "temperature": 0.0, "logprobs": self.top_logprobs}
         r = self.client.post("/completions", json=body)
         r.raise_for_status()
-        ch = r.json()["choices"][0]
-        lp = ch["logprobs"]
-        top = (lp.get("top_logprobs") or [{}])[0]
-        # Servers differ on whether keys are token strings or "token:id"; match on string.
-        out = []
-        for t in labels:
-            v = top.get(t)
-            if v is None:  # some servers strip the leading space in keys
-                v = top.get(t.strip())
-            out.append(float(v) if v is not None else self.floor)
-        return out
+        lp = r.json()["choices"][0]["logprobs"]
+        return {k: float(v) for k, v in ((lp.get("top_logprobs") or [{}])[0]).items()}
 
-    def decide(self, state: State, questions: Sequence[Question], temperature: float | None = None, return_logits: bool = False) -> list[Answer]:
+    def _label_logits(self, state: State, q: Question, labels: list[str]) -> list[float]:
+        top = self._top_logprobs(state, q)
+        return [top[t] if t in top else self.floor for t in labels]
+
+    def decide(
+        self, state: State, questions: Sequence[Question], temperature: float | None = None, return_logits: bool = False
+    ) -> list[Answer]:
         answers = []
         for q in questions:
-            z = self._label_logits(render_prompt(state, q), label_texts(q))
+            z = self._label_logits(state, q, label_texts(q))
             t = temperature if temperature is not None else self.calibration.t(q.type)
             m = max(z)
             e = [math.exp((x - m) / t) for x in z]

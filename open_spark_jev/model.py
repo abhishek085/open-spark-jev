@@ -10,9 +10,9 @@ Mechanics
   is kept.
 * Each question suffix is appended to a copy of that cache and run in a single batched
   forward pass. Suffixes are right-padded; we read the logits at each suffix's last real
-  token (the position right after ``"Answer:"``).
+  token (the first assistant token after the non-thinking header).
 * The full-vocab logits at that position are gathered at the label token ids
-  (``" A"``, ``" B"``, ...) - only as many as the question has labels - divided by the
+  (bare ``"A"``, ``"B"``, ...) - only as many as the question has labels - divided by the
   calibrated temperature, and softmaxed.
 
 There is **no extra parameter** in the default configuration: the "menu head" is the

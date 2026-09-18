@@ -1,6 +1,6 @@
 """Ablation baseline: sampled single-token GRPO with TRL.
 
-The policy emits ONE token after "Answer:" (the label letter). GRPO samples G completions per
+The policy emits ONE token as its first assistant token (the label letter). GRPO samples G completions per
 prompt, scores each with the reward functions below, and applies group-relative advantages.
 This is the "standard RL" comparison point for the exact menu policy gradient in rlcd.py.
 

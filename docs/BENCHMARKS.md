@@ -18,25 +18,27 @@ the posterior is the calibration metric that has a true zero.
 | **overall** | **0.818** | |
 
 ## M6: base Qwen3-1.7B, zero-shot, HF bf16 (no training, T = 1)
-`runs/eval_base_zero_shot.json`
+`runs/eval_base_zero_shot.json` (prompt convention: bare letter as first assistant token)
 
 | slice | acc | macro-F1 | ECE | Brier | soft Brier vs posterior |
 |---|---|---|---|---|---|
-| choice/routing | 0.44 | 0.37 | 0.55 | 1.10 | 0.82 |
-| choice/moderation | 0.44 | 0.25 | 0.56 | 1.11 | 0.83 |
-| choice/incident | (see json) | | | | |
-| choice/game | (see json) | 0.13 | 0.63 | 1.27 | 1.05 |
-| noul/security | 0.60 | 0.27 | 0.40 | 0.80 | 0.77 (noul Brier 0.18) |
-| score/risk | 0.35 | 0.19 | 0.64 | 1.29 | 0.77 |
-| **overall** | **0.39** | 0.26 | **0.60** | 1.21 | |
+| choice/routing | 0.44 | 0.35 | 0.53 | 1.09 | 0.82 |
+| choice/moderation | 0.18 | 0.10 | 0.80 | 1.57 | 1.34 |
+| choice/incident | 0.36 | 0.13 | 0.64 | 1.28 | 1.06 |
+| choice/game | 0.14 | 0.09 | 0.86 | 1.72 | 1.40 |
+| noul/security | 0.60 | 0.26 | 0.40 | 0.79 | 0.76 |
+| score/risk | 0.31 | 0.16 | 0.68 | 1.37 | 0.93 |
+| **overall** | **0.34** | 0.24 | **0.65** | 1.30 | |
 
-* injection flip rate: **0.60** (argmax differs from posterior argmax on injected states)
-* throughput (HF, one unique state per record, no batching across states): 24 decisions/s
+* injection flip rate: **0.67** (argmax differs from posterior argmax on injected states)
+* throughput (HF, one unique state per record, no cross-state batching): 24 decisions/s
 
 Reading: the untrained backbone already understands the menu format (it never emits an
 invalid label by construction) but is wildly over-confident: near-one-hot distributions
-(ECE 0.60) and it follows injected instructions most of the time. This is the "before"
-row for Phase 1 / Phase 2 and for the served-engine comparison.
+(ECE 0.65) and it follows injected instructions most of the time. This is the "before"
+row for Phase 1 / Phase 2 and for the served-engine comparison. (An earlier variant with an
+explicit `Answer:` prefix scored acc 0.39 / ECE 0.60; it was dropped because chat endpoints
+cannot prefill the assistant turn, see docs/DGX_SPARK.md.)
 
 ## Latency (HF backend, bf16, in-process)
 Smoke test: 4 questions on a 188-token state, cached prefix, 61.9 ms total, 3.9 GB peak.

@@ -11,7 +11,7 @@ from open_spark_jev.schema import Choice, Noul, Score, State
 
 model = sys.argv[1] if len(sys.argv) > 1 else "models/Qwen3-1.7B"
 m = MenuScorer(model)
-print("label tokens:", list(zip(m.labels.texts[:5], m.labels.token_ids[:5])), "...")
+print("label tokens (bare letters, first assistant token):", list(zip(m.labels.texts[:5], m.labels.token_ids[:5])), "...")
 
 state = State(
     content={"ticket": "Charged twice for my Pro plan this month, and the invoice PDF is missing. Please fix ASAP.",

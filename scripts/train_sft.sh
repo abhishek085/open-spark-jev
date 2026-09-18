@@ -2,4 +2,5 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 . .venv/bin/activate
+export TRITON_CACHE_DIR="$PWD/.triton_cache"
 python -m open_spark_jev.train.sft --config "${1:-configs/train/sft.yaml}" "${@:2}"

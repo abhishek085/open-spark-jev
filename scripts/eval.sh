@@ -5,6 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 . .venv/bin/activate
+export TRITON_CACHE_DIR="$PWD/.triton_cache"
 mkdir -p runs
 if [ "${1:-hf}" = "hf" ]; then
   python -m open_spark_jev.eval.benchmark --backend hf --model "${2:-models/Qwen3-1.7B}" --data data/benchmarks/sim_test.jsonl --out "runs/eval_$(basename "${2:-base}").json"
