@@ -286,11 +286,19 @@ def train_policy(cfg: dict) -> None:
     rec_by_ex = {id(e): e.record for e in train_ex}
     log.info("policy train %d val %d", len(train_ex), len(val_ex))
 
-    # Pre-compute per-action RM scores (expensive, done once).
+    # Pre-compute per-action RM scores (expensive, done once). One rm.decide() call per label
+    # per training example (K forward passes per record, no batching across records) -- this
+    # had no progress logging at all in a first real run, which looked indistinguishable from a
+    # hang for ~20 minutes on 16.5k examples even though it was working the whole time. Log
+    # periodically so that distinction is visible without having to check `nvidia-smi`/`ps`.
     rm_cache: dict[int, list[float]] = {}
     if rm is not None:
-        for e in train_ex:
+        t_rm0 = time.time()
+        for i, e in enumerate(train_ex):
             rm_cache[id(e)] = rm.score_actions(rec_by_ex[id(e)])
+            if (i + 1) % 500 == 0:
+                log.info("RM pre-scoring: %d/%d examples (%.0fs elapsed)", i + 1, len(train_ex), time.time() - t_rm0)
+        log.info("RM pre-scoring done: %d examples in %.0fs", len(train_ex), time.time() - t_rm0)
         del rm
         torch.cuda.empty_cache()
 
