@@ -1,0 +1,6 @@
+# ModelOpt PTQ recipe (used by deploy/spark/quantize.sh). FP8 is the safe default for a 1.7B
+# model: negligible calibration drift, ~2x weight bandwidth savings, native on Blackwell.
+qformat: fp8
+kv_cache_qformat: fp8
+calib_size: 512
+calib_source: data/synthetic/sim_train.jsonl   # calibrate on *decision prompts*, not generic text

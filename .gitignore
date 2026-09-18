@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.ruff_cache/
+.pytest_cache/
+# data + artifacts (keep the directory READMEs)
+data/raw/*
+data/synthetic/*
+data/benchmarks/*
+!data/**/README.md
+runs/
+checkpoints/
+engines/
+*.safetensors
+*.bin
+*.pt
+*.log
+.env
+models/
+.hf/
+.triton_cache/

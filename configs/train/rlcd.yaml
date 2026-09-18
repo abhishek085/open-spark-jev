@@ -1,0 +1,35 @@
+# Phase 2: RLCD (contrastive pairs -> reward model -> exact menu policy gradient).
+seed: 0
+data:
+  - data/synthetic/sim_train.jsonl
+  - data/synthetic/teacher_train.jsonl
+teacher_base_url: http://localhost:8010/v1     # local vLLM/SGLang/trtllm-serve hosting a big open model
+teacher_model: null                             # null = first model the server lists
+max_pairs: 4000
+pairs_path: data/synthetic/rlcd_pairs.jsonl
+
+# reward model (itself a menu scorer answering a Noul)
+rm_init: checkpoints/sft-qwen3-1.7b
+rm_output_dir: checkpoints/rm-qwen3-1.7b
+rm_lr: 1.0e-5
+rm_epochs: 1
+rm_batch_size: 4
+
+# policy
+policy_init: checkpoints/sft-qwen3-1.7b
+rm_path: checkpoints/rm-qwen3-1.7b
+output_dir: checkpoints/rlcd-qwen3-1.7b
+epochs: 1
+batch_size: 8
+grad_accum: 2
+lr: 5.0e-6
+kl_beta: 0.05
+max_len: 2048
+gradient_checkpointing: true
+reward_weights:
+  brier: 1.0          # proper scoring rule vs posterior / label (distribution-level)
+  abstain: 0.3        # abstain when posterior is flat, not otherwise
+  conservative: 0.3   # asymmetric penalty around the domain's safe action
+  injection: 0.5      # consistency between injected and clean twins (needs clean twins in data)
+  rm: 0.5             # learned reward model, per action
+log_every: 10

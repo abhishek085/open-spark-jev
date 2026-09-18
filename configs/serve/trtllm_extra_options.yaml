@@ -1,0 +1,12 @@
+# Passed to trtllm-serve via --extra_llm_api_options. Tuned for menu scoring on a single GB10:
+# many short requests sharing a prefix, 1 output token each.
+kv_cache_config:
+  dtype: auto                     # "fp8" once the FP8 KV path is validated on your build
+  free_gpu_memory_fraction: 0.35  # the model is tiny; leave headroom for a teacher / other jobs
+  enable_block_reuse: true        # prefix caching: all questions on one state share the state KV
+cuda_graph_config:
+  enable_padding: true
+  max_batch_size: 64
+disable_overlap_scheduler: true   # decode phase is 1 token; overlap buys nothing
+enable_chunked_prefill: true
+max_num_tokens: 16384

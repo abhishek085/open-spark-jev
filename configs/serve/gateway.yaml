@@ -1,0 +1,4 @@
+backend: openai
+upstream: http://localhost:8355/v1
+port: 8400
+model_dir: checkpoints/rlcd-qwen3-1.7b   # for calibration.json

@@ -1,0 +1,6 @@
+# NVFP4 (4-bit weights, blocksize 16) - fastest on GB10 but expect measurable calibration drift
+# at 1.7B; always re-fit temperatures on the quantized engine (see docs/DGX_SPARK.md).
+qformat: nvfp4
+kv_cache_qformat: fp8
+calib_size: 1024
+calib_source: data/synthetic/sim_train.jsonl

@@ -1,0 +1,7 @@
+# Backbone: Qwen3-1.7B (dense, ~1.4B non-embedding params). The "~1B-class" default.
+# Alternatives: Qwen/Qwen3-0.6B (fast smoke tests), Qwen/Qwen3-4B (accuracy ceiling probe).
+hf_id: Qwen/Qwen3-1.7B
+local_path: models/Qwen3-1.7B
+dtype: bfloat16
+attn_implementation: sdpa
+max_state_chars: 12000
