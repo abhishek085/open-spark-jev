@@ -16,6 +16,8 @@
 | M10 | Comparison table vs LLM+regex baseline and Jev-format public examples | pending |
 | M11 | Multi-teacher registry + ground-truth teacher benchmark (`configs/teachers.yaml`, `eval/teacher_benchmark.py`) | done; qwen27b scored (soft Brier 0.142), nemotron120b/gptoss120b queued on memory (gpt-oss-120b now downloaded, ~61GB, ready to launch once ~65-70GB is free) |
 | M12 | Reusability cookbook for retraining on other domains (`docs/COOKBOOK.md`) | done |
+| M14 | Architecture-experiment ledger + A1 (single-pass parallel multi-question readout) prototype (`docs/NOVELTY.md`) | A1 implemented, measurement queued behind the in-flight SFT/RLCD/GRPO run |
+| M15 | A3: slot-query menu head, our candidate novel architecture (`docs/NOVELTY.md`) | proposed, not yet built |
 | M13 | Retest full serving path on TensorRT-LLM 1.3.0rc13 | done, parity confirmed, docs/BENCHMARKS.md |
 
 ## Open questions for the owner
