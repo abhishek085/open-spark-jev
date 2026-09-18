@@ -59,6 +59,22 @@ Differences are at bf16 noise level (label logits are O(50), kernels differ). Se
 throughput here is 15 decisions/s from a *single sequential* client with one HTTP call per
 question; concurrency and per-state batching are the M9 work.
 
+## TensorRT-LLM version retest (1.2.1 vs 1.3.0rc13)
+Same 300-record routing slice, same backbone, chat-logprobs path, sequential single client.
+
+| engine | acc | ECE | Brier | soft Brier vs posterior | injection flip |
+|---|---|---|---|---|---|
+| HF bf16 in-process | 0.440 | 0.531 | 1.093 | 0.817 | 0.67 (all domains) |
+| trtllm-serve 1.2.1 | 0.433 | 0.535 | 1.099 | 0.819 | 0.73 (routing only) |
+| trtllm-serve 1.3.0rc13 | 0.413 | 0.557 | 1.118 | 0.832 | 0.73 (routing only) |
+
+All three agree within bf16 noise (label logits are O(50), kernels/scheduling differ slightly
+between engine versions and builds). 1.3.0rc13's OpenAI-compatible chat-logprobs path behaves
+identically to 1.2.1's for this workload: same request shape, same `chat_template_kwargs`
+support, served model id differs (`Qwen3-1.7B` vs the full path) but the client already
+resolves this via `GET /v1/models` rather than hardcoding it. No changes needed to
+`serve/client.py` or `prompting.py` to move between versions.
+
 ## Teacher comparison (ground-truth anchored, `eval/teacher_benchmark.py`)
 20 records/domain from `sim_test.jsonl`, known posteriors. `qwen27b` = `nvidia/Qwen3.6-27B-NVFP4`
 via the sibling project's already-running vLLM server (reused read-only, not launched by this

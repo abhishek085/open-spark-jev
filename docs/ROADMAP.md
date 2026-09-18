@@ -13,9 +13,9 @@
 | M8 | RLCD run (needs teacher on :8010) + ablation vs GRPO | pending |
 | M9 | FP8 / NVFP4 engines, temperature re-fit, latency grid | pending |
 | M10 | Comparison table vs LLM+regex baseline and Jev-format public examples | pending |
-| M11 | Multi-teacher registry + ground-truth teacher benchmark (`configs/teachers.yaml`, `eval/teacher_benchmark.py`) | done; qwen27b scored (soft Brier 0.142), nemotron120b/gptoss120b queued on memory |
+| M11 | Multi-teacher registry + ground-truth teacher benchmark (`configs/teachers.yaml`, `eval/teacher_benchmark.py`) | done; qwen27b scored (soft Brier 0.142), nemotron120b/gptoss120b queued on memory (gpt-oss-120b now downloaded, ~61GB, ready to launch once ~65-70GB is free) |
 | M12 | Reusability cookbook for retraining on other domains (`docs/COOKBOOK.md`) | done |
-| M13 | Retest full serving path on TensorRT-LLM 1.3 | pending (after M11 completes) |
+| M13 | Retest full serving path on TensorRT-LLM 1.3.0rc13 | done, parity confirmed, docs/BENCHMARKS.md |
 
 ## Open questions for the owner
 1. Priority domains for the first real evaluation: routing + moderation + security (current default), or something closer to your production workloads?
