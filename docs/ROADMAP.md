@@ -10,7 +10,8 @@
 | M5 | TRT-LLM on Spark: container 1.2.1, `trtllm-serve` chat-logprobs path and Python-API backend both verified against HF | done (bf16; quantized engines pending) |
 | M6 | Baseline numbers: base Qwen3-1.7B zero-shot on sim_test (HF + served parity) | done, docs/BENCHMARKS.md |
 | M7 | SFT run + eval, BENCHMARKS.md | pending |
-| M8 | Run all four Phase-2 mechanisms (rlcd_direct, rlcd_contrastive, GRPO, temperature-only) and compare | pending |
+| M8 | Run all four Phase-2 mechanisms (rlcd_direct, rlcd_contrastive, GRPO, temperature-only) and compare | in progress, see docs/BENCHMARKS.md |
+| M8b | Regenerate sim_train/sim_test on the fixed (leakage-free) simulators and rerun SFT + all four Phase-2 mechanisms for trustworthy moderation/incident/game numbers | pending, blocks a fully clean M8 |
 | M9 | FP8 / NVFP4 engines, temperature re-fit, latency grid | pending |
 | M10 | Comparison table vs LLM+regex baseline and Jev-format public examples | pending |
 | M11 | Multi-teacher registry + ground-truth teacher benchmark (`configs/teachers.yaml`, `eval/teacher_benchmark.py`) | done; qwen27b scored (soft Brier 0.142), nemotron120b/gptoss120b queued on memory (gpt-oss-120b now downloaded, ~61GB, ready to launch once ~65-70GB is free) |

@@ -107,6 +107,35 @@ full traceback in the session log). It was restarted with the sibling project's 
 `ops/teacher_server.sh start` and re-run cleanly at concurrency 3, which is now the enforced
 default for this teacher in `configs/teachers.yaml` (`max_concurrency: 3`).
 
+## Known issue: train/test state leakage in the M6-era corpora (found 2026-09-18)
+
+`data/synthetic/sim_train.jsonl` and `data/benchmarks/sim_test.jsonl` (both generated before
+this fix) have near-total exact-text overlap in four of six domains, because those domains'
+`render()` functions had no or too-narrow random fields, so their finite combinatorial state
+space was exhausted many times over by 3000 training samples per domain:
+
+| domain | overlapping test records | out of |
+|---|---|---|
+| moderation | 297 | 300 (99%) |
+| incident | 291 | 300 (97%) |
+| game | 177 | 300 (59%) |
+| security | 34 | 300 (11%) |
+| routing | 0 | 300 |
+| risk | 0 | 300 |
+
+**Consequence**: any "test" metric on moderation/incident/game from a model trained on
+`sim_train.jsonl` mixes real generalization with straight memorization of exact training
+states, and is not trustworthy as a generalization measure for those three domains.
+Routing, risk, and (mostly) security are unaffected and can be read at face value.
+
+`data/simulators.py` is fixed (random message/incident ids, timestamps, wider ranges;
+verified 0/300 overlap on all four domains post-fix) but the corpora already used for the
+SFT/RLCD/GRPO run below predate the fix and were not regenerated mid-run, to avoid discarding
+multiple hours of in-progress training. **Read every table below with routing, risk and
+security as the trustworthy columns**; moderation/incident/game numbers are reported for
+completeness but should be treated as an upper bound on what the mechanism can actually do,
+not a real measurement. A clean rerun on regenerated corpora is the next step (docs/ROADMAP.md).
+
 ## In-container TRT-LLM Python API backend (`serve/trtllm_backend.py`)
 `scripts/trtllm_api_smoke.py` on the smoke-test state (4 questions, 188 state tokens),
 `return_generation_logits=True`, full-vocab gather, prefix reuse on:
