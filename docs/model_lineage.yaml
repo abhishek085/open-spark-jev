@@ -1,0 +1,56 @@
+sft-qwen3-1.7b:
+  date: '2026-09-18'
+  checkpoint: checkpoints/sft-qwen3-1.7b
+  parent: null
+  eval: runs/eval_sft.json
+  mechanism: 'Phase 1: supervised fine-tune of Qwen3-1.7B on 16,200 simulator-generated menu-scoring examples
+    across 6 domains. Loss = cross-entropy against soft targets (known posteriors) where available, one-hot
+    otherwise, plus a Brier-score regularizer (lambda=0.5). Two epochs, per-question-type temperature
+    fitted on a held-out split at the end of training. No RL.'
+  jev_comparison: 'TypeSafe has not disclosed whether Jev has a supervised pretraining stage at all before
+    its RL phase. This is our default assumption (standard practice: bootstrap the menu format and basic
+    task competence before any RL refinement), not a claim that Jev does the same. This is the bootstrap
+    every other checkpoint in this registry is trained from.'
+  notes: 'Baseline for every later comparison. Overall accuracy 0.808, ECE 0.020 on held-out test data
+    vs the untrained backbone''s 0.34/0.65. injection_flip_rate 0.038 (untrained: 0.67), despite never
+    being explicitly trained against injected states in this stage -- soft-target training against the
+    true label regardless of injected text appears to confer injection robustness as a side effect worth
+    investigating further. NOTE: moderation/incident/game slices in this eval are contaminated by train/test
+    state leakage in the corpora used (see docs/BENCHMARKS.md); routing/risk/security are the trustworthy
+    columns.'
+rlcd-direct-qwen3-1.7b:
+  date: '2026-09-18'
+  checkpoint: checkpoints/rlcd-direct-qwen3-1.7b
+  parent: sft-qwen3-1.7b
+  eval: runs/eval_rlcd_direct.json
+  mechanism: 'Phase 2, mechanism 2 (direct calibration objective): exact menu policy gradient (full action
+    distribution differentiated directly, no sampling) on top of the SFT checkpoint. Reward = Brier score
+    against ground-truth/teacher soft-label distributions plus abstention/conservative-action/injection-consistency
+    shaping terms. No contrastive pairs, no reward model, no teacher calls at all during this stage --
+    reward is calibration, measured directly.'
+  jev_comparison: TypeSafe's only disclosed statement about their RLCD reward is that it rewards 'a confidence
+    score that actually matches how often it's right.' This checkpoint is our most literal implementation
+    of exactly that sentence, with everything else (pairs, RM, teacher-in-the-loop) deliberately stripped
+    out so the comparison to mechanism 1 (rlcd-contrastive) isolates what the contrastive/RM machinery
+    actually buys, if anything.
+  notes: 'Corrected version, after a real reward-composition bug (an unweighted hard-label correctness
+    term fighting the Brier term) was found and fixed in the first attempt -- see runs/archive_buggy_rlcd_direct_20260918/
+    for the buggy checkpoint and its numbers, preserved rather than deleted. Corrected result: accuracy
+    0.808->0.813, Brier 0.282->0.276, injection_flip_rate 0.038->0.027, ECE flat at 0.020. Modest, defensible
+    improvement on Brier and injection robustness; not a dramatic ECE win over SFT + temperature scaling
+    alone.'
+rlcd-direct-qwen3-1.7b-BUGGY-archived:
+  date: '2026-09-18'
+  checkpoint: runs/archive_buggy_rlcd_direct_20260918/checkpoint
+  parent: sft-qwen3-1.7b
+  eval: runs/archive_buggy_rlcd_direct_20260918/eval_rlcd_direct.json
+  mechanism: 'Same intent as rlcd-direct-qwen3-1.7b (direct calibration objective) but with a real bug:
+    an unweighted per-action hard-label correctness term was always active regardless of config, fighting
+    the Brier distributional term whenever the true posterior wasn''t one-hot (most records).'
+  jev_comparison: 'Not a Jev-comparison checkpoint -- kept as a negative-result reference. Demonstrates
+    concretely what happens when a hard-label confidence term and a distributional calibration term compete
+    unweighted: ECE got WORSE on every single domain versus plain SFT, despite the reward nominally targeting
+    calibration.'
+  notes: Archived, not deleted, specifically so this failure mode has a preserved before/after rather
+    than just a prose description. Do not use this checkpoint for anything except the negative-result
+    comparison in docs/BENCHMARKS.md M8a.
