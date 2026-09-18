@@ -10,7 +10,7 @@
 seed: 0
 data:
   - data/synthetic/sim_train.jsonl
-  - data/synthetic/teacher_train.jsonl
+  # - data/synthetic/teacher_train.jsonl  # add once `osj synth --distill` has produced it; mechanism 2 works with simulator posteriors alone (thats the "no teacher needed" point)
 
 policy_init: checkpoints/sft-qwen3-1.7b
 rm_path: null            # no reward model -- see module docstring, mechanism 2

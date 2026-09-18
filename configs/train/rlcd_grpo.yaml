@@ -5,6 +5,13 @@ policy_init: checkpoints/sft-qwen3-1.7b
 output_dir: checkpoints/grpo-qwen3-1.7b
 data:
   - data/synthetic/sim_train.jsonl
+max_records: 1600   # ablation baseline, not the main result -- capped so a full GRPO run
+                     # finishes in a comparable window to the other three mechanisms rather
+                     # than the ~9h the full 18k-record corpus projected to at this rollout
+                     # cost (G=8 sampled completions per prompt). max_steps below is a second,
+                     # independent safety net in case a TRL/data-shape change moves the
+                     # steps-per-epoch estimate again.
+max_steps: 300
 group_size: 8
 batch_size: 8
 grad_accum: 2

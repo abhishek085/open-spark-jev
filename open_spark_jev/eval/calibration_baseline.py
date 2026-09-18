@@ -44,7 +44,10 @@ def collect_logits(scorer: MenuScorer, examples: list[Example]) -> dict[str, tup
     for i in range(0, len(examples), bs):
         b = examples[i : i + bs]
         ids, mask, last, lab, lab_mask, tgt, hard = collate(b, pad, scorer.device)
-        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=scorer.device.startswith("cuda")):
+        with (
+            torch.no_grad(),
+            torch.autocast("cuda", dtype=torch.bfloat16, enabled=scorer.device.startswith("cuda")),
+        ):
             z = scorer.train_forward(ids, mask, last, lab, lab_mask)
         for j, e in enumerate(b):
             k = len(e.label_ids)

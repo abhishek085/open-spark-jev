@@ -35,6 +35,11 @@ def main(cfg_path: str) -> None:
     recs = []
     for p in cfg["data"]:
         recs.extend(r for r in read_jsonl(p) if not r.meta.get("suspect"))
+    if cfg.get("max_records"):
+        import random as _random
+
+        _random.Random(cfg.get("seed", 0)).shuffle(recs)
+        recs = recs[: cfg["max_records"]]
     rows = []
     for r in recs:
         q = r.question_obj()
@@ -69,6 +74,7 @@ def main(cfg_path: str) -> None:
         beta=cfg.get("kl_beta", 0.05),
         temperature=1.0,
         num_train_epochs=cfg.get("epochs", 1),
+        max_steps=cfg.get("max_steps", -1),  # -1 = let num_train_epochs decide (TRL/HF default)
         bf16=True,
         logging_steps=10,
         report_to=[],
