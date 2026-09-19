@@ -62,8 +62,18 @@ def discover_models() -> dict[str, dict]:
         path = m.get("path") or os.path.join(CHECKPOINT_ROOT, mid)
         if os.path.exists(os.path.join(path, "config.json")):
             found[mid] = {"path": path, "name": m.get("name", mid), "note": m.get("note", "")}
+    vroot = os.path.join(CHECKPOINT_ROOT, "variants")
+    if os.path.isdir(vroot):  # saved architecture variants (experimental/variants.py)
+        for d in sorted(os.listdir(vroot)):
+            p = os.path.join(vroot, d)
+            if os.path.exists(os.path.join(p, "variant.json")):
+                mid = f"variants/{d}"
+                m = meta.get(mid, {})
+                found[mid] = {"path": p, "name": m.get("name", f"Experimental architecture {d.upper()}"), "note": m.get("note", "")}
     if os.path.isdir(CHECKPOINT_ROOT):
         for d in sorted(os.listdir(CHECKPOINT_ROOT)):
+            if d == "variants":
+                continue
             p = os.path.join(CHECKPOINT_ROOT, d)
             if d not in found and not d.startswith("rm-") and os.path.exists(os.path.join(p, "config.json")):
                 found[d] = {"path": p, "name": d, "note": ""}
@@ -95,7 +105,9 @@ def get_backend(model: str | None):
 
             gc.collect()
             torch.cuda.empty_cache()
-        _LOADED[mid] = MenuScorer(avail[mid]["path"])
+        from ..experimental.variant_scorer import VariantScorer, is_variant
+
+        _LOADED[mid] = VariantScorer(avail[mid]["path"]) if is_variant(avail[mid]["path"]) else MenuScorer(avail[mid]["path"])
         _LOADED[mid].model_id = mid
         return _LOADED[mid]
 

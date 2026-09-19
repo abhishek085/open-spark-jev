@@ -17,3 +17,15 @@ models:
     path: models/Qwen3-1.7B
     name: "Qwen3-1.7B - zero-shot (no training)"
     note: "The untrained backbone read out the same way. Shows what fine-tuning adds: much lower accuracy, badly miscalibrated."
+  variants/a0:
+    name: "Experiment A0 - LoRA baseline (matched budget)"
+    note: "Same LoRA/data/budget as A2-A4 with the standard restricted-LM-head readout. The fair baseline for the architecture variants."
+  variants/a2:
+    name: "Experiment A2 - prefix-LM attention"
+    note: "Bidirectional attention over the state, causal after it; LoRA-adapted from Qwen3-1.7B on a small budget."
+  variants/a3:
+    name: "Experiment A3 - slot-query head"
+    note: "Learned option-slot queries cross-attend over all hidden states; new head trained from scratch on a small budget."
+  variants/a4:
+    name: "Experiment A4 - evidential (Dirichlet) head"
+    note: "Evidence-based head trained with an evidential Brier loss on a small budget."

@@ -96,9 +96,10 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=0)
     a = ap.parse_args()
 
+    from ..experimental.variant_scorer import VariantScorer, is_variant
     from ..model import MenuScorer
 
-    scorer = MenuScorer(a.model, use_state_cache=False)
+    scorer = VariantScorer(a.model) if is_variant(a.model) else MenuScorer(a.model, use_state_cache=False)
     files = sorted(glob.glob(os.path.join(a.dir, "*.jsonl")))
     res = {}
     for f in files:

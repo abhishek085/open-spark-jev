@@ -88,8 +88,9 @@ class VariantModel(nn.Module):
         if self.variant == "a2":
             out = lm(input_ids=ids, attention_mask=self._prefix_mask(mask, prefix_len))
             return gather_label_logits(out.logits[rows, last].float(), lab, lab_mask)
-        out = lm.model(input_ids=ids, attention_mask=mask) if hasattr(lm, "model") else lm(input_ids=ids, attention_mask=mask, output_hidden_states=True)
-        h = out.last_hidden_state if hasattr(out, "last_hidden_state") else out.hidden_states[-1]
+        # inner transformer (no LM head, so no [B,L,151k] logits); LoRA layers are injected in place so they stay active
+        inner = (lm.get_base_model() if hasattr(lm, "get_base_model") else lm).model
+        h = inner(input_ids=ids, attention_mask=mask).last_hidden_state
         k = lab.shape[1]
         if self.variant == "a3":
             z = self.head(h, mask.bool(), qtype_idx, k)
@@ -209,6 +210,7 @@ def main() -> None:
     ap.add_argument("--max-len", type=int, default=2048)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--smoke", action="store_true", help="tiny run for plumbing checks")
+    ap.add_argument("--save-dir", default=None, help="where to save the servable variant (default checkpoints/variants/<variant>; not saved with --smoke)")
     a = ap.parse_args()
     torch.manual_seed(a.seed)
     random.seed(a.seed)
@@ -280,7 +282,23 @@ def main() -> None:
     os.makedirs(a.out, exist_ok=True)
     with open(os.path.join(a.out, "result.json"), "w") as f:
         json.dump(result, f, indent=2)
+    if not a.smoke or a.save_dir:
+        save_variant(model, a, result["sim_test"]["temperature"], result)
     print(json.dumps({k: (v["overall"] if isinstance(v, dict) and "overall" in v else v) for k, v in result.items()}, indent=2))
+
+
+def save_variant(model: VariantModel, a, temperature: dict, result: dict) -> None:
+    """Persist LoRA adapter + head + calibration so the variant can be served and re-scored
+    (experimental/variant_scorer.py). Weights are otherwise thrown away after a run."""
+    d = a.save_dir or os.path.join("checkpoints", "variants", a.variant)
+    os.makedirs(d, exist_ok=True)
+    model.base.lm.save_pretrained(os.path.join(d, "lora"))
+    if model.head is not None:
+        torch.save(model.head.state_dict(), os.path.join(d, "head.pt"))
+    with open(os.path.join(d, "variant.json"), "w") as f:
+        json.dump({"variant": a.variant, "init": a.init, "temperature": temperature, "n_train": result["n_train"],
+                   "train_seconds": result["train_seconds"], "date": time.strftime("%Y-%m-%d")}, f, indent=2)
+    log.info("saved servable variant to %s", d)
 
 
 if __name__ == "__main__":
