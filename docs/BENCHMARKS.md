@@ -238,8 +238,27 @@ OOM on a shared box - re-run once memory is free, see docs/COOKBOOK.md.
 | qwen27b | incident | 20 | 0.256 | 0.65 |
 | qwen27b | game | 20 | 0.155 | 0.75 |
 | **qwen27b overall** | | **120** | **0.142** | **0.79** |
-| nemotron120b | - | - | pending (memory) | |
-| gptoss120b | - | - | pending (download + memory) | |
+| nemotron120b | routing | 20 | 0.186 | 0.85 |
+| nemotron120b | security | 20 | 0.085 | 0.95 |
+| nemotron120b | risk | 20 | 0.202 | 0.45 |
+| nemotron120b | moderation | 20 | 0.301 | 0.70 |
+| nemotron120b | incident | 20 | 0.940 | 0.25 |
+| nemotron120b | game | 20 | 0.177 | 0.75 |
+| **nemotron120b overall** | | **120** | **0.315** | **0.66** |
+| gptoss120b | - | - | pending | |
+
+**Nemotron result, notably worse than Qwen despite being much larger**: overall soft Brier
+0.315 vs qwen27b's 0.142 - a real, somewhat counterintuitive finding, not a fluke of one bad
+domain. `incident` is the outlier within it (0.940 soft Brier, 0.25 argmax agreement - barely
+above the 4-way random-chance floor), but even excluding it Nemotron trails Qwen on every
+other domain too (e.g. routing 0.186 vs 0.120, moderation 0.301 vs 0.137). Model size and a
+different architecture (hybrid Mamba/MoE vs dense) did not translate into better grading
+calibration on this benchmark - a useful caution against assuming "bigger teacher = better
+labels" without measuring it, which is exactly the point of building this benchmark rather
+than trusting teacher choice by reputation. Getting this number took two failed container
+launches first: vLLM's `--gpu-memory-utilization` is the *total* memory budget as a fraction
+of the whole box, not an add-on reservation, and an early fix moved it the wrong direction -
+see the commit history and `scripts/teachers/serve_nemotron.sh` for the corrected sizing.
 
 For scale: the untrained 1.7B student's own Brier on the same slices is ~1.1-1.7 (see M6
 above); a 0.142 soft Brier from the 27B teacher is close to the theoretical floor set by the
