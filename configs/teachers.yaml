@@ -29,13 +29,30 @@ teachers:
     base_url: http://localhost:8012/v1
     port: 8012
     container: osj-teacher-nemotron
-    gpu_memory_utilization: 0.55
-    mem_preflight_gb: 65           # required free/available memory before launch
+    gpu_memory_utilization: 0.85   # total budget incl. weights, not an add-on -- see serve_nemotron.sh
+    mem_preflight_gb: 105          # required free/available memory before launch
     launch: scripts/teachers/serve_nemotron.sh
     notes: >
       Already cached on this box (82 GB, ~17 NVFP4 shards). MoE architecture gives strong
       quality per active-compute-dollar; good test of whether a bigger, differently-trained
-      teacher improves label quality over the 27B dense Qwen.
+      teacher improves label quality over the 27B dense Qwen. Measured: overall soft Brier
+      0.315 vs qwen27b's 0.142 -- notably worse despite the size, see docs/BENCHMARKS.md.
+
+  gemma26b:
+    hf_id: nvidia/Gemma-4-26B-A4B-NVFP4
+    family: Google DeepMind Gemma 4, MoE, 26B total / 4B active, NVFP4
+    base_url: http://localhost:8014/v1
+    port: 8014
+    container: osj-teacher-gemma
+    gpu_memory_utilization: 0.40   # total budget incl. weights -- checkpoint is only 18GB, see serve_gemma.sh
+    mem_preflight_gb: 55
+    launch: scripts/teachers/serve_gemma.sh
+    notes: >
+      Already cached on this box (18 GB NVFP4). Third lab (Google, after Alibaba/Qwen and
+      NVIDIA/Nemotron) and a much smaller/faster MoE than Nemotron -- tests whether the
+      "bigger MoE scored worse" finding from Nemotron generalizes to a small MoE too, or was
+      specific to that one model. `Gemma4ForConditionalGeneration` is a multimodal-capable
+      architecture but served text-only here.
 
   gptoss120b:
     hf_id: openai/gpt-oss-120b
@@ -43,8 +60,8 @@ teachers:
     base_url: http://localhost:8013/v1
     port: 8013
     container: osj-teacher-gptoss
-    gpu_memory_utilization: 0.55
-    mem_preflight_gb: 70
+    gpu_memory_utilization: 0.75   # total budget incl. weights, not an add-on -- see serve_gptoss.sh
+    mem_preflight_gb: 92
     launch: scripts/teachers/serve_gptoss.sh
     hf_cache: ~/.cache/huggingface-osj   # ~/.cache/huggingface/hub is root-owned on this box;
                                           # gpt-oss-120b downloads here instead (scripts/download_gptoss.sh)
@@ -61,8 +78,12 @@ teachers:
     notes: >
       Apache-2.0. Third lab/architecture for diversity -- blocked on this box for now, see `status`.
 
-# Nemotron and gpt-oss each need ~60-70GB of the box's 121GB unified memory. They do NOT fit
-# alongside each other, and may not fit alongside the sibling project's nokast-teacher-vllm /
-# nokast-student-vllm containers (~20-25GB combined). scripts/teachers/*.sh check available
-# memory before launching and abort with instructions rather than risk an OOM; they never stop
-# another project's containers automatically (see docs/DATA.md "Memory budget for teachers").
+# Nemotron and gpt-oss each need a large fraction of the box's 121GB unified memory (weights
+# alone: 82GB and 61GB respectively; gpu_memory_utilization is the TOTAL budget including
+# those weights, not a reservation on top of them -- see serve_nemotron.sh's comment for the
+# incident that established this). They do NOT fit alongside each other, and may not fit
+# alongside the sibling project's nokast-teacher-vllm / nokast-student-vllm containers
+# (~20-25GB combined). gemma26b is much lighter (18GB checkpoint) and coexists easily.
+# scripts/teachers/*.sh check available memory before launching and abort with instructions
+# rather than risk an OOM; they never stop another project's containers automatically (see
+# docs/DATA.md "Memory budget for teachers").
