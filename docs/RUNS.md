@@ -13,6 +13,7 @@ the bottom).
 
 | # | run | command | data | result | artifact |
 |---|---|---|---|---|---|
+| R12 | A0 baseline + A2 prefix-LM, matched budget | `scripts/run_variants3.sh` | 9,717 records, LoRA 1 epoch | **A2 refuted**: worse on all 9 measures, 30% slower. Unplanned: A0 (LoRA) beats the full fine-tune on 6/7 external sources | `runs/variants/{a0,a2}/result.json`, `runs/external/variant-{a0,a2}/`, BENCHMARKS.md M22 |
 | R11 | external eval: spark-s1-1.7b-sft-v2 | `python -m open_spark_jev.eval.external --model checkpoints/sft-qwen3-1.7b` | 7 third-party sources, 3,354 records | acc 0.502-0.798 per source; ECE 0.023-0.365; **18-22 pts below Jev** where Jev's answers are recorded; directory pass rate 31/50 | `runs/external/spark-s1-1.7b-sft-v2/`, BENCHMARKS.md M21 |
 | R10 | A2 trained + externally scored | `run_variants3.sh` (`full_a2`, `external_a2`) | 9,717 records, LoRA 1 epoch (38 min) | sim_test 0.791 / ECE 0.016 but external 0.296-0.600 - near chance off-distribution | `runs/variants/a2/result.json`, `runs/external/variant-a2/` |
 | R9 | A0/A2/A3/A4 ladder v3 | `scripts/run_variants3.sh` | 12k records, LoRA, matched budget | A2 done (R10); A0 training; A3/A4 queued | `runs/variants/ladder.log` |

@@ -134,12 +134,12 @@ main SFT/RLCD/GRPO pipeline's correctness or reproducibility.
 | id | name | status | measured against A0 | date | notes |
 |---|---|---|---|---|---|
 | A0 | baseline (restricted LM-head decode) | measured | - (this is the baseline) | 2026-09-18 | see docs/BENCHMARKS.md |
-| A1 | single-pass parallel multi-question readout | implemented | pending | 2026-09-18 | prototype written, run queued behind the in-flight SFT/RLCD/GRPO pipeline |
-| A2 | prefix-LM / bidirectional-state attention | proposed | pending | 2026-09-18 | needs a short adaptation fine-tune before comparable |
-| A3 | slot-query menu head (our candidate novel architecture) | proposed | pending | 2026-09-18 | module design specified above; needs a real training run once GPU frees up |
-| A4 | parametric Beta/Dirichlet output head | proposed | pending | 2026-09-18 | |
-| A5 | domain-routed adapter mixture | proposed | pending | 2026-09-18 | connects to RESEARCH.md R5 |
-| A6 | joint/energy-based multi-question scoring | proposed (low priority) | pending | 2026-09-18 | speculative, no cheap prototype identified yet |
+| A1 | single-pass parallel multi-question readout | **measured** | equivalent answers (max \|Δp\| 0.022), ~15% faster at 1-16 questions | 2026-09-19 | confirmed; keep as a serving optimisation, BENCHMARKS.md M22 |
+| A2 | prefix-LM / bidirectional-state attention | **measured** | **worse on every axis**; -7 to -40 pts on external sources, 30% slower to train | 2026-09-19 | REFUTED as a cheap drop-in (BENCHMARKS.md M22). The predicted re-adaptation cost is real: one LoRA epoch cannot undo causal pretraining. |
+| A3 | slot-query menu head (our candidate novel architecture) | implemented, run deferred | pending | 2026-09-19 | code + save/load verified by smoke test; deferred behind M17 |
+| A4 | parametric Beta/Dirichlet output head | implemented, run deferred | pending | 2026-09-19 | evidential head + loss written, smoke-tested; deferred behind M17 |
+| A5 | domain-routed adapter mixture | implemented, run deferred | pending | 2026-09-19 | 4 adapters + linear router written; deferred behind M17 |
+| A6 | joint/energy-based multi-question scoring | implemented, run deferred | pending | 2026-09-19 | two-question correlated simulator built (0.060 oracle joint-vs-product headroom); deferred behind M17 |
 
 Update this table, not just prose above it, whenever an experiment's status changes - it's the
 part meant to be skimmable at a glance.

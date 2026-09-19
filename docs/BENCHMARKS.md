@@ -409,3 +409,68 @@ direction.
 Caveats: third-party labels from single annotators in some cases; Jev's rows were run 2026-09-17 on
 `jev-latest`/`jev-1.13.0`; n=60 and n=70 sources are small; 116 Banking77 questions were skipped for exceeding
 our 26-option cap.
+
+## M22: architecture experiments A1 and A2 at matched budget (2026-09-19)
+
+Ladder: `scripts/run_variants3.sh`. A0/A2 share seed, data (9,717 records), LoRA rank/targets,
+budget (1 epoch) and evaluation code; **only the readout/attention differs**. Each saves a servable
+checkpoint (`checkpoints/variants/<v>`) and is scored on all seven external sources.
+
+### A1 (single-pass parallel multi-question readout) - CONFIRMED, small win
+
+`runs/variants/a1_parallel.log`, no retraining (it is a readout change on
+spark-s1-1.7b-sft-v2). Answers match the N-pass baseline to bf16 noise (max |Δp| = 0.022), so the
+block-diagonal mask is correct and questions cannot see each other.
+
+| questions per state | A0 (N passes) | A1 (1 pass) |
+|---|---|---|
+| 1 | 91.3 ms | 75.9 ms |
+| 4 | 108.4 ms | 93.4 ms |
+| 16 | 193.6 ms | 165.2 ms |
+
+~15% faster, not the large win one might expect, because the state prefix KV cache was already
+shared across questions in A0. Worth keeping as a serving optimisation; not an architectural finding.
+
+### A2 (prefix-LM: bidirectional attention over the state) - REFUTED
+
+| | A0 baseline | A2 prefix-LM |
+|---|---|---|
+| train seconds | **1743** | 2276 |
+| sim_test acc / ECE | **0.806 / 0.011** | 0.791 / 0.016 |
+| teacher_test acc / ECE | **0.889 / 0.073** | 0.620 / 0.090 |
+| ext-injection-ctx | **0.784** | 0.394 |
+| ext-injection-noctx | **0.802** | 0.600 |
+| ext-jev-directory | **0.729** | 0.429 |
+| ext-kev-decision-v1 | **0.700** | 0.296 |
+| ext-kev-transfer-v4 | **0.603** | 0.382 |
+| ext-toolcall-risk | **0.717** | 0.350 |
+| ext-vuln-code | **0.565** | 0.492 |
+
+A2 is worse on **every** axis, trains 30% slower, and collapses off-distribution (external sources
+drop 7-40 points). The hypothesis was that causal masking hurts state comprehension; at this budget
+the opposite holds. The likely reason is the one NOVELTY.md flagged when proposing it: Qwen3 was
+pretrained causally, and switching the mask invalidates what the pretrained attention learned. One
+epoch of LoRA is nowhere near enough to re-adapt. This does **not** refute prefix-LM in general - it
+refutes it as a cheap drop-in, which is what we tested.
+
+### Unplanned finding: LoRA generalises better than the full fine-tune
+
+A0 (LoRA, 9,717 records, 1 epoch, 29 min) vs spark-s1-1.7b-sft-v2 (full fine-tune, 21,293 records,
+2 epochs, ~1h30) on third-party data:
+
+| source | A0 (LoRA) | SFT v2 (full FT) |
+|---|---|---|
+| ext-injection-ctx | **0.784** | 0.743 |
+| ext-injection-noctx | **0.802** | 0.798 |
+| ext-jev-directory | **0.729** | 0.714 |
+| ext-kev-decision-v1 | **0.700** | 0.656 |
+| ext-kev-transfer-v4 | **0.603** | 0.581 |
+| ext-vuln-code | **0.565** | 0.502 |
+| ext-toolcall-risk | 0.717 | **0.733** |
+
+A0 wins 6 of 7 external sources with a third of the training budget, while losing on the in-house
+tests (teacher_test 0.889 vs SFT v2's higher in-domain numbers). Read together with M21 this says the
+full fine-tune is **overfitting the synthetic distribution**: the constrained LoRA update keeps more
+of the backbone's general competence, which is exactly what third-party data measures. Not conclusive
+(one seed, different data sizes, LoRA rank untuned), but it makes a LoRA arm of M17 worth running
+next to the full-FT one.
