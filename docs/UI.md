@@ -1,6 +1,7 @@
 # Playground: web UI and API
 
-A local web UI and a Jev-compatible HTTP API over the Spark-S1 checkpoints. One process serves both.
+A local web UI and a Jev-compatible HTTP API over the spark-s1 checkpoints (release ids look like
+`spark-s1-1.7b-sft-v2`; "menu scoring" is the mechanism, not a model name). One process serves both.
 Everything runs on your machine; no request leaves it.
 
 ## Run it

@@ -1,31 +1,36 @@
-# Models the UI/gateway offers. Key = directory under checkpoints/ (or the path for `base`).
+# Models the UI/gateway offers.
+#
+# Naming: the model is always `spark-s1`. A release id is
+#     spark-s1-<size>-<recipe>[-v<n>]          e.g. spark-s1-1.7b-sft-v2
+# `menu scoring` is the *mechanism* (restricted-vocabulary readout), never a model name.
+# Directory names under checkpoints/ are historical paths and may differ from the release id. Key = directory under checkpoints/ (or the path for `base`).
 # Update `name`/`note` here when a checkpoint is retrained, so the UI never mislabels a model.
 models:
   sft-qwen3-1.7b:
-    name: "Spark-S1 1.7B - SFT (v2)"
+    name: "spark-s1-1.7b-sft-v2"
     note: "Qwen3-1.7B fine-tuned on simulators + gemma-graded synthetic data over 31 task domains (2026-09-19). Start here."
   rlcd-direct-qwen3-1.7b:
-    name: "Spark-S1 1.7B - RLCD-direct (v1, simulators only)"
+    name: "spark-s1-1.7b-rlcd-direct-v1"
     note: "Calibration-objective RL on top of SFT v1. Trained on 6 simulator domains only; predates the 31-domain data."
   rlcd-contrastive-qwen3-1.7b:
-    name: "Spark-S1 1.7B - RLCD-contrastive (v1)"
+    name: "spark-s1-1.7b-rlcd-contrastive-v1"
     note: "Academic RLCD (contrastive pairs + reward model) on SFT v1. Simulator-era; small teacher corpus."
   grpo-qwen3-1.7b:
-    name: "Spark-S1 1.7B - GRPO baseline (v1)"
+    name: "spark-s1-1.7b-grpo-v1"
     note: "Sampled-token RL baseline. Worse accuracy and calibration than the exact-gradient variants; included for comparison."
   base:
     path: models/Qwen3-1.7B
-    name: "Qwen3-1.7B - zero-shot (no training)"
+    name: "Qwen3-1.7B base (untrained reference, not a spark-s1 release)"
     note: "The untrained backbone read out the same way. Shows what fine-tuning adds: much lower accuracy, badly miscalibrated."
   variants/a0:
-    name: "Experiment A0 - LoRA baseline (matched budget)"
+    name: "spark-s1-1.7b-a0-lora (experiment)"
     note: "Same LoRA/data/budget as A2-A4 with the standard restricted-LM-head readout. The fair baseline for the architecture variants."
   variants/a2:
-    name: "Experiment A2 - prefix-LM attention"
+    name: "spark-s1-1.7b-a2-prefixlm (experiment)"
     note: "Bidirectional attention over the state, causal after it; LoRA-adapted from Qwen3-1.7B on a small budget."
   variants/a3:
-    name: "Experiment A3 - slot-query head"
+    name: "spark-s1-1.7b-a3-slotquery (experiment)"
     note: "Learned option-slot queries cross-attend over all hidden states; new head trained from scratch on a small budget."
   variants/a4:
-    name: "Experiment A4 - evidential (Dirichlet) head"
+    name: "spark-s1-1.7b-a4-evidential (experiment)"
     note: "Evidence-based head trained with an evidential Brier loss on a small budget."

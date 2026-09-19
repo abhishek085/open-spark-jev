@@ -347,7 +347,7 @@ same hardware and the same task text; the arms differ only in *how the answer is
 
 | arm | p50 | p95 | dec/s | accuracy | JSON parse failures | mean output tokens |
 |---|---|---|---|---|---|---|
-| **menu** (Spark-S1 SFT v2, 1 forward pass) | **30.1 ms** | 31.5 ms | 33.2 | **0.733** | 0 (impossible by construction) | 0 |
+| **spark-s1-1.7b-sft-v2** (menu scoring, 1 forward pass) | **30.1 ms** | 31.5 ms | 33.2 | **0.733** | 0 (impossible by construction) | 0 |
 | generate (same Qwen3-1.7B, JSON, non-thinking) | 374.7 ms | 396.8 ms | 2.6 | 0.433 | **14 / 60** | 15.5 |
 | generate_think (same Qwen3-1.7B, thinking) | 7164.9 ms | 12581.1 ms | 0.12 | 0.550 | 0 | 353.9 |
 
@@ -359,7 +359,7 @@ same weights class, and cannot emit malformed output - the non-thinking generati
 parseable JSON on 23% of records.
 
 **Accuracy against hosted Jev on the same 60 rows** (Jev's answers are committed in the source repo, run
-2026-09-17): **jev-latest 0.917, Spark-S1 SFT v2 0.733**. We do *not* match Jev's accuracy on this external
+2026-09-17): **jev-latest 0.917, spark-s1-1.7b-sft-v2 0.733**. We do *not* match Jev's accuracy on this external
 set - it is third-party data in a domain our training data only approximates, and Jev is a far larger hosted
 model. Speed parity does not imply decision parity; see `runs/external/` for the per-source picture.
 

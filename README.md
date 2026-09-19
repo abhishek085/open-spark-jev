@@ -1,12 +1,15 @@
 # open-spark-Jev
 
-**Spark-S1** is the model this repo builds and releases: an open, local *System One* decision
-model (checkpoints are named `spark-s1-<size>-<recipe>`, e.g. `spark-s1-1.7b-rlcd-direct`).
-`open-spark-Jev` is the repo name and stays as the pointer to the public shape of TypeSafe's
-Jev that we follow; Spark-S1 is not Jev and not affiliated with TypeSafe. It is built by
-fine-tuning a pretrained backbone, not trained from scratch, but follows the System One
-contract: typed Choice / Score / Noul questions in, calibrated per-option probabilities and a
-confidence out, in one forward pass with no generated text.
+**spark-s1** is the model this repo builds and releases. `open-spark-Jev` is the repo name.
+
+Release ids are `spark-s1-<size>-<recipe>[-v<n>]` — e.g. `spark-s1-1.7b-sft-v2`,
+`spark-s1-1.7b-rlcd-direct-v1`. The size is the backbone's parameter count; the recipe is the
+training mechanism; the version increments when a recipe is retrained on different data.
+**"Menu scoring" is the mechanism** (restricted-vocabulary readout over option labels), never a
+model name. spark-s1 is not Jev and not affiliated with TypeSafe: it is built by fine-tuning a
+pretrained backbone, not trained from scratch, but follows the same System One contract — typed
+Choice / Score / Noul questions in, calibrated per-option probabilities and a confidence out, in
+one forward pass with no generated text.
 
 **An open, local System One decision model for NVIDIA DGX Spark.**
 Qwen3-1.7B backbone · single-pass menu scoring · calibrated Choice / Score / Noul answers ·
@@ -131,6 +134,8 @@ deployment context, vulnerable code, and Kev's decision-v1 / transfer-v4 suites.
 answers we also report Jev's accuracy/ECE on the same rows and our agreement with it. These sets
 are other people's, with their own labelers and Jev versions; read each PROVENANCE before quoting.
 
+**Run log.** Every run that produced a quoted number, with its command and artifact path: [docs/RUNS.md](docs/RUNS.md).
+
 **Own simulator benchmark.** `python -m open_spark_jev.eval.benchmark` reports accuracy, macro-F1, Brier, NLL, ECE per
 (question type × domain), soft Brier against the **known posterior** on simulator data,
 Noul-specific Brier/ECE, and the prompt-injection flip rate. `eval/latency.py` produces the
@@ -153,7 +158,7 @@ open_spark_jev/   schema · prompting · model · calibration · data/ · train/
 configs/          model / train (sft, rlcd, rlcd_grpo) / serve (trtllm options, gateway) / quant (fp8, nvfp4)
 deploy/spark/     pull_trtllm · quantize · serve · gateway · smoke_curl
 scripts/          setup_env · download_weights · make_data · train_* · eval · smoke_test
-docs/             ARCHITECTURE · DGX_SPARK · UI · DATA · RESEARCH · ROADMAP
+docs/             ARCHITECTURE · DGX_SPARK · UI · DATA · RESEARCH · ROADMAP · RUNS (run log) · BENCHMARKS
 tests/            CPU unit tests + GPU smoke test (pytest -m gpu)
 ```
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Spark-S1 - System One playground</title>
+<title>spark-s1 - System One playground</title>
 <style>
 :root{--bg:#f6f7f9;--panel:#fff;--ink:#14171c;--mute:#5d6673;--line:#e2e6ec;--accent:#3b6df0;--accent2:#e8eefe;--good:#1f9d63;--warn:#c98a00;--bad:#d64545;--bar:#9db6f7;--sel:#3b6df0}
 @media (prefers-color-scheme:dark){:root{--bg:#0f1216;--panel:#171b21;--ink:#e8ebf0;--mute:#98a2b1;--line:#262c35;--accent:#6b93ff;--accent2:#1c2740;--good:#3ecf8e;--warn:#e3b341;--bad:#f06a6a;--bar:#34456e;--sel:#6b93ff}}
@@ -51,7 +51,7 @@ label.chk{display:flex;align-items:center;gap:6px;color:var(--mute)}
 </head>
 <body>
 <header>
-  <h1>Spark-S1 <small>System One playground &middot; runs locally</small></h1>
+  <h1>spark-s1 <small>System One playground &middot; runs locally</small></h1>
   <div class="sp"></div>
   <label class="small">Model <select id="modelA"></select></label>
   <label class="chk"><input type="checkbox" id="cmp"> compare with</label>
@@ -91,7 +91,7 @@ label.chk{display:flex;align-items:center;gap:6px;color:var(--mute)}
     </details>
   </section>
 </main>
-<div class="foot">Spark-S1 is an open System One decision model. It is not TypeSafe's Jev. Probabilities come from a single forward pass over the option labels &mdash; treat confidence as a calibrated estimate only on task types like the ones it was trained on, and check it on your own data before relying on it.</div>
+<div class="foot">spark-s1 is an open System One decision model (release ids: spark-s1-&lt;size&gt;-&lt;recipe&gt;-v&lt;n&gt;). It is not TypeSafe's Jev. Probabilities come from a single forward pass over the option labels &mdash; treat confidence as a calibrated estimate only on task types like the ones it was trained on, and check it on your own data before relying on it.</div>
 
 <script>
 "use strict";

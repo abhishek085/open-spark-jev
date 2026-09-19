@@ -4,7 +4,8 @@ TypeSafe's headline claim for Jev is 20-200x faster than frontier LLMs at compar
 quality. The only honest local version of that claim compares arms that differ in **mechanism,
 not in weights or hardware**, so this benchmark runs the same task set through:
 
-  menu        Spark-S1: one forward pass, logits restricted to the option labels (no decoding)
+  spark-s1    our model: one forward pass, logits restricted to the option labels (no decoding).
+              "menu scoring" is the mechanism, not the model name.
   generate    the SAME backbone, chat template, asked to emit {"choice": ..., "confidence": ...}
               as JSON (non-thinking) - the ordinary "small LLM as a classifier" baseline
   generate_think  the same, with Qwen3 thinking enabled - the "reasoning model" baseline that
@@ -98,7 +99,7 @@ def run_menu(model: str, recs, warmup: int) -> dict:
         correct.append(answers[0].selected == r.question_obj().labels[r.label_index()])
     del sc
     torch.cuda.empty_cache()
-    return summarise("menu (Spark-S1, 1 forward pass)", lat, correct, 0)
+    return summarise(f"spark-s1 ({os.path.basename(model.rstrip('/'))}) - menu scoring, 1 forward pass", lat, correct, 0)
 
 
 def run_generate(model: str, recs, warmup: int, thinking: bool, max_new: int) -> dict:
@@ -211,7 +212,7 @@ def main() -> None:
     ap.add_argument("--max-new-think", type=int, default=512)
     ap.add_argument("--endpoint", help="OpenAI-compatible base_url for a larger local model (e.g. http://localhost:8014/v1)")
     ap.add_argument("--endpoint-model", default="")
-    ap.add_argument("--skip", nargs="*", default=[], choices=["menu", "generate", "generate_think", "endpoint"])
+    ap.add_argument("--skip", nargs="*", default=[], choices=["menu", "generate", "generate_think", "endpoint"], help="arm names; 'menu' skips the spark-s1 arm")
     ap.add_argument("--allow-busy", action="store_true", help="measure even if a training job is using the GPU (numbers will be contended)")
     ap.add_argument("--out", default="runs/speed_vs_generation.json")
     a = ap.parse_args()
@@ -236,16 +237,16 @@ def main() -> None:
         arms.append(run_endpoint(a.endpoint, a.endpoint_model, recs, a.warmup, a.max_new))
         print(json.dumps(arms[-1]), flush=True)
 
-    menu = next((x for x in arms if x["arm"].startswith("menu")), None)
+    menu = next((x for x in arms if x["arm"].startswith("spark-s1")), None)
     report = {"data": a.data, "n": len(recs), "menu_model": a.menu_model, "base_model": a.base_model,
               "gpu_contended": bool(busy), "arms": arms}
     if menu:
-        report["speedup_vs_menu"] = {x["arm"]: round(x["latency_ms"]["p50"] / menu["latency_ms"]["p50"], 1)
+        report["speedup_vs_spark_s1"] = {x["arm"]: round(x["latency_ms"]["p50"] / menu["latency_ms"]["p50"], 1)
                                      for x in arms if x is not menu}
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     with open(a.out, "w") as f:
         json.dump(report, f, indent=2)
-    print(json.dumps(report.get("speedup_vs_menu", {}), indent=2))
+    print(json.dumps(report.get("speedup_vs_spark_s1", {}), indent=2))
 
 
 if __name__ == "__main__":
