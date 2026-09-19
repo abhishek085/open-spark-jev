@@ -42,7 +42,7 @@ def load_registry(path: str = "configs/teachers.yaml") -> dict[str, dict]:
 
 def make_teacher(name: str, cfg: dict) -> Teacher | None:
     try:
-        t = Teacher(base_url=cfg["base_url"], model=cfg["hf_id"])
+        t = Teacher(base_url=cfg["base_url"], model=cfg["hf_id"], mode=cfg.get("mode", "chat"))
         t.client.get("/models", timeout=5).raise_for_status()
         return t
     except (httpx.HTTPError, OSError) as e:

@@ -80,7 +80,8 @@ DOMAIN_BRIEFS: dict[str, dict[str, Any]] = {
 
 
 class Teacher:
-    def __init__(self, base_url: str | None = None, model: str | None = None, api_key: str = "EMPTY", timeout: float = 120):
+    def __init__(self, base_url: str | None = None, model: str | None = None, api_key: str = "EMPTY",
+                 timeout: float = 120, mode: str | None = None):
         self.base_url = (base_url or os.environ.get("TEACHER_BASE_URL", "http://localhost:8010/v1")).rstrip("/")
         self.model = model or os.environ.get("TEACHER_MODEL", "")
         self.client = httpx.Client(base_url=self.base_url, timeout=timeout, headers={"Authorization": f"Bearer {api_key}"})
@@ -88,8 +89,20 @@ class Teacher:
             r = self.client.get("/models")
             r.raise_for_status()
             self.model = r.json()["data"][0]["id"]
+        # "chat" (default) hits /v1/chat/completions with the server's own chat template.
+        # "completions" hits /v1/completions with messages flattened into one plain-text
+        # prompt, bypassing the server's chat/response-format machinery entirely. Exists for
+        # openai/gpt-oss-120b specifically: its OpenAI "harmony" chat/response format
+        # (openai_harmony's Rust vocab loader) fails to initialize on this box with
+        # "error downloading or loading vocab file" -- a confirmed open upstream bug on
+        # ARM64/DGX Spark (see docs/DGX_SPARK.md), unrelated to and unfixable from this repo.
+        # /v1/completions never touches that code path, so it works even though chat doesn't;
+        # the tradeoff is losing the model's own instruction-tuned chat formatting.
+        self.mode = mode or os.environ.get("TEACHER_MODE", "chat")
 
     def chat(self, messages: list[dict[str, str]], temperature: float = 0.8, max_tokens: int = 800, json_mode: bool = True) -> str:
+        if self.mode == "completions":
+            return self._complete(messages, temperature, max_tokens)
         body: dict[str, Any] = {"model": self.model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
         if json_mode:
             body["response_format"] = {"type": "json_object"}
@@ -97,6 +110,13 @@ class Teacher:
         r = self.client.post("/chat/completions", json=body)
         r.raise_for_status()
         return r.json()["choices"][0]["message"]["content"]
+
+    def _complete(self, messages: list[dict[str, str]], temperature: float, max_tokens: int) -> str:
+        prompt = "\n\n".join(f"[{m['role'].upper()}]\n{m['content']}" for m in messages) + "\n\n[ASSISTANT]\n"
+        body = {"model": self.model, "prompt": prompt, "temperature": temperature, "max_tokens": max_tokens}
+        r = self.client.post("/completions", json=body)
+        r.raise_for_status()
+        return r.json()["choices"][0]["text"]
 
 
 _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)

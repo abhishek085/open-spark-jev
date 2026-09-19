@@ -48,6 +48,46 @@ milliseconds in-process; through trtllm-serve with prefix reuse the per-question
 dominated by HTTP + scheduler overhead, which batching questions per state amortises.
 `python -m open_spark_jev.eval.latency` produces the grid; fill `docs/BENCHMARKS.md` from it.
 
+## Known blocker: openai/gpt-oss-120b is not usable on this box (as of 2026-09-19)
+
+`openai/gpt-oss-120b` requires OpenAI's "harmony" chat/response format, implemented by the
+`openai_harmony` Python package (a Rust extension). Serving it via vLLM's
+`/v1/chat/completions` fails at first request with:
+```
+openai_harmony.HarmonyError: error downloading or loading vocab file: failed to download or load vocab file
+```
+This is a confirmed, currently open upstream bug specific to ARM64/DGX Spark - see
+[vllm-project/vllm#22525](https://github.com/vllm-project/vllm/issues/22525),
+[openai/harmony#101](https://github.com/openai/harmony/issues/101), and
+[NVIDIA/dgx-spark-playbooks#17](https://github.com/NVIDIA/dgx-spark-playbooks/issues/17) (the
+last one is this exact box/error combination, still open with no confirmed fix). The
+container has working internet access and the vocab file downloads fine manually; the
+failure is in `openai_harmony`'s own loader, not connectivity.
+
+Two workarounds were tried and both failed for real reasons, not lack of effort:
+1. **Pre-download the vocab file and set `TIKTOKEN_RS_CACHE_DIR`** - a fix reported to at
+   least partially help elsewhere. Did not resolve it here; the loader still failed the same
+   way with the file present and the env var set.
+2. **Bypass chat entirely via `/v1/completions`** with a hand-built prompt. This avoids the
+   crash (the endpoint responds), but produces useless output: `/v1/completions` tokenizes
+   the prompt as plain text, so even correctly-typed harmony special tokens
+   (`<|start|>`, `<|channel|>`, `<|message|>`, ...) are not recognized as real control
+   tokens - the model sees garbled text instead of structured conversation turns and produces
+   degenerate/incoherent completions. Properly reproducing harmony's tokenization would
+   require its own token-ID-level encoder, i.e. reimplementing the broken library - judged
+   out of proportion for a third candidate teacher when two others (`qwen27b`, `nemotron120b`)
+   are already working and give a real comparison.
+
+**Current status**: `openai/gpt-oss-120b` is downloaded (`scripts/download_gptoss.sh`,
+~61GB in `~/.cache/huggingface-osj`) and its launch script
+(`scripts/teachers/serve_gptoss.sh`) is correct and starts the model successfully; only
+*serving it in a way that produces usable output* is blocked. `configs/teachers.yaml` marks
+it `status: blocked` rather than removing it, so this is visible rather than silently absent.
+Revisit if `openai_harmony`/vLLM ship a fix for the ARM64 vocab-loading bug, or if this
+project moves to a serving stack with its own harmony support that does not depend on that
+package (e.g. a version of `llama.cpp`, already present elsewhere on this box, with native
+harmony template support).
+
 ## Thermal management (hard rule for this box)
 
 The Spark's small form factor throttles/protectively shuts down around 92-95C package/SoC

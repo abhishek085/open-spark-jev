@@ -48,9 +48,18 @@ teachers:
     launch: scripts/teachers/serve_gptoss.sh
     hf_cache: ~/.cache/huggingface-osj   # ~/.cache/huggingface/hub is root-owned on this box;
                                           # gpt-oss-120b downloads here instead (scripts/download_gptoss.sh)
+    status: blocked   # NOT currently usable on this box, see docs/DGX_SPARK.md "openai/gpt-oss-120b
+                       # is blocked". /v1/chat/completions fails to initialize (openai_harmony's Rust
+                       # vocab loader, confirmed open upstream bug on ARM64/DGX Spark) and
+                       # /v1/completions can't substitute for it: hand-typed harmony special tokens
+                       # (<|start|>, <|channel|>, etc.) are not recognized as real control tokens by
+                       # the plain-text tokenizer that endpoint uses, so the model sees garbled text
+                       # instead of structured turns and produces degenerate output. Reproducing
+                       # harmony's tokenization correctly would need its own token-ID mapping, i.e.
+                       # reimplementing the broken library -- out of scope here. Left in the registry
+                       # (not deleted) as an honest record of a real, currently-unresolved blocker.
     notes: >
-      Apache-2.0. Third lab/architecture for diversity; configurable reasoning effort (we use
-      "medium" via chat_template_kwargs).
+      Apache-2.0. Third lab/architecture for diversity -- blocked on this box for now, see `status`.
 
 # Nemotron and gpt-oss each need ~60-70GB of the box's 121GB unified memory. They do NOT fit
 # alongside each other, and may not fit alongside the sibling project's nokast-teacher-vllm /

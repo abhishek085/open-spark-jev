@@ -245,7 +245,7 @@ OOM on a shared box - re-run once memory is free, see docs/COOKBOOK.md.
 | nemotron120b | incident | 20 | 0.940 | 0.25 |
 | nemotron120b | game | 20 | 0.177 | 0.75 |
 | **nemotron120b overall** | | **120** | **0.315** | **0.66** |
-| gptoss120b | - | - | pending | |
+| gptoss120b | - | - | **blocked** - see docs/DGX_SPARK.md | |
 
 **Nemotron result, notably worse than Qwen despite being much larger**: overall soft Brier
 0.315 vs qwen27b's 0.142 - a real, somewhat counterintuitive finding, not a fluke of one bad
