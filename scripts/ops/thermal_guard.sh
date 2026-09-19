@@ -24,7 +24,24 @@ RESUME_C="${THERMAL_RESUME_C:-85}"  # resume only once BOTH sensors are back und
                                      # (hysteresis -- avoids rapid pause/resume flapping)
 
 paused=0
-echo "[thermal_guard] watching pattern='$PATTERN' poll=${POLL_SECONDS}s pause>=${PAUSE_C}C resume<${RESUME_C}C"
+echo "[thermal_guard] watching pattern='$PATTERN' poll=${POLL_SECONDS}s pause>=${PAUSE_C}C resume<${RESUME_C}C (self pid $$, excluded from matches)"
+
+matching_pids() {
+  # Exclude our own PID and anything that looks like another thermal_guard.sh instance -- the
+  # guard's own command line literally contains $PATTERN as an argv token (it was invoked as
+  # `bash thermal_guard.sh "$PATTERN"`), so a naive `pgrep -f "$PATTERN"` matches the guard
+  # itself. A first real run learned this the hard way: it SIGSTOPped its own process right
+  # after pausing the training job, freezing both indefinitely with no way to self-resume
+  # (harmless here only because the paused training job also stopped consuming GPU/thermal
+  # headroom -- do not rely on that luck holding in general).
+  pgrep -f "$PATTERN" 2>/dev/null | grep -vxF "$$" | while read -r pid; do
+    cmd=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)
+    case "$cmd" in
+      *thermal_guard.sh*) ;;  # skip -- this is a guard process, never a signal target
+      *) echo "$pid" ;;
+    esac
+  done
+}
 
 read_gpu_temp() {
   nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1
@@ -56,14 +73,14 @@ while true; do
   { [ -n "$soc" ] && [ "$soc" -ge "$RESUME_C" ]; } && cool=0
 
   if [ "$hot" = "1" ] && [ "$paused" = "0" ]; then
-    pids=$(pgrep -f "$PATTERN" || true)
+    pids=$(matching_pids)
     if [ -n "$pids" ]; then
       echo "[thermal_guard] PAUSE: gpu=${gpu}C soc=${soc}C >= ${PAUSE_C}C -- SIGSTOP on pids: $pids"
       kill -STOP $pids 2>/dev/null || true
       paused=1
     fi
   elif [ "$paused" = "1" ] && [ "$cool" = "1" ]; then
-    pids=$(pgrep -f "$PATTERN" || true)
+    pids=$(matching_pids)
     if [ -n "$pids" ]; then
       echo "[thermal_guard] RESUME: gpu=${gpu}C soc=${soc}C < ${RESUME_C}C -- SIGCONT on pids: $pids"
       kill -CONT $pids 2>/dev/null || true
