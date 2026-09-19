@@ -245,6 +245,13 @@ OOM on a shared box - re-run once memory is free, see docs/COOKBOOK.md.
 | nemotron120b | incident | 20 | 0.940 | 0.25 |
 | nemotron120b | game | 20 | 0.177 | 0.75 |
 | **nemotron120b overall** | | **120** | **0.315** | **0.66** |
+| gemma26b | routing | 20 | 0.060 | 0.90 |
+| gemma26b | security | 20 | 0.017 | 1.00 |
+| gemma26b | risk | 20 | 0.145 | 0.70 |
+| gemma26b | moderation | 20 | 0.115 | 0.75 |
+| gemma26b | incident | 20 | 0.265 | 0.55 |
+| gemma26b | game | 20 | 0.170 | 0.80 |
+| **gemma26b overall** | | **120** | **0.129** | **0.78** |
 | gptoss120b | - | - | **blocked** - see docs/DGX_SPARK.md | |
 
 **Nemotron result, notably worse than Qwen despite being much larger**: overall soft Brier
@@ -301,6 +308,26 @@ multiple hours of in-progress training. **Read every table below with routing, r
 security as the trustworthy columns**; moderation/incident/game numbers are reported for
 completeness but should be treated as an upper bound on what the mechanism can actually do,
 not a real measurement. A clean rerun on regenerated corpora is the next step (docs/ROADMAP.md).
+
+## Teacher comparison, final ranking across three real candidates
+
+| teacher | family | active params | overall soft Brier |
+|---|---|---|---|
+| **gemma26b** | Google DeepMind, MoE | 4B | **0.129** - best |
+| qwen27b | Alibaba, dense | 27B | 0.142 |
+| nemotron120b | NVIDIA, hybrid Mamba/MoE | 12B | 0.315 - worst |
+
+The smallest, fastest teacher (Gemma-4-26B-A4B, only 4B active parameters, an 18GB
+checkpoint) is the *best* grader of the three, beating a 27B dense model and a 120B-total
+model with 3x its active parameter count. This reinforces and sharpens the earlier Nemotron
+finding: neither total size nor active-parameter count predicted grading quality on this
+benchmark. Practically, this makes gemma26b the recommended default teacher for future
+`osj synth --distill` runs on this box - it is simultaneously the most accurate grader
+measured and the cheapest/fastest to run (18GB checkpoint vs 82GB/61GB for the other two
+large candidates). qwen27b's earlier-generated 473 distilled records
+(`data/synthetic/teacher_train.jsonl`, used in the mechanism-1 training run above) predate
+this finding, since the benchmark was built and run after that data generation - worth a
+regeneration pass with gemma26b if training resumes, see docs/ROADMAP.md.
 
 ## In-container TRT-LLM Python API backend (`serve/trtllm_backend.py`)
 `scripts/trtllm_api_smoke.py` on the smoke-test state (4 questions, 188 state tokens),

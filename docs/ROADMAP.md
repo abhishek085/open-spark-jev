@@ -14,7 +14,8 @@
 | M8b | Regenerate sim_train/sim_test on the fixed (leakage-free) simulators and rerun SFT + all four Phase-2 mechanisms for trustworthy moderation/incident/game numbers | pending, blocks a fully clean M8 |
 | M9 | FP8 / NVFP4 engines, temperature re-fit, latency grid | pending |
 | M10 | Comparison table vs LLM+regex baseline and Jev-format public examples | pending |
-| M11 | Multi-teacher registry + ground-truth teacher benchmark (`configs/teachers.yaml`, `eval/teacher_benchmark.py`) | done for qwen27b (soft Brier 0.142) and nemotron120b (0.315, notably worse despite size); gptoss120b blocked by an unresolved upstream ARM64 bug, see docs/DGX_SPARK.md |
+| M11 | Multi-teacher registry + ground-truth teacher benchmark (`configs/teachers.yaml`, `eval/teacher_benchmark.py`) | done: qwen27b 0.142, nemotron120b 0.315, gemma26b 0.129 (best, smallest); gptoss120b blocked by an unresolved upstream ARM64 bug, see docs/DGX_SPARK.md |
+| M11b | Regenerate teacher_train.jsonl with gemma26b (the now-best-measured teacher) and rerun mechanism 1 (contrastive) on the regenerated data -- the current 473-record file predates the teacher benchmark and was generated with qwen27b by default, not the now-known-better choice | pending |
 | M12 | Reusability cookbook for retraining on other domains (`docs/COOKBOOK.md`) | done |
 | M14 | Architecture-experiment ledger + A1 (single-pass parallel multi-question readout) prototype (`docs/NOVELTY.md`) | A1 implemented, measurement queued behind the in-flight SFT/RLCD/GRPO run |
 | M15 | A3: slot-query menu head, our candidate novel architecture (`docs/NOVELTY.md`) | proposed, not yet built |
