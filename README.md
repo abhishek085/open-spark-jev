@@ -1,5 +1,13 @@
 # open-spark-Jev
 
+**Spark-S1** is the model this repo builds and releases: an open, local *System One* decision
+model (checkpoints are named `spark-s1-<size>-<recipe>`, e.g. `spark-s1-1.7b-rlcd-direct`).
+`open-spark-Jev` is the repo name and stays as the pointer to the public shape of TypeSafe's
+Jev that we follow; Spark-S1 is not Jev and not affiliated with TypeSafe. It is built by
+fine-tuning a pretrained backbone, not trained from scratch, but follows the System One
+contract: typed Choice / Score / Noul questions in, calibrated per-option probabilities and a
+confidence out, in one forward pass with no generated text.
+
 **An open, local System One decision model for NVIDIA DGX Spark.**
 Qwen3-1.7B backbone · single-pass menu scoring · calibrated Choice / Score / Noul answers ·
 RLCD training · served through TensorRT-LLM behind a typed JSON API.
@@ -99,14 +107,32 @@ existing Jev client code can be pointed at a local endpoint. `examples/` has rou
 a calibration-aware agent gate, and a Jev-format client.
 
 ## Evaluation
-`python -m open_spark_jev.eval.benchmark` reports accuracy, macro-F1, Brier, NLL, ECE per
+**Third-party evals, reported per source (never pooled).** Seven suites from public Jev
+projects live under `data/external/<source>/` with a `PROVENANCE.md` each (upstream URL, pinned
+commit, license, where the labels come from, whether Jev's own outputs were recorded, caveats):
+Jev Directory (70 typed questions), agent tool-call risk, prompt injection with and without
+deployment context, vulnerable code, and Kev's decision-v1 / transfer-v4 suites. Rebuild with
+`python scripts/external/build_external.py`; score a checkpoint with
+`python -m open_spark_jev.eval.external --model <ckpt> --name <run>`, which writes one
+`runs/external/<run>/<source>.json` per source plus a `SUMMARY.md`. Where a source recorded Jev's
+answers we also report Jev's accuracy/ECE on the same rows and our agreement with it. These sets
+are other people's, with their own labelers and Jev versions; read each PROVENANCE before quoting.
+
+**Own simulator benchmark.** `python -m open_spark_jev.eval.benchmark` reports accuracy, macro-F1, Brier, NLL, ECE per
 (question type × domain), soft Brier against the **known posterior** on simulator data,
 Noul-specific Brier/ECE, and the prompt-injection flip rate. `eval/latency.py` produces the
 Spark latency/throughput grid over state length × questions per state.
 
 ## Status
-Scaffold complete and smoke-tested on a GB10 (HF backend, bf16). See
-[docs/ROADMAP.md](docs/ROADMAP.md) for what is done, what runs next, and open questions.
+Work in progress (2026-09-19). Pipeline, serving path, 31-domain data (simulators plus a
+gemma-graded teacher corpus) and the external eval suites are built. Earlier checkpoints trained
+on simulators only (accuracy about 0.81 and ECE about 0.02 on our simulator test, three of six
+domains inflated by a since-fixed train/test leak, see docs/BENCHMARKS.md); a clean retrain that
+includes the new domains is running. Architecture experiments A0-A6 ([docs/NOVELTY.md](docs/NOVELTY.md))
+are implemented but not yet measured, and no checkpoint has been scored on the external suites
+yet. Not trained on any real-world text so far, so do not expect it to match public-data-trained
+peers such as Kev-0.5B out of the box. See [docs/ROADMAP.md](docs/ROADMAP.md) and
+[docs/MODELS.md](docs/MODELS.md).
 
 ## Layout
 ```
