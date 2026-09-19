@@ -232,6 +232,11 @@ def main() -> None:
     val_ex = build_examples(base, val_r, a.max_len)
     tests = {"sim_test": build_examples(base, read_jsonl("data/benchmarks/sim_test.jsonl")[: 200 if a.smoke else None], a.max_len),
              "teacher_test": build_examples(base, read_jsonl("data/benchmarks/teacher_test.jsonl")[: 100 if a.smoke else None], a.max_len)}
+    import glob as _glob
+    for _f in sorted(_glob.glob("data/benchmarks/external/*.jsonl")):
+        _recs = read_jsonl(_f)[: 40 if a.smoke else None]
+        tests[os.path.basename(_f)[:-6]] = build_examples(base, _recs, a.max_len)
+        log.info("external %s: %d of %d records fit max_len", os.path.basename(_f)[:-6], len(tests[os.path.basename(_f)[:-6]]), len(_recs))
     plen = {}
     for ex in (train_ex, val_ex, *tests.values()):
         for e, n in zip(ex, prefix_lengths(base, ex)):
