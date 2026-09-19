@@ -27,7 +27,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..calibration import brier_soft, fit_temperature, summary
+from ..calibration import fit_temperature, summary
 from ..data.corpus import read_jsonl, split_records
 from ..model import MenuScorer, gather_label_logits
 from ..prompting import render_prefix
@@ -183,9 +183,9 @@ def report(val_logits, val_ex, test_logits, test_ex) -> dict:
         probs = [list(p) + [0.0] * (K - len(p)) for _, p in sel]
         ys = [e.target_idx for e, _ in sel]
         r = summary(probs, ys)
-        soft = [(list(p), e.target_dist) for e, p in sel if e.target_dist is not None]
-        if soft:
-            r["soft_brier"] = brier_soft([s[0] for s in soft], [s[1] for s in soft])
+        soft = [(np.asarray(p, dtype=np.float64), np.asarray(e.target_dist, dtype=np.float64)) for e, p in sel if e.target_dist is not None]
+        if soft:  # per-row (K differs across questions), then mean
+            r["soft_brier"] = float(np.mean([np.sum((p_ - t_) ** 2) for p_, t_ in soft]))
         return {k: (round(v, 4) if isinstance(v, float) else v) for k, v in r.items()}
 
     rep = {"temperature": T, "overall": agg(rows)}

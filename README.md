@@ -39,6 +39,18 @@ answers = m.decide(state, [
 # 3 decisions, 1 state prefix pass, ~tens of ms on a GB10
 ```
 
+## Try it: the playground (UI + API)
+```bash
+scripts/setup_env.sh && scripts/download_weights.sh Qwen/Qwen3-1.7B   # once
+scripts/fetch_checkpoints.sh <hf-repo-id>                              # released checkpoints -> checkpoints/ (or train your own)
+scripts/run_ui.sh                                                      # open http://127.0.0.1:8400
+```
+A single-page web UI with ten example tasks (support triage, retrieval routing, SQL safety, prompt-injection
+check, tool-call risk, email triage, RAG sufficiency, incident routing, CI failure triage, form completion),
+a confidence-gating slider, side-by-side model comparison, and the exact Jev-compatible API call for whatever you
+run. Reach it from a laptop over Tailscale (`--tailscale`) or an SSH tunnel. Details, API examples and honest
+notes on what it gets right and wrong: [docs/UI.md](docs/UI.md).
+
 ## How it works (short version)
 1. The state is rendered once inside hard fences and run through the decoder; its KV cache is kept.
 2. Each question is rendered as a menu (`A. ... B. ...`) plus the Qwen3 non-thinking assistant
@@ -89,6 +101,7 @@ scripts/train_sft.sh                          # Phase 1  -> checkpoints/sft-qwen
 scripts/train_rlcd_direct.sh                  # Phase 2, mechanism 2 -> checkpoints/rlcd-direct-qwen3-1.7b (no teacher needed)
 scripts/train_rlcd_contrastive.sh             # Phase 2, mechanism 1 -> checkpoints/rlcd-contrastive-qwen3-1.7b (needs a teacher on :8010)
 scripts/eval.sh hf checkpoints/rlcd-direct-qwen3-1.7b
+scripts/run_ui.sh                             # web UI + API over checkpoints/ (docs/UI.md)
 
 deploy/spark/pull_trtllm.sh                   # TensorRT-LLM container (arm64, CUDA 13)
 deploy/spark/quantize.sh configs/quant/fp8.yaml checkpoints/rlcd-qwen3-1.7b
@@ -140,7 +153,7 @@ open_spark_jev/   schema · prompting · model · calibration · data/ · train/
 configs/          model / train (sft, rlcd, rlcd_grpo) / serve (trtllm options, gateway) / quant (fp8, nvfp4)
 deploy/spark/     pull_trtllm · quantize · serve · gateway · smoke_curl
 scripts/          setup_env · download_weights · make_data · train_* · eval · smoke_test
-docs/             ARCHITECTURE · DGX_SPARK · DATA · RESEARCH · ROADMAP
+docs/             ARCHITECTURE · DGX_SPARK · UI · DATA · RESEARCH · ROADMAP
 tests/            CPU unit tests + GPU smoke test (pytest -m gpu)
 ```
 

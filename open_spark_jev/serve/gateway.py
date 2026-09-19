@@ -22,10 +22,15 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import threading
 import time
+from collections import OrderedDict
+from pathlib import Path
 from typing import Any
 
+import yaml
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from ..schema import Answer, Choice, DecisionRequest, DecisionResponse, Noul, Score, State
@@ -34,6 +39,65 @@ log = logging.getLogger("osj.gateway")
 app = FastAPI(title="open-spark-Jev", version="0.1.0")
 BACKEND: Any = None
 BACKEND_KIND = "none"
+
+# --- multi-model support (hf backend): several checkpoints selectable per request, loaded lazily ---
+UI_DIR = Path(__file__).parent / "ui"
+CHECKPOINT_ROOT = "checkpoints"
+REGISTRY_FILE = "configs/serve/models.yaml"
+DEFAULT_MODEL: str | None = None
+MAX_LOADED = int(os.environ.get("OSJ_MAX_LOADED", "2"))
+_LOADED: OrderedDict[str, Any] = OrderedDict()
+_LOAD_LOCK = threading.Lock()
+_GPU_LOCK = threading.Lock()
+
+
+def discover_models() -> dict[str, dict]:
+    """id -> {path, name, note}. Registry entries whose weights exist, plus any other checkpoint dir."""
+    meta: dict[str, dict] = {}
+    if os.path.exists(REGISTRY_FILE):
+        with open(REGISTRY_FILE) as f:
+            meta = (yaml.safe_load(f) or {}).get("models", {})
+    found: dict[str, dict] = {}
+    for mid, m in meta.items():
+        path = m.get("path") or os.path.join(CHECKPOINT_ROOT, mid)
+        if os.path.exists(os.path.join(path, "config.json")):
+            found[mid] = {"path": path, "name": m.get("name", mid), "note": m.get("note", "")}
+    if os.path.isdir(CHECKPOINT_ROOT):
+        for d in sorted(os.listdir(CHECKPOINT_ROOT)):
+            p = os.path.join(CHECKPOINT_ROOT, d)
+            if d not in found and not d.startswith("rm-") and os.path.exists(os.path.join(p, "config.json")):
+                found[d] = {"path": p, "name": d, "note": ""}
+    return found
+
+
+def get_backend(model: str | None):
+    """Resolve a request's model to a backend. Non-hf backends serve one fixed model."""
+    if BACKEND_KIND != "hf":
+        return BACKEND
+    avail = discover_models()
+    mid = model or DEFAULT_MODEL
+    if mid not in avail:
+        raise HTTPException(404, f"unknown model {mid!r}; available: {list(avail)}")
+    with _LOAD_LOCK:
+        if mid in _LOADED:
+            _LOADED.move_to_end(mid)
+            return _LOADED[mid]
+        from ..model import MenuScorer
+
+        log.info("loading %s from %s", mid, avail[mid]["path"])
+        while len(_LOADED) >= MAX_LOADED:
+            old, sc = _LOADED.popitem(last=False)
+            log.info("unloading %s", old)
+            del sc
+            import gc
+
+            import torch
+
+            gc.collect()
+            torch.cuda.empty_cache()
+        _LOADED[mid] = MenuScorer(avail[mid]["path"])
+        _LOADED[mid].model_id = mid
+        return _LOADED[mid]
 
 
 class JevQuestion(BaseModel):
@@ -49,7 +113,7 @@ class JevRequest(BaseModel):
 
 
 def _from_jev(name: str, jq: JevQuestion):
-    if jq.type == "noul":
+    if jq.type in ("noul", "boolean"):  # "boolean" is the AI SDK / hosted-Jev spelling
         return Noul(id=name, prompt=jq.instructions)
     if jq.type == "choice":
         if not isinstance(jq.criteria, dict):
@@ -65,7 +129,7 @@ def _from_jev(name: str, jq: JevQuestion):
 
 def _to_jev(a: Answer, q) -> dict[str, Any]:
     if a.type == "noul":
-        return {"type": "noul", "noul": a.probability}
+        return {"type": "noul", "noul": a.probability, "probability": a.probability}
     if a.type == "choice":
         return {"type": "choice", "choice": a.selected, "probabilities": dict(zip(a.labels, a.probs)), "confidence": a.confidence}
     legend = {str(i): lvl for i, lvl in enumerate(q.labels)}
@@ -75,36 +139,46 @@ def _to_jev(a: Answer, q) -> dict[str, Any]:
 
 @app.get("/healthz")
 def healthz():
-    return {"ok": BACKEND is not None, "backend": BACKEND_KIND}
+    return {"ok": BACKEND is not None or bool(_LOADED), "backend": BACKEND_KIND, "loaded": list(_LOADED)}
+
+
+@app.get("/", include_in_schema=False)
+def ui():
+    return FileResponse(UI_DIR / "index.html")
 
 
 @app.get("/v1/models")
 def models():
-    return {"object": "list", "data": [{"id": getattr(BACKEND, "name", "open-spark-jev"), "object": "model"}]}
+    if BACKEND_KIND != "hf":
+        return {"object": "list", "default": None, "data": [{"id": getattr(BACKEND, "name", "open-spark-jev"), "object": "model", "name": "served model", "note": "", "loaded": True}]}
+    return {"object": "list", "default": DEFAULT_MODEL,
+            "data": [{"id": k, "object": "model", "name": v["name"], "note": v["note"], "loaded": k in _LOADED} for k, v in discover_models().items()]}
 
 
 @app.post("/v1/decide", response_model=DecisionResponse)
 def decide(req: DecisionRequest):
-    if BACKEND is None:
-        raise HTTPException(503, "backend not loaded")
+    backend = get_backend(req.model)
     qs = req.parsed_questions()
     t0 = time.perf_counter()
-    answers = BACKEND.decide(req.state, qs, temperature=req.temperature, return_logits=req.return_logits)
+    with _GPU_LOCK:
+        answers = backend.decide(req.state, qs, temperature=req.temperature, return_logits=req.return_logits)
     ms = (time.perf_counter() - t0) * 1000
-    return DecisionResponse(answers=answers, model=getattr(BACKEND, "name", "?"), latency_ms=ms, state_tokens=-1, backend=BACKEND_KIND)
+    return DecisionResponse(answers=answers, model=getattr(backend, "model_id", getattr(backend, "name", "?")), latency_ms=ms, state_tokens=-1, backend=BACKEND_KIND)
 
 
 @app.post("/v1/evaluate")
 def evaluate(req: JevRequest):
-    if BACKEND is None:
-        raise HTTPException(503, "backend not loaded")
+    backend = get_backend(req.model)
     state = State(content=req.state)
     names = list(req.questions)
     qs = [_from_jev(n, req.questions[n]) for n in names]
-    answers = BACKEND.decide(state, qs)
-    return {"model": getattr(BACKEND, "name", "open-spark-jev"),
+    t0 = time.perf_counter()
+    with _GPU_LOCK:
+        answers = backend.decide(state, qs)
+    ms = (time.perf_counter() - t0) * 1000
+    return {"model": getattr(backend, "model_id", getattr(backend, "name", "open-spark-jev")),
             "answers": {n: _to_jev(a, q) for n, a, q in zip(names, answers, qs)},
-            "usage": {"input_tokens": None, "output_tokens": 0}}
+            "usage": {"input_tokens": None, "output_tokens": 0}, "latency_ms": round(ms, 1)}
 
 
 def build_backend(kind: str, model: str | None, upstream: str | None):
@@ -131,18 +205,28 @@ def build_backend(kind: str, model: str | None, upstream: str | None):
     BACKEND_KIND = kind
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     import uvicorn
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", choices=["hf", "openai", "trtllm"], default="openai")
     ap.add_argument("--model", help="HF path (also used to load calibration.json for openai backend)")
     ap.add_argument("--upstream", default="http://localhost:8355/v1")
-    ap.add_argument("--host", default="0.0.0.0")
+    ap.add_argument("--default-model", help="hf backend: default model id (see configs/serve/models.yaml); the UI can switch per request")
+    ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 or your Tailscale IP to reach it from another machine")
     ap.add_argument("--port", type=int, default=8400)
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
-    build_backend(a.backend, a.model, a.upstream)
+    global DEFAULT_MODEL, BACKEND_KIND
+    if a.backend == "hf":
+        BACKEND_KIND = "hf"
+        avail = discover_models()
+        DEFAULT_MODEL = a.default_model or ("sft-qwen3-1.7b" if "sft-qwen3-1.7b" in avail else next(iter(avail), None))
+        if DEFAULT_MODEL is None:
+            raise SystemExit("no checkpoints found under checkpoints/ (see docs/UI.md)")
+        get_backend(DEFAULT_MODEL)  # load now so the first request is fast
+    else:
+        build_backend(a.backend, a.model, a.upstream)
     uvicorn.run(app, host=a.host, port=a.port)
 
 

@@ -49,6 +49,17 @@ def _synth(a):
     write_jsonl(a.out, recs)
 
 
+def _ui(a):
+    """Start the local playground (UI + API). Deliberately a light `osj ui` process, not
+    `python -m open_spark_jev...`, so the thermal guard's process pattern never SIGSTOPs it mid-demo."""
+    from .serve.gateway import main as gateway_main
+
+    argv = ["--backend", "hf", "--host", a.host, "--port", str(a.port)]
+    if a.model:
+        argv += ["--default-model", a.model]
+    gateway_main(argv)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="osj")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -75,6 +86,12 @@ def main(argv=None):
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--out", required=True)
     p.set_defaults(fn=_public)
+
+    u = sub.add_parser("ui", help="local playground: web UI + Jev-compatible API over the checkpoints in checkpoints/")
+    u.add_argument("--host", default="127.0.0.1", help="0.0.0.0 or your Tailscale IP to reach it from another machine")
+    u.add_argument("--port", type=int, default=8400)
+    u.add_argument("--model", help="default model id (see configs/serve/models.yaml)")
+    u.set_defaults(fn=_ui)
 
     y = sub.add_parser("synth", help="teacher-generated scenarios (+ optional distillation)")
     y.add_argument("--base-url")

@@ -235,6 +235,7 @@ class DecisionRequest(BaseModel):
 
     state: State
     questions: list[dict[str, Any]] = Field(..., min_length=1)
+    model: str | None = Field(default=None, description="Model id from GET /v1/models (multi-model gateway); default if omitted.")
     temperature: float | None = Field(
         default=None, description="Override the calibrated temperature for this request."
     )

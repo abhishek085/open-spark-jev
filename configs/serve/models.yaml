@@ -1,0 +1,19 @@
+# Models the UI/gateway offers. Key = directory under checkpoints/ (or the path for `base`).
+# Update `name`/`note` here when a checkpoint is retrained, so the UI never mislabels a model.
+models:
+  sft-qwen3-1.7b:
+    name: "Spark-S1 1.7B - SFT (v2)"
+    note: "Qwen3-1.7B fine-tuned on simulators + gemma-graded synthetic data over 31 task domains (2026-09-19). Start here."
+  rlcd-direct-qwen3-1.7b:
+    name: "Spark-S1 1.7B - RLCD-direct (v1, simulators only)"
+    note: "Calibration-objective RL on top of SFT v1. Trained on 6 simulator domains only; predates the 31-domain data."
+  rlcd-contrastive-qwen3-1.7b:
+    name: "Spark-S1 1.7B - RLCD-contrastive (v1)"
+    note: "Academic RLCD (contrastive pairs + reward model) on SFT v1. Simulator-era; small teacher corpus."
+  grpo-qwen3-1.7b:
+    name: "Spark-S1 1.7B - GRPO baseline (v1)"
+    note: "Sampled-token RL baseline. Worse accuracy and calibration than the exact-gradient variants; included for comparison."
+  base:
+    path: models/Qwen3-1.7B
+    name: "Qwen3-1.7B - zero-shot (no training)"
+    note: "The untrained backbone read out the same way. Shows what fine-tuning adds: much lower accuracy, badly miscalibrated."

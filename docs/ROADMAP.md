@@ -21,6 +21,7 @@
 | M12 | Reusability cookbook for retraining on other domains (`docs/COOKBOOK.md`) | done |
 | M14 | Architecture-experiment ledger + A1 (single-pass parallel multi-question readout) prototype (`docs/NOVELTY.md`) | A1 implemented, measurement queued behind the in-flight SFT/RLCD/GRPO run |
 | M15 | A3: slot-query menu head, our candidate novel architecture (`docs/NOVELTY.md`) | proposed, not yet built |
+| M19 | Local playground: web UI + multi-model Jev-compatible API, run scripts, `docs/UI.md` (`osj ui`, `configs/serve/models.yaml`) | done 2026-09-19; verified with headless-browser screenshots; not yet run by anyone but the author |
 | M13 | Retest full serving path on TensorRT-LLM 1.3.0rc13 | done, parity confirmed, docs/BENCHMARKS.md |
 
 ## Open questions for the owner
