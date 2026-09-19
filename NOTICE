@@ -1,0 +1,86 @@
+open-spark-Jev / spark-s1
+Copyright 2026 Nokast AI community contributors
+
+This product includes software developed by the Nokast AI community.
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+================================================================================
+Third-party components
+================================================================================
+
+This repository's own source code, documentation, configs, simulators and
+synthetic-data generators are Apache-2.0. The following are NOT ours and remain
+under their own licenses and terms. Redistribution here does not relicense them.
+
+--------------------------------------------------------------------------------
+1. Model weights (not distributed in this repository)
+--------------------------------------------------------------------------------
+
+Qwen3-1.7B -- Apache-2.0 -- Alibaba Cloud / Qwen team
+  https://huggingface.co/Qwen/Qwen3-1.7B
+  Downloaded at setup time by scripts/download_weights.sh. spark-s1 checkpoints are
+  derivatives of this backbone and inherit its license terms.
+
+Teacher models used only for offline data generation, never shipped:
+  nvidia/Gemma-4-26B-A4B-NVFP4      -- Gemma terms of use (Google DeepMind) + NVIDIA packaging
+  nvidia/Qwen3.6-27B-NVFP4          -- Apache-2.0 (Qwen) + NVIDIA packaging
+  nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4 -- NVIDIA Open Model License
+  openai/gpt-oss-120b               -- Apache-2.0 (registered but unusable on this hardware)
+  See configs/teachers.yaml. Check each model card before using it commercially.
+
+--------------------------------------------------------------------------------
+2. Vendored third-party evaluation data (data/external/)
+--------------------------------------------------------------------------------
+
+Each source directory carries a PROVENANCE.md with the upstream URL, the pinned
+commit, the license, where the labels came from, and our caveats. Raw upstream
+files are kept unmodified under data/external/<source>/raw/.
+
+jev-sec-bench -- MIT -- Gaurav Gosain
+  https://github.com/Gaurav-Gosain/jev-sec-bench @ fdb16b94d37535db9bad77f8ef0faa971bd7d69a
+  Used for: ext-injection-ctx, ext-injection-noctx, ext-vuln-code.
+  Underlying corpora keep their own licenses:
+    deepset/prompt-injections
+    CyberNative/Code_Vulnerability_Security_DPO
+
+jev-benchmark -- Apache-2.0 -- themsquared
+  https://github.com/themsquared/jev-benchmark @ daf02b3b59b28db49d3e77b4a8054b6c0849ea22
+  Used for: ext-toolcall-risk (60 hand-labelled agent tool calls + that repo's
+  committed Jev runs, which we quote as a reference and did not produce).
+
+jev-directory -- MIT -- everyai-com
+  https://github.com/everyai-com/jev-directory @ b4d676758d4bfbb55b1402d0fea7a3f65b4c27b5
+  Used for: ext-jev-directory (50 community evals / 70 typed questions).
+
+kev -- Apache-2.0 -- Jared Palmer
+  https://github.com/jaredpalmer/kev @ cc954f2f66d86943688fdbfa07b6db18f82ed065
+  Used for: ext-kev-decision-v1, ext-kev-transfer-v4. Kev's suites are conversions
+  of public datasets, each of which keeps its own license (revisions pinned in the
+  vendored manifests): Banking77, BoolQ, AG News, MNLI, SST-5, Yelp Review Full,
+  TREC, DBpedia-14, IMDB, Amazon Reviews Multi, MMLU, Emotion, TweetEval, QNLI,
+  PAWS, SciQ.
+  kev's model/head design credits jevlike (MIT, Minimal Labs) and an architecture
+  analysis by Archer Hume.
+
+--------------------------------------------------------------------------------
+3. Public datasets fetched at runtime (data/raw/, not redistributed here)
+--------------------------------------------------------------------------------
+
+open_spark_jev/data/public.py downloads these from the Hugging Face Hub when asked.
+They are not vendored into this repository; each keeps its own license and terms:
+  fancyzhx/ag_news, dair-ai/emotion, legacy-datasets/banking77,
+  lmsys/toxic-chat, google/boolq, Yelp/yelp_review_full
+
+--------------------------------------------------------------------------------
+4. Trademarks and unaffiliated projects
+--------------------------------------------------------------------------------
+
+"Jev", "System One" and "TypeSafe" refer to TypeSafe AI's hosted product. This
+project is an independent, open reimplementation of the public *shape* of that
+API. It is NOT Jev, NOT a reproduction of Jev's undisclosed training method, and
+NOT affiliated with or endorsed by TypeSafe AI. Where this repository quotes Jev's
+measured behaviour, the numbers come from third-party repositories' committed runs
+(see section 2), not from any run we performed.
+
+"NVIDIA", "DGX Spark" and "TensorRT-LLM" are trademarks of NVIDIA Corporation.
+This project is not affiliated with or endorsed by NVIDIA.

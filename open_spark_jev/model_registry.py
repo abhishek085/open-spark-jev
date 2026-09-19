@@ -80,7 +80,6 @@ def _fmt_eval_table(eval_path: str | None) -> str:
 
 def _run_command(checkpoint: str) -> str:
     return (
-        f"cd /home/admin/llm-workspace/Open-Spark-Jev && "
         f".venv/bin/osj decide --model {checkpoint} \\\n"
         f'  --state \'{{"ticket": "Charged twice this month, invoice missing."}}\' --json \\\n'
         f'  -q \'{{"type": "choice", "prompt": "Which queue?", "options": ["billing", "technical", "sales"], "allow_abstain": true}}\' \\\n'

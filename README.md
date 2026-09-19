@@ -162,5 +162,20 @@ docs/             ARCHITECTURE · DGX_SPARK · UI · DATA · RESEARCH · ROADMAP
 tests/            CPU unit tests + GPU smoke test (pytest -m gpu)
 ```
 
-## License
-Apache-2.0. Backbone weights: Qwen3 (Apache-2.0).
+## Project, license and attribution
+
+Maintained by the **Nokast AI** open-source community. Our source, docs, configs, simulators and
+synthetic-data generators are **Apache-2.0** (`LICENSE`).
+
+Everything we did not write keeps its own license and terms — see [`NOTICE`](NOTICE) for the full
+list. In short: the Qwen3-1.7B backbone is Apache-2.0 and is downloaded at setup, not redistributed
+here; the teacher models used only for offline data generation each carry their own terms; the
+vendored third-party evaluation suites under `data/external/` are MIT or Apache-2.0 with their
+upstream commit pinned and a `PROVENANCE.md` per source; the public datasets in `data/raw/` are
+fetched at runtime and not redistributed.
+
+*Jev*, *System One* and *TypeSafe* are TypeSafe AI's; *NVIDIA*, *DGX Spark* and *TensorRT-LLM* are
+NVIDIA's. This project is independent and not affiliated with or endorsed by either. Jev's measured
+numbers quoted here come from third-party repositories' committed runs, not from runs we made.
+
+Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md) · Security and safe-use notes: [`SECURITY.md`](SECURITY.md)

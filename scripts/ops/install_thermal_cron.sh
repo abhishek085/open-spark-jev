@@ -5,7 +5,7 @@
 #   - */2 * * * *: every 2 minutes, restart it if it's not running for any other reason.
 # After this, nobody -- human or agent -- needs to check on it again; cron does.
 set -euo pipefail
-WD="/home/admin/llm-workspace/Open-Spark-Jev/scripts/ops/thermal_guard_watchdog.sh"
+WD="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/thermal_guard_watchdog.sh"
 ( crontab -l 2>/dev/null | grep -v "thermal_guard_watchdog.sh" ; \
   echo "@reboot $WD" ; \
   echo "*/2 * * * * $WD" \

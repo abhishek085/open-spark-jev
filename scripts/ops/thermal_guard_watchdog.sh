@@ -5,8 +5,10 @@
 # it after a reboot or if it ever dies or gets stuck, with zero ongoing attention required.
 set -uo pipefail
 
-GUARD="/home/admin/llm-workspace/Open-Spark-Jev/scripts/ops/thermal_guard.sh"
-LOG="/home/admin/llm-workspace/Open-Spark-Jev/.thermal_guard.log"
+# Resolve paths from this script's own location so a clone works anywhere.
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+GUARD="$REPO/scripts/ops/thermal_guard.sh"
+LOG="$REPO/.thermal_guard.log"
 PATTERN_MARKER="thermal_guard.sh"
 
 # A stopped (T-state) guard process still matches a plain existence check but is not doing
