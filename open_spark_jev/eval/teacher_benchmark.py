@@ -56,7 +56,8 @@ def grade_all(teacher: Teacher, records: list[Record], samples: int, concurrency
 
     def _one(r: Record):
         try:
-            return r.id, label_distribution(teacher, r, samples)
+            dist, _jev_meta = label_distribution(teacher, r, samples)
+            return r.id, dist
         except Exception as e:  # noqa: BLE001
             log.warning("grade failed for %s: %s", r.id, e)
             return r.id, None

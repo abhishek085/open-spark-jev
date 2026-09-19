@@ -41,9 +41,9 @@ def _synth(a):
     t = Teacher(a.base_url, a.model)
     recs = []
     for d in a.domains or list(DOMAIN_BRIEFS):
-        r = generate_scenarios(t, d, a.n, a.seed)
+        r = generate_scenarios(t, d, a.n, a.seed, concurrency=a.concurrency)
         if a.distill:
-            r = distill(t, r, samples=a.samples)
+            r = distill(t, r, samples=a.samples, concurrency=a.concurrency)
         recs.extend(r)
         print(f"{d}: {len(r)} records", file=sys.stderr)
     write_jsonl(a.out, recs)
@@ -84,6 +84,8 @@ def main(argv=None):
     y.add_argument("--seed", type=int, default=0)
     y.add_argument("--distill", action="store_true")
     y.add_argument("--samples", type=int, default=1)
+    y.add_argument("--concurrency", type=int, default=6, help="teacher calls in flight at once (sequential=1 "
+                    "projects to 10+ hours across many domains; see data/synth.py generate_scenarios docstring)")
     y.add_argument("--out", required=True)
     y.set_defaults(fn=_synth)
 
