@@ -29,7 +29,7 @@ set -uo pipefail
 
 PATTERN="${1:-python -m open_spark_jev.train}"
 DOCKER_NAME_GLOB="${2:-${THERMAL_DOCKER_GLOB:-osj-teacher-*}}"
-POLL_SECONDS="${THERMAL_POLL_SECONDS:-15}"
+POLL_SECONDS="${THERMAL_POLL_SECONDS:-5}"
 PAUSE_C="${THERMAL_PAUSE_C:-91}"    # pause when either sensor crosses this
 RESUME_C="${THERMAL_RESUME_C:-85}"  # resume only once BOTH sensors are back under this
                                      # (hysteresis -- avoids rapid pause/resume flapping)
