@@ -10,7 +10,7 @@ def test_ui_and_model_listing(monkeypatch):
     monkeypatch.setattr(gateway, "DEFAULT_MODEL", "sft-qwen3-1.7b")
     c = TestClient(gateway.app)
     r = c.get("/")
-    assert r.status_code == 200 and "Spark-S1" in r.text
+    assert r.status_code == 200 and "spark-s1" in r.text
     j = c.get("/v1/models").json()
     assert j["default"] == "sft-qwen3-1.7b" and isinstance(j["data"], list)
 
