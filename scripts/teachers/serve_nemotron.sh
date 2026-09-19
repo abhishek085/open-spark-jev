@@ -7,7 +7,17 @@ cd "$(dirname "$0")/../.."
 NAME=osj-teacher-nemotron
 PORT=8012
 MODEL=nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4
-GPU_UTIL="${OSJ_TEACHER_GPU_UTIL:-0.25}"  # benchmark-only load (concurrency 3, max_model_len 8192): a much smaller KV pool than sustained-serving defaults leaves headroom for the checkpoint itself on this unified-memory box -- see docs/DGX_SPARK.md for the incident that motivated this
+# --gpu-memory-utilization sets vLLM's TOTAL memory budget (weights + KV cache + activations)
+# as a fraction of the box's ENTIRE system memory, not an add-on reservation on top of the
+# checkpoint. This model's checkpoint alone is 82GB on a 121GB box (~0.68 of total) -- the
+# budget must exceed that just to hold the weights, before any KV cache at all. A first real
+# run set this too LOW (0.55, then an even lower "fix" of 0.12) on the mistaken assumption
+# that a smaller value saves memory; both crashed with "Available KV cache memory: -58.23
+# GiB" / "No available memory for the cache blocks" -- the actual error vLLM raises when the
+# budget doesn't cover the weights. 0.85 (103GB budget, ~21GB over the checkpoint) is sized
+# for near-exclusive use of the box, which is appropriate here since nothing else should be
+# running during a teacher benchmark call -- see docs/DGX_SPARK.md for the full incident.
+GPU_UTIL="${OSJ_TEACHER_GPU_UTIL:-0.85}"
 
 if docker ps --format '{{.Names}}' | grep -qx "$NAME"; then
   echo "$NAME already running"; exit 0
@@ -22,7 +32,7 @@ if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
   docker logs --tail 20 "$NAME" 2>&1 || true
   docker rm -f "$NAME" >/dev/null 2>&1 || true
 fi
-mem_preflight 65
+mem_preflight 105  # ~0.85 x 121GB budget, near-exclusive box use required (see GPU_UTIL comment above)
 docker run -d --name "$NAME" --gpus all --ipc host --network host \
   --ulimit memlock=-1 --ulimit stack=67108864 \
   -v "$HOME/.cache/huggingface":/root/.cache/huggingface \

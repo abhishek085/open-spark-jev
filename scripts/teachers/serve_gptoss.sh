@@ -6,7 +6,12 @@ cd "$(dirname "$0")/../.."
 NAME=osj-teacher-gptoss
 PORT=8013
 MODEL=openai/gpt-oss-120b
-GPU_UTIL="${OSJ_TEACHER_GPU_UTIL:-0.25}"  # benchmark-only load (concurrency 3, max_model_len 8192): a much smaller KV pool than sustained-serving defaults leaves headroom for the checkpoint itself on this unified-memory box -- see docs/DGX_SPARK.md for the incident that motivated this
+# See scripts/teachers/serve_nemotron.sh for the full explanation: --gpu-memory-utilization
+# is vLLM's TOTAL memory budget (weights + KV cache + activations) as a fraction of the box's
+# entire system memory, not an add-on. This checkpoint is 61GB on a 121GB box (~0.50 of
+# total); 0.75 (91GB budget, ~30GB over the checkpoint) leaves comfortable KV cache headroom
+# for a near-exclusive-use benchmark call.
+GPU_UTIL="${OSJ_TEACHER_GPU_UTIL:-0.75}"
 
 if docker ps --format '{{.Names}}' | grep -qx "$NAME"; then
   echo "$NAME already running"; exit 0
@@ -26,7 +31,7 @@ if [ ! -d "$HF_CACHE/hub/models--openai--gpt-oss-120b" ]; then
   echo "gpt-oss-120b not downloaded yet; run scripts/download_gptoss.sh first" >&2
   exit 1
 fi
-mem_preflight 70
+mem_preflight 92   # ~0.75 x 121GB budget, near-exclusive box use required (see GPU_UTIL comment above)
 docker run -d --name "$NAME" --gpus all --ipc host --network host \
   --ulimit memlock=-1 --ulimit stack=67108864 \
   -v "$HF_CACHE":/root/.cache/huggingface \
