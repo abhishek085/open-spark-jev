@@ -202,6 +202,7 @@ def main() -> None:
     ap.add_argument("--init", default="models/Qwen3-1.7B")
     ap.add_argument("--out", required=True)
     ap.add_argument("--n-train", type=int, default=12000)
+    ap.add_argument("--extra-data", nargs="*", default=[], help="extra training jsonl files pooled with sim+teacher before sampling (e.g. M17 public text)")
     ap.add_argument("--epochs", type=int, default=1)
     ap.add_argument("--bs", type=int, default=8)
     ap.add_argument("--accum", type=int, default=2)
@@ -227,6 +228,8 @@ def main() -> None:
     model = VariantModel(base, a.variant)
 
     recs = read_jsonl("data/synthetic/sim_train.jsonl") + read_jsonl("data/synthetic/teacher_train_split.jsonl")
+    for _extra in a.extra_data:
+        recs += read_jsonl(_extra)
     random.Random(a.seed).shuffle(recs)
     recs = recs[: 300 if a.smoke else a.n_train]
     train_r, val_r = split_records(recs, 0.1, a.seed)

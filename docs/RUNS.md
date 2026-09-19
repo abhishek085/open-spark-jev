@@ -13,6 +13,7 @@ the bottom).
 
 | # | run | command | data | result | artifact |
 |---|---|---|---|---|---|
+| R13 | M17: spark-s1-1.7b-sft-m17 (full FT + real public text) | `scripts/run_m17.sh` | 28,412 examples (+7,920 real public), 2 epochs, 2h08 | **60-set 0.733 (unchanged) at 30.0 ms vs Jev 0.917 at 421.6 ms (14.1x)**; +9/+7.5 on Kev suites but those overlap trained-on sources; flat on non-overlapping sources; injection ECE worse (0.059->0.159) | `runs/eval_m17.json`, `runs/external/spark-s1-1.7b-sft-m17/`, `runs/speed60_m17.json`, BENCHMARKS.md M23 |
 | R12 | A0 baseline + A2 prefix-LM, matched budget | `scripts/run_variants3.sh` | 9,717 records, LoRA 1 epoch | **A2 refuted**: worse on all 9 measures, 30% slower. Unplanned: A0 (LoRA) beats the full fine-tune on 6/7 external sources | `runs/variants/{a0,a2}/result.json`, `runs/external/variant-{a0,a2}/`, BENCHMARKS.md M22 |
 | R11 | external eval: spark-s1-1.7b-sft-v2 | `python -m open_spark_jev.eval.external --model checkpoints/sft-qwen3-1.7b` | 7 third-party sources, 3,354 records | acc 0.502-0.798 per source; ECE 0.023-0.365; **18-22 pts below Jev** where Jev's answers are recorded; directory pass rate 31/50 | `runs/external/spark-s1-1.7b-sft-v2/`, BENCHMARKS.md M21 |
 | R10 | A2 trained + externally scored | `run_variants3.sh` (`full_a2`, `external_a2`) | 9,717 records, LoRA 1 epoch (38 min) | sim_test 0.791 / ECE 0.016 but external 0.296-0.600 - near chance off-distribution | `runs/variants/a2/result.json`, `runs/external/variant-a2/` |

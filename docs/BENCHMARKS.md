@@ -474,3 +474,76 @@ full fine-tune is **overfitting the synthetic distribution**: the constrained Lo
 of the backbone's general competence, which is exactly what third-party data measures. Not conclusive
 (one seed, different data sizes, LoRA rank untuned), but it makes a LoRA arm of M17 worth running
 next to the full-FT one.
+
+## M23: M17 - does real public text close the third-party gap? (2026-09-19)
+
+`spark-s1-1.7b-sft-m17` = identical recipe to `spark-s1-1.7b-sft-v2` (full fine-tune, 2 epochs) plus 7,920
+real public records (ag_news, emotion, banking77-top20, toxic-chat, boolq, yelp) - 28,412 training examples
+vs 21,293. 12% of each public source held out (`data/benchmarks/public_test.jsonl`, 1,080 rows). Training
+took 2h08 (`runs/m17_train.log`). Commands: `scripts/run_m17.sh`.
+
+### The 60-row tool-call set: accuracy and speed vs Jev (priority metric)
+
+Same 60 decisions for every row; `runs/speed60_m17.json`, idle GPU (`gpu_contended: false`), batch 1.
+
+| arm | accuracy | p50 | p95 | decisions/s | malformed output |
+|---|---|---|---|---|---|
+| **jev-latest** (hosted; recorded by the source repo) | **0.917** | 421.6 ms | 542.0 ms | 2.3 | 0 |
+| **spark-s1-1.7b-sft-m17** (menu scoring) | 0.733 | **30.0 ms** | 30.7 ms | **33.4** | 0 |
+| spark-s1-1.7b-sft-v2 (previous, M20) | 0.733 | 30.1 ms | 31.5 ms | 33.2 | 0 |
+| same Qwen3-1.7B generating JSON | 0.433 | 376.3 ms | 399.9 ms | 2.6 | 14 / 60 |
+| same Qwen3-1.7B, thinking on | 0.550 | 7,209.6 ms | 12,660.6 ms | 0.11 | 0 |
+
+**Speed: 14.1x faster than hosted Jev, 12.5x over the same backbone generating JSON, 240x over the same
+backbone reasoning first.** The Jev latency includes a network round trip and is not measured on this
+machine, so the 14.1x is indicative, not like-for-like; the 12.5x and 240x are like-for-like (same weights,
+same box, only the readout differs).
+
+**Accuracy: 0.733 vs Jev's 0.917 - 18 points behind, and M17 did not move it.** Real public text left the
+60-set accuracy exactly where it was (0.733 -> 0.733). We do not match the ~90% accuracy half of the claim.
+
+### External sources, M17 vs the same recipe without public text
+
+| source | sft-v2 | **sft-m17** | change | overlap with M17's training data? |
+|---|---|---|---|---|
+| ext-kev-decision-v1 | 0.656 | **0.750** | +9.4 | **yes: boolq, agnews, yelp, mnli-adjacent, sst5** |
+| ext-kev-transfer-v4 | 0.581 | **0.656** | +7.5 | **partly: emotion (trained on); mmlu/qnli/paws/sciq/tweet are not** |
+| ext-jev-directory | 0.714 | 0.729 | +1.5 | no |
+| ext-toolcall-risk | 0.733 | 0.733 | 0.0 | no |
+| ext-injection-ctx | 0.743 | 0.734 | -0.9 | no |
+| ext-injection-noctx | 0.798 | 0.754 | **-4.4** | no |
+| ext-vuln-code | 0.502 | 0.510 | +0.8 | no |
+
+**The two large gains are on datasets M17 now trains on.** Kev's suites are built from the *test/validation
+splits* of the same public datasets whose *train splits* we added, so `ext-kev-decision-v1` (boolq, ag_news,
+yelp) is in-domain for M17 and its +9.4 is not a generalisation result. Only the sources with no overlap
+tell us about transfer, and on those M17 is flat (+0.8 to +1.5, -0.9, 0.0) or worse (-4.4). Row-level
+train/test leakage is not the issue (different splits); source-level familiarity is.
+
+**Calibration got worse where it was best.** `ext-injection-ctx` ECE 0.059 -> **0.159**, `ext-injection-noctx`
+0.023 -> **0.161**. Adding real text degraded the one property M21 identified as our strength off-distribution.
+
+### In-house and real-text held-out (internal)
+
+| set | sft-v2 | sft-m17 |
+|---|---|---|
+| overall (sim + teacher tests) acc / ECE | 0.838 / 0.017 | 0.833 / 0.018 |
+| choice/routing | 0.815 / 0.062 | 0.835 / 0.022 |
+| choice/incident | 0.820 / 0.040 | 0.824 / 0.016 |
+| injection flip rate | 0.033 | 0.027 |
+
+New real-text slices (public_test, held out, first measurement): classification 0.819 / ECE 0.089,
+moderation 0.812 and 0.956, routing 0.835, reading (BoolQ) 0.817 / 0.100, **scoring (Yelp 5-level) 0.667 /
+ECE 0.153**. In-house numbers did not regress, so public text cost nothing internally.
+
+### Reading
+
+Hypothesis from M21: *"every weak external row is a domain the model has never seen text from, so training on
+real text is the highest-value fix."* **Not supported.** It improved sources it was trained on, was flat on
+the rest, and degraded injection calibration. The gap to Jev on the 60-set is unchanged at 18 points. Together
+with M22 (a third-budget LoRA run generalising better than the full fine-tune) the evidence now points at
+**how the model is adapted** rather than **what text it sees**. The LoRA-plus-public-text arm
+(`scripts/run_m17_lora.sh`, running) is the discriminating experiment.
+
+Caveats: single seed; one public-text mix; Kev's suites overlap M17's training sources as marked;
+`ext-toolcall-risk` is n=60, so 0.733 and 0.733 are within noise of each other, not proof of no effect.
