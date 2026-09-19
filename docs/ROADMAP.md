@@ -16,8 +16,7 @@
 | M10 | Comparison table vs LLM+regex baseline and Jev-format public examples | pending |
 | M11 | Multi-teacher registry + ground-truth teacher benchmark (`configs/teachers.yaml`, `eval/teacher_benchmark.py`) | done: qwen27b 0.142, nemotron120b 0.315, gemma26b 0.129 (best, smallest); gptoss120b blocked by an unresolved upstream ARM64 bug, see docs/DGX_SPARK.md |
 | M11b | Regenerate teacher_train.jsonl with gemma26b (the now-best-measured teacher) and rerun mechanism 1 (contrastive) on the regenerated data -- the current 473-record file predates the teacher benchmark and was generated with qwen27b by default, not the now-known-better choice | pending |
-| M16 | Real, reproducible alignment comparison against an independent Jev evaluation (Banking77, `docs/JEV_COMPARISON.md`) | done: acc 0.76 (Jev) vs 0.46/0.48 (ours, out-of-domain zero-shot); exposed that public_train.jsonl (Banking77 included) was never actually used in a training run |
-| M17 | Rerun SFT with `data/raw/public_train.jsonl` included, to close the real-world generalization gap M16 exposed | pending, high priority |
+| M17 | Rerun SFT with `data/raw/public_train.jsonl` included (ag_news/emotion/banking77/toxic-chat/boolq/yelp) -- every checkpoint trained so far used only the six synthetic simulator domains, never real-world text, which is a real, untested generalization gap | pending, high priority |
 | M12 | Reusability cookbook for retraining on other domains (`docs/COOKBOOK.md`) | done |
 | M14 | Architecture-experiment ledger + A1 (single-pass parallel multi-question readout) prototype (`docs/NOVELTY.md`) | A1 implemented, measurement queued behind the in-flight SFT/RLCD/GRPO run |
 | M15 | A3: slot-query menu head, our candidate novel architecture (`docs/NOVELTY.md`) | proposed, not yet built |
