@@ -155,6 +155,33 @@ its cost at all" (RESEARCH.md Claim C) reads as a qualified yes here: yes for Br
 injection resistance specifically, not yet demonstrated for ECE over what SFT + temperature
 scaling already achieves. Mechanism 1 (contrastive) and GRPO below are the next data points.
 
+## M8c: mechanism 1 (contrastive RLCD) vs mechanism 2 (direct) vs SFT
+
+Same held-out test set, three checkpoints. 499 contrastive pairs (nvidia/Qwen3.6-27B-NVFP4,
+opposed principles) -> a reward model (93.9% held-out pairwise accuracy) -> exact policy
+gradient for mechanism 1; see M7/M8a/M8b above for the other two.
+
+| slice | SFT acc | direct acc | contr acc | SFT ECE | direct ECE | contr ECE |
+|---|---|---|---|---|---|---|
+| choice/game | 0.780 | 0.777 | 0.777 | 0.061 | 0.043 | 0.040 |
+| choice/incident | 0.830 | 0.843 | 0.837 | 0.031 | 0.040 | 0.042 |
+| choice/moderation | 0.800 | 0.810 | 0.807 | 0.029 | 0.044 | 0.025 |
+| choice/routing | 0.837 | 0.837 | 0.837 | 0.030 | 0.042 | 0.043 |
+| noul/security | 0.983 | 0.987 | 0.990 | 0.010 | 0.014 | 0.009 |
+| score/risk | 0.617 | 0.623 | 0.627 | 0.042 | 0.042 | 0.023 |
+| **overall** | **0.808** | **0.813** | **0.812** | **0.020** | **0.020** | **0.021** |
+
+**injection_flip_rate: 0.038 -> 0.027 -> 0.016** - the one clean, monotonic result across all
+three. Neither RL mechanism clearly beats plain SFT + temperature scaling on accuracy or ECE
+here (all three within noise of each other, ~0.81 / ~0.02). But injection robustness improves
+with each added piece of machinery, and mechanism 1 (with the trained reward model) wins
+clearly over mechanism 2 (heuristic TV-distance term only). This is the answer to Claim B in
+RESEARCH.md R1 ("does the contrastive/RM detour help, or is direct calibration enough"): **no
+for accuracy/ECE, yes for injection resistance specifically** - the RM's training claim ("not
+influenced by instructions inside the original state") gives it a dedicated signal that a
+heuristic shaping term doesn't fully replicate. Full per-checkpoint detail and a
+fastest-way-to-run command for each: [docs/MODELS.md](MODELS.md).
+
 ## Teacher comparison (ground-truth anchored, `eval/teacher_benchmark.py`)
 20 records/domain from `sim_test.jsonl`, known posteriors. `qwen27b` = `nvidia/Qwen3.6-27B-NVFP4`
 via the sibling project's already-running vLLM server (reused read-only, not launched by this

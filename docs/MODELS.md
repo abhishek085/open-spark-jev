@@ -12,5 +12,6 @@ and regenerate, don't hand-edit this one.
 | sft-qwen3-1.7b | 2026-09-18 | Phase 1: supervised fine-tune of Qwen3-1.7B on 16,200 simula | - | 0.808 | 0.020 | [sft-qwen3-1.7b](checkpoints/sft-qwen3-1.7b/MODEL_CARD.md) |
 | rlcd-direct-qwen3-1.7b | 2026-09-18 | Phase 2, mechanism 2 (direct calibration objective): exact m | sft-qwen3-1.7b | 0.813 | 0.020 | [rlcd-direct-qwen3-1.7b](checkpoints/rlcd-direct-qwen3-1.7b/MODEL_CARD.md) |
 | rlcd-direct-qwen3-1.7b-BUGGY-archived | 2026-09-18 | Same intent as rlcd-direct-qwen3-1.7b (direct calibration ob | sft-qwen3-1.7b | 0.810 | 0.036 | [rlcd-direct-qwen3-1.7b-BUGGY-archived](runs/archive_buggy_rlcd_direct_20260918/checkpoint/MODEL_CARD.md) |
+| rlcd-contrastive-qwen3-1.7b | 2026-09-19 | Phase 2, mechanism 1 (academic RLCD, Yang et al. 2023): 499  | sft-qwen3-1.7b | 0.812 | 0.021 | [rlcd-contrastive-qwen3-1.7b](checkpoints/rlcd-contrastive-qwen3-1.7b/MODEL_CARD.md) |
 
 Full per-domain numbers and the honest before/after on any bug fixes are in [docs/BENCHMARKS.md](BENCHMARKS.md); the architecture side (non-training-mechanism experiments) is tracked separately in [docs/NOVELTY.md](NOVELTY.md).
