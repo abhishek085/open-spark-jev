@@ -15,16 +15,36 @@
 #   pattern defaults to 'python -m open_spark_jev.train' (matches any of this repo's training
 #   jobs by process command line, so a single guard protects the whole pipeline without needing
 #   the PID passed in and re-armed per stage).
+#
+# Docker containers are a second, separate load source (scripts/teachers/*.sh) this same guard
+# must cover: a teacher container's vLLM process runs inside the container's own PID namespace
+# (launched with --network host but not --pid=host), so host-side `pgrep`/SIGSTOP can never see
+# or pause it -- that gap existed silently until a real gemma26b data-generation job was running
+# unprotected under it (2026-09-19). `docker pause`/`unpause` freezes all of a container's
+# processes at the cgroup level and needs no PID visibility, so it is used instead. Any running
+# container matching DOCKER_NAME_GLOB (default 'osj-teacher-*', i.e. any of this repo's teacher
+# containers, not just one hardcoded name) is paused/resumed alongside the pattern-matched host
+# processes, on the same hot/cool cycle.
 set -uo pipefail
 
 PATTERN="${1:-python -m open_spark_jev.train}"
+DOCKER_NAME_GLOB="${2:-${THERMAL_DOCKER_GLOB:-osj-teacher-*}}"
 POLL_SECONDS="${THERMAL_POLL_SECONDS:-15}"
 PAUSE_C="${THERMAL_PAUSE_C:-91}"    # pause when either sensor crosses this
 RESUME_C="${THERMAL_RESUME_C:-85}"  # resume only once BOTH sensors are back under this
                                      # (hysteresis -- avoids rapid pause/resume flapping)
 
 paused=0
-echo "[thermal_guard] watching pattern='$PATTERN' poll=${POLL_SECONDS}s pause>=${PAUSE_C}C resume<${RESUME_C}C (self pid $$, excluded from matches)"
+echo "[thermal_guard] watching pattern='$PATTERN' docker_glob='$DOCKER_NAME_GLOB' poll=${POLL_SECONDS}s pause>=${PAUSE_C}C resume<${RESUME_C}C (self pid $$, excluded from matches)"
+
+matching_containers() {
+  command -v docker >/dev/null 2>&1 || return 0
+  docker ps --filter "status=running" --format '{{.Names}}' 2>/dev/null | while read -r name; do
+    case "$name" in
+      $DOCKER_NAME_GLOB) echo "$name" ;;
+    esac
+  done
+}
 
 matching_pids() {
   # Exclude our own PID and anything that looks like another thermal_guard.sh instance -- the
@@ -74,9 +94,13 @@ while true; do
 
   if [ "$hot" = "1" ] && [ "$paused" = "0" ]; then
     pids=$(matching_pids)
-    if [ -n "$pids" ]; then
-      echo "[thermal_guard] PAUSE: gpu=${gpu}C soc=${soc}C >= ${PAUSE_C}C -- SIGSTOP on pids: $pids"
-      kill -STOP $pids 2>/dev/null || true
+    containers=$(matching_containers)
+    if [ -n "$pids" ] || [ -n "$containers" ]; then
+      [ -n "$pids" ] && { echo "[thermal_guard] PAUSE: gpu=${gpu}C soc=${soc}C >= ${PAUSE_C}C -- SIGSTOP on pids: $pids"; kill -STOP $pids 2>/dev/null || true; }
+      for c in $containers; do
+        echo "[thermal_guard] PAUSE: gpu=${gpu}C soc=${soc}C >= ${PAUSE_C}C -- docker pause $c"
+        docker pause "$c" 2>/dev/null || true
+      done
       paused=1
     fi
   elif [ "$paused" = "1" ] && [ "$cool" = "1" ]; then
@@ -85,6 +109,15 @@ while true; do
       echo "[thermal_guard] RESUME: gpu=${gpu}C soc=${soc}C < ${RESUME_C}C -- SIGCONT on pids: $pids"
       kill -CONT $pids 2>/dev/null || true
     fi
+    # docker ps only lists running containers, so a paused one won't show up in
+    # matching_containers() -- ask docker directly which of our containers are paused instead.
+    for c in $(docker ps --filter "status=paused" --format '{{.Names}}' 2>/dev/null); do
+      case "$c" in
+        $DOCKER_NAME_GLOB)
+          echo "[thermal_guard] RESUME: gpu=${gpu}C soc=${soc}C < ${RESUME_C}C -- docker unpause $c"
+          docker unpause "$c" 2>/dev/null || true ;;
+      esac
+    done
     paused=0
   fi
 

@@ -7,17 +7,18 @@ seed: 0
 data:
   - data/synthetic/sim_train.jsonl
   - data/synthetic/teacher_train.jsonl
-teacher_base_url: http://localhost:8010/v1     # local vLLM/SGLang/trtllm-serve hosting a big open model
-teacher_model: null                             # null = first model the server lists
-max_pairs: 500      # capped: this teacher's real single-request throughput is ~5 tok/s
-                     # (measured, not contention -- persisted with the GPU otherwise idle), so
-                     # 4000 pairs x 2 calls each was projected at 60+ hours even before
-                     # accounting for serialization. 500 pairs x 2 calls / concurrency 3 is
-                     # closer to ~1 hour and is plenty of signal for a Bradley-Terry RM.
-concurrency: 3       # matches configs/teachers.yaml's qwen27b max_concurrency (this teacher
-                     # crashed once under 6-way concurrent load earlier in this project, see
-                     # docs/BENCHMARKS.md's teacher-comparison section) -- do not raise this
-                     # against a shared/long-running teacher without good reason.
+teacher_base_url: http://localhost:8014/v1     # gemma26b (configs/teachers.yaml) -- switched from qwen27b
+teacher_model: nvidia/Gemma-4-26B-A4B-NVFP4     # 2026-09-19: teacher_benchmark.py showed gemma26b is the
+                                                 # best-calibrated of the three reachable teachers (soft
+                                                 # Brier vs posterior beats qwen27b and nemotron120b despite
+                                                 # being the smallest/fastest -- see docs/BENCHMARKS.md
+                                                 # teacher-comparison section), so it replaces qwen27b here
+                                                 # to test whether a better teacher moves accuracy/calibration
+                                                 # or the injection-robustness-vs-accuracy tradeoff (see
+                                                 # docs/RESEARCH.md R1 Claim B).
+max_pairs: 500       # unchanged -- still plenty of signal for a Bradley-Terry RM
+concurrency: 8        # this repo's own container (osj-teacher-gemma), not shared, no crash
+                      # history -- can run higher than qwen27b's shared-service limit of 3.
 pairs_path: data/synthetic/rlcd_pairs.jsonl
 
 # reward model (itself a menu scorer answering a Noul)
