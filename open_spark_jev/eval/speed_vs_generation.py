@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import statistics
 import subprocess
@@ -174,13 +175,28 @@ def run_endpoint(base_url: str, model: str, recs, warmup: int, max_new: int) -> 
 
 
 def gpu_busy() -> str | None:
+    """A training job actively holding the GPU, or None. A SIGSTOPped (state T) job is skipped:
+    it keeps its GPU memory but runs no kernels, which is how a measurement window is made
+    without losing training progress (same trick as scripts/ops/thermal_guard.sh)."""
     try:
-        out = subprocess.run(["ps", "-eo", "cmd"], capture_output=True, text=True, timeout=10).stdout
+        out = subprocess.run(["ps", "-eo", "stat=,pid=,cmd="], capture_output=True, text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return None
+    me = {os.getpid(), os.getppid()}
     for line in out.splitlines():
-        if "open_spark_jev.train" in line or "open_spark_jev.experimental" in line:
-            return line.strip()[:110]
+        stat, _, rest = line.strip().partition(" ")
+        pid_s, _, cmd = rest.strip().partition(" ")
+        if stat.startswith("T"):  # suspended: holds memory, runs nothing
+            continue
+        if not pid_s.isdigit() or int(pid_s) in me:
+            continue
+        # only real interpreter processes -- a shell wrapper's argv merely *mentions* the module
+        # name (the mistake scripts/ops/thermal_guard.sh's matching_pids() also had to fix)
+        head = cmd.split()[0] if cmd.split() else ""
+        if "python" not in head:
+            continue
+        if "open_spark_jev.train" in cmd or "open_spark_jev.experimental" in cmd:
+            return cmd.strip()[:110]
     return None
 
 
@@ -226,8 +242,6 @@ def main() -> None:
     if menu:
         report["speedup_vs_menu"] = {x["arm"]: round(x["latency_ms"]["p50"] / menu["latency_ms"]["p50"], 1)
                                      for x in arms if x is not menu}
-    import os
-
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     with open(a.out, "w") as f:
         json.dump(report, f, indent=2)

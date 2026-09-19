@@ -337,3 +337,31 @@ regeneration pass with gemma26b if training resumes, see docs/ROADMAP.md.
 |---|---|---|---|
 | HF bf16 in-process | abstain / medium / no / no | 62.7 ms | 3.9 GB peak |
 | TRT-LLM 1.2.1 Python API | abstain / medium / no / no | 53.8 ms | label logits within ~1 of HF (bf16) |
+
+## M20: mechanism speed - menu scoring vs generating the same decision (2026-09-19)
+
+`runs/speed_vs_generation.json`, `python -m open_spark_jev.eval.speed_vs_generation`. 60 records from
+`data/benchmarks/external/ext-toolcall-risk.jsonl` (4-way Choice), **idle GPU** (the concurrent A2 training
+job was SIGSTOPped for the measurement window, so no contention; `gpu_contended: false`). Every arm uses the
+same hardware and the same task text; the arms differ only in *how the answer is produced*.
+
+| arm | p50 | p95 | dec/s | accuracy | JSON parse failures | mean output tokens |
+|---|---|---|---|---|---|---|
+| **menu** (Spark-S1 SFT v2, 1 forward pass) | **30.1 ms** | 31.5 ms | 33.2 | **0.733** | 0 (impossible by construction) | 0 |
+| generate (same Qwen3-1.7B, JSON, non-thinking) | 374.7 ms | 396.8 ms | 2.6 | 0.433 | **14 / 60** | 15.5 |
+| generate_think (same Qwen3-1.7B, thinking) | 7164.9 ms | 12581.1 ms | 0.12 | 0.550 | 0 | 353.9 |
+
+**Speedup of the mechanism: 12.4x** over the same backbone emitting JSON, **238x** over the same backbone
+with reasoning enabled. The 20-200x range TypeSafe quotes for Jev is against *frontier* LLMs, a denominator we
+cannot reproduce locally; the honest local statement is "12x vs an equally-sized generative classifier, 238x vs
+the same model reasoning first". Note the menu arm is also *more accurate* than either generative arm on the
+same weights class, and cannot emit malformed output - the non-thinking generative baseline failed to produce
+parseable JSON on 23% of records.
+
+**Accuracy against hosted Jev on the same 60 rows** (Jev's answers are committed in the source repo, run
+2026-09-17): **jev-latest 0.917, Spark-S1 SFT v2 0.733**. We do *not* match Jev's accuracy on this external
+set - it is third-party data in a domain our training data only approximates, and Jev is a far larger hosted
+model. Speed parity does not imply decision parity; see `runs/external/` for the per-source picture.
+
+Caveats: single run, n=60, one task type, batch size 1. Latency excludes model load. The menu arm's 30 ms is
+lower than the 76-91 ms in the A1 grid because that grid ran under contention and over longer synthetic states.
