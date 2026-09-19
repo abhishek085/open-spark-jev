@@ -365,3 +365,47 @@ model. Speed parity does not imply decision parity; see `runs/external/` for the
 
 Caveats: single run, n=60, one task type, batch size 1. Latency excludes model load. The menu arm's 30 ms is
 lower than the 76-91 ms in the A1 grid because that grid ran under contention and over longer synthetic states.
+
+## M21: spark-s1-1.7b-sft-v2 on seven third-party Jev evaluation sources (2026-09-19)
+
+`runs/external/spark-s1-1.7b-sft-v2/`, `python -m open_spark_jev.eval.external`. Each source is scored
+**separately** and never pooled; provenance (upstream repo, pinned commit, license, label origin, caveats)
+in `data/external/<source>/PROVENANCE.md`. "Jev acc" columns are that repo's own committed Jev outputs on
+the same rows, not a run we made.
+
+| source | n | ours acc | ours ECE | Jev acc | Jev ECE | agreement w/ Jev | chance |
+|---|---|---|---|---|---|---|---|
+| ext-injection-noctx | 662 | 0.798 | **0.023** | 0.897 | - | 0.834 | 0.50 |
+| ext-injection-ctx | 662 | 0.743 | **0.059** | 0.965 | 0.058 | 0.730 | 0.50 |
+| ext-toolcall-risk | 60 | 0.733 | 0.147 | 0.917 | 0.050 | 0.783 | 0.25 |
+| ext-jev-directory | 70 | 0.714 | 0.082 | - | - | - | varies |
+| ext-kev-decision-v1 | 736 | 0.656 | 0.106 | - | - | - | varies |
+| ext-kev-transfer-v4 | 764 | 0.581 | 0.231 | - | - | - | varies |
+| ext-vuln-code | 400 | 0.502 | 0.365 | 0.715 | 0.178 | 0.647 | 0.50 |
+
+`ext-jev-directory` eval-level pass rate (an eval passes only if *every* one of its questions is right):
+**31/50 = 0.62**.
+
+**Accuracy: we do not match Jev.** The gap is 18-22 points on the three sources with recorded Jev answers.
+On `ext-toolcall-risk` the slices explain where it comes from: clear cases 0.882 (Jev 1.000), adversarial
+0.667 (Jev 0.917), **ambiguous 0.429** (Jev 0.714) - we lose most heavily exactly where the decision is hard,
+which is the case a calibrated model is supposed to earn its keep on.
+
+**Calibration: competitive where the domain is close to training.** On `ext-injection-ctx` our ECE is 0.059
+against Jev's 0.058 at 22 points lower accuracy, and on `ext-injection-noctx` it is 0.023. That is the one
+property we trained for directly, and it survives the domain shift better than accuracy does.
+
+**Where it breaks down.** `ext-vuln-code` is chance accuracy (0.502 on a binary question) with ECE 0.365 -
+confidently wrong on source-code security, a domain nothing in our training data resembles. `ext-kev-transfer-v4`
+(MMLU, Emotion, QNLI, PAWS, SciQ) at 0.581/0.231 is the same story for general NLP text. Compare the same
+model's 0.838/0.017 on its own held-out simulator + teacher tests: **in-distribution numbers say nothing about
+a new workflow**, and this table is the evidence for that claim, not a footnote to it.
+
+The single highest-value fix is M17 (train on real public text); every weak row here is a domain the model has
+literally never seen text from. Reference point: Kev-0.5B, which *is* trained on six public datasets, reports
+0.633 on its own transfer suite vs hosted Jev's 0.823 (`docs/RUNS.md`) - a similar-sized gap from the other
+direction.
+
+Caveats: third-party labels from single annotators in some cases; Jev's rows were run 2026-09-17 on
+`jev-latest`/`jev-1.13.0`; n=60 and n=70 sources are small; 116 Banking77 questions were skipped for exceeding
+our 26-option cap.

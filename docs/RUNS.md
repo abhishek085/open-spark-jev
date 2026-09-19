@@ -13,7 +13,9 @@ the bottom).
 
 | # | run | command | data | result | artifact |
 |---|---|---|---|---|---|
-| R9 | A0/A2/A3/A4 ladder v3 | `scripts/run_variants3.sh` | 12k records, LoRA, matched budget | **in progress** (A2 training) | `runs/variants/ladder.log` |
+| R11 | external eval: spark-s1-1.7b-sft-v2 | `python -m open_spark_jev.eval.external --model checkpoints/sft-qwen3-1.7b` | 7 third-party sources, 3,354 records | acc 0.502-0.798 per source; ECE 0.023-0.365; **18-22 pts below Jev** where Jev's answers are recorded; directory pass rate 31/50 | `runs/external/spark-s1-1.7b-sft-v2/`, BENCHMARKS.md M21 |
+| R10 | A2 trained + externally scored | `run_variants3.sh` (`full_a2`, `external_a2`) | 9,717 records, LoRA 1 epoch (38 min) | sim_test 0.791 / ECE 0.016 but external 0.296-0.600 - near chance off-distribution | `runs/variants/a2/result.json`, `runs/external/variant-a2/` |
+| R9 | A0/A2/A3/A4 ladder v3 | `scripts/run_variants3.sh` | 12k records, LoRA, matched budget | A2 done (R10); A0 training; A3/A4 queued | `runs/variants/ladder.log` |
 | R8 | mechanism speed benchmark | `python -m open_spark_jev.eval.speed_vs_generation --limit 60` | `ext-toolcall-risk` (60 rows), idle GPU | spark-s1 30.1 ms p50 / 0.733 acc; same backbone as JSON generator 374.7 ms / 0.433 (14 parse failures); with thinking 7165 ms / 0.550. **12.4x / 238x** speedup | `runs/speed_vs_generation.json`, BENCHMARKS.md M20 |
 | R7 | external eval suites built | `python scripts/external/build_external.py` | 7 third-party sources | 3,354 records total; Jev's own answers recorded for 3 of them | `data/benchmarks/external/*.jsonl`, `data/external/*/PROVENANCE.md` |
 | R6 | A1 parallel readout | `python -m open_spark_jev.experimental.parallel_readout --limit 200` | `sim_test`, spark-s1-1.7b-sft-v2 | answers match baseline to bf16 noise (max \|Δp\| 0.022); ~15% faster (91→76 ms at 1 question, 194→165 ms at 16) | `runs/variants/a1_parallel.log` |
