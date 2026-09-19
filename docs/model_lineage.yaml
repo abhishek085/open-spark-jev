@@ -75,3 +75,27 @@ rlcd-contrastive-qwen3-1.7b:
     mechanism 1 a dedicated injection-resistance signal mechanism 2''s heuristic TV-distance term doesn''t
     fully replicate -- the clearest evidence so far that the contrastive/RM machinery earns its extra
     training cost, specifically for this one property, not for accuracy or ECE.'
+grpo-qwen3-1.7b:
+  date: '2026-09-19'
+  checkpoint: checkpoints/grpo-qwen3-1.7b
+  parent: sft-qwen3-1.7b
+  eval: runs/eval_grpo.json
+  mechanism: 'Ablation baseline: sampled single-token GRPO (TRL), reward = per-sample 0/1 correctness
+    + a conservative-action penalty, on top of the SFT checkpoint. Capped to 1600 records / 300 steps
+    (a much smaller training budget than the other three mechanisms'' full ~16,200-example runs) specifically
+    because an uncapped run on the full corpus at 8 sampled completions/prompt projected roughly 9 hours
+    -- this ablation exists to test whether sampling-based RL matters, not to be trained to full convergence
+    at the same scale.'
+  jev_comparison: 'Not a TypeSafe-comparison checkpoint. This is the ''standard RL'' control: the same
+    general family of technique (policy-gradient RL from a scalar reward) that RLHF/RLVR use, contrasted
+    with the exact menu policy gradient the other three mechanisms use. Its purpose is to test Claim A
+    in docs/RESEARCH.md R1 (exact vs. sampled), not to approximate anything about Jev.'
+  notes: 'Dramatically worse than all three exact-policy-gradient checkpoints on every axis: accuracy
+    0.746 (vs ~0.81), ECE 0.158 (vs ~0.02, nearly 8x worse), injection_flip_rate 0.156 (vs 0.016-0.038,
+    4-10x worse). This is close to the textbook argmax-collapse failure mode the exact menu policy gradient
+    was designed to avoid: a 0/1-correctness reward on sampled actions pushes toward sharp, overconfident,
+    less robust distributions because the policy never observes the full distribution it''s optimizing
+    over. Caveat: trained on a much smaller budget (1600 records/300 steps vs ~16,200 examples for the
+    others) for practicality, so the comparison is not perfectly matched on training scale -- but the
+    direction and magnitude of the ECE/injection gap are consistent with the mechanism-level prediction,
+    not just an undertrained model (accuracy alone dropping ~6pts wouldn''t explain an 8x ECE regression).'

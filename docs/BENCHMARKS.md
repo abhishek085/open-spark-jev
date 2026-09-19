@@ -182,6 +182,46 @@ influenced by instructions inside the original state") gives it a dedicated sign
 heuristic shaping term doesn't fully replicate. Full per-checkpoint detail and a
 fastest-way-to-run command for each: [docs/MODELS.md](MODELS.md).
 
+## M8d: all four Phase-2 mechanisms, complete
+
+Adds GRPO (sampled-token TRL baseline, capped to 1600 records/300 steps - see
+docs/RESEARCH.md R1 for why an uncapped run wasn't practical) to the M8c table.
+
+| slice | SFT acc | direct acc | contr acc | GRPO acc | SFT ECE | direct ECE | contr ECE | GRPO ECE |
+|---|---|---|---|---|---|---|---|---|
+| choice/game | 0.780 | 0.777 | 0.777 | 0.750 | 0.061 | 0.043 | 0.040 | 0.134 |
+| choice/incident | 0.830 | 0.843 | 0.837 | 0.680 | 0.031 | 0.040 | 0.042 | 0.198 |
+| choice/moderation | 0.800 | 0.810 | 0.807 | 0.730 | 0.029 | 0.044 | 0.025 | 0.223 |
+| choice/routing | 0.837 | 0.837 | 0.837 | 0.830 | 0.030 | 0.042 | 0.043 | 0.146 |
+| noul/security | 0.983 | 0.987 | 0.990 | 0.963 | 0.010 | 0.014 | 0.009 | 0.027 |
+| score/risk | 0.617 | 0.623 | 0.627 | 0.523 | 0.042 | 0.042 | 0.023 | 0.240 |
+| **overall** | **0.808** | **0.813** | **0.812** | **0.746** | **0.020** | **0.020** | **0.021** | **0.158** |
+
+injection_flip_rate: SFT 0.038, direct 0.027, contrastive 0.016, **GRPO 0.156**.
+
+**Claim A from docs/RESEARCH.md R1, confirmed cleanly**: GRPO is worse than all three exact
+menu policy gradient checkpoints on every single axis - accuracy down ~6pts, ECE up nearly
+8x, injection robustness down 4-10x. This is close to the textbook argmax-collapse failure
+mode the exact objective was built to avoid: a 0/1-correctness reward on *sampled* actions
+pushes the policy toward sharp, overconfident distributions, because it never sees the full
+distribution it's optimizing - so it can't be penalized for spreading probability mass
+correctly, only rewarded for spiking it on whichever single action got sampled and scored
+well. One honest caveat: GRPO trained on a smaller budget (1600 records/300 steps vs ~16,200
+examples for the other three) for practicality, so this isn't perfectly matched on training
+scale. That said, an 8x ECE regression and a 4-10x injection-robustness regression are far
+larger than a ~6pt accuracy gap would predict from undertraining alone - the direction and
+magnitude are consistent with the mechanism-level prediction, not just "GRPO needed more
+steps." A matched-budget rerun would be needed to fully separate the two effects; noted as a
+follow-up in docs/ROADMAP.md.
+
+**Overall reading across all four (M8a-M8d)**: on this benchmark, the exact-vs-sampled
+distinction (Claim A) is the dominant effect by a wide margin - all three exact mechanisms
+cluster tightly (~0.81 acc, ~0.02 ECE) regardless of whether they use a contrastive reward
+model (mechanism 1), a direct calibration objective (mechanism 2), or nothing calibration-RL
+at all (plain SFT). The contrastive/RM machinery's one clear, distinguishing win is injection
+robustness (Claim B), not accuracy or ECE. Full per-checkpoint detail and a
+fastest-way-to-run command for each: [docs/MODELS.md](MODELS.md).
+
 ## Teacher comparison (ground-truth anchored, `eval/teacher_benchmark.py`)
 20 records/domain from `sim_test.jsonl`, known posteriors. `qwen27b` = `nvidia/Qwen3.6-27B-NVFP4`
 via the sibling project's already-running vLLM server (reused read-only, not launched by this

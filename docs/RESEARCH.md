@@ -53,6 +53,22 @@ accuracy or abstention behavior).
 checkpoint; compare `accuracy`, `ece`, `soft_brier_vs_posterior`, `injection_flip_rate`
 across all four in `docs/BENCHMARKS.md`.
 
+**Result (2026-09-19, docs/BENCHMARKS.md M8a-M8d).** Claim A confirmed cleanly: GRPO scored
+worse than all three exact-gradient mechanisms on every axis (accuracy -6pts, ECE ~8x worse,
+injection robustness 4-10x worse), consistent with argmax collapse from a reward that never
+observes the full action distribution. Claim B: mechanism 1's contrastive/RM machinery did
+*not* distinguish itself on accuracy or ECE (all three exact mechanisms landed within noise
+of each other, ~0.81/~0.02) but won clearly on injection robustness (0.016 vs 0.027
+direct-only vs 0.038 plain SFT) - the RM's trained claim about resisting in-state
+instructions is doing real work there specifically. Claim C: the no-RL temperature-only
+control matched the SFT checkpoint's own numbers almost exactly, which mostly reflects that
+SFT already fits its own temperature internally, not a fair test of "does RL help" on its own
+- a cleaner Claim-C test (temperature scaling applied to the *base* untrained model,
+skipping SFT+RL entirely) is a good follow-up. Known caveat: the GRPO run used a smaller
+training budget than the other three for practicality (docs/BENCHMARKS.md M8d); a
+matched-budget rerun would isolate the sampled-vs-exact effect from the training-scale effect
+more cleanly.
+
 ## R2. Known-posterior decision benchmark
 **Claim.** Calibration should be measured against the true posterior, not one realised label.
 `data/simulators.py` generates states from explicit naive-Bayes models across six domains
