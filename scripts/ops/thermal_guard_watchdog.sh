@@ -26,7 +26,7 @@ done
 
 if [ -z "$alive_pid" ]; then
   echo "$(date '+%Y-%m-%d %H:%M:%S') [watchdog] guard not alive, starting it" >> "$LOG"
-  nohup bash "$GUARD" "python -m open_spark_jev.train" >> "$LOG" 2>&1 &
+  nohup bash "$GUARD" "python -m open_spark_jev" >> "$LOG" 2>&1 &
   disown
 fi
 exit 0

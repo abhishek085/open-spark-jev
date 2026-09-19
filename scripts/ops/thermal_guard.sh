@@ -12,7 +12,7 @@
 #
 # Usage:
 #   scripts/ops/thermal_guard.sh [pattern] &
-#   pattern defaults to 'python -m open_spark_jev.train' (matches any of this repo's training
+#   pattern defaults to 'python -m open_spark_jev' (matches any of this repo's training
 #   jobs by process command line, so a single guard protects the whole pipeline without needing
 #   the PID passed in and re-armed per stage).
 #
@@ -27,7 +27,7 @@
 # processes, on the same hot/cool cycle.
 set -uo pipefail
 
-PATTERN="${1:-python -m open_spark_jev.train}"
+PATTERN="${1:-python -m open_spark_jev}"
 DOCKER_NAME_GLOB="${2:-${THERMAL_DOCKER_GLOB:-osj-teacher-*}}"
 POLL_SECONDS="${THERMAL_POLL_SECONDS:-5}"
 PAUSE_C="${THERMAL_PAUSE_C:-91}"    # pause when either sensor crosses this
