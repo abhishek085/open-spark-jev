@@ -1,0 +1,25 @@
+# Phase 1 (M17): supervised multi-task menu heads, WITH real public text.
+# Identical to sft.yaml except for the added public corpus and the output dir, so the two runs
+# isolate exactly one variable: does real-world text fix the third-party generalisation gap
+# measured in docs/BENCHMARKS.md M21?
+model: models/Qwen3-1.7B
+output_dir: checkpoints/sft-m17-qwen3-1.7b
+data:
+  - data/synthetic/sim_train.jsonl        # osj simulate --n 3000 --out data/synthetic/sim_train.jsonl
+  - data/raw/public_train_split.jsonl   # M17: real public text (ag_news/emotion/banking77-top20/toxic-chat/boolq/yelp),
+                                        # 12% per source held out to data/benchmarks/public_test.jsonl
+  - data/synthetic/teacher_train_split.jsonl  # gemma26b, 31 domains, minus 15% held out to data/benchmarks/teacher_test.jsonl
+seed: 0
+val_frac: 0.1
+max_len: 2048
+epochs: 2
+batch_size: 8
+grad_accum: 4          # effective batch 32
+lr: 2.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0
+lambda_brier: 0.5      # Brier regulariser weight on top of CE / soft-target cross-entropy
+gradient_checkpointing: true
+aux_head: false        # true = learned linear menu head (ablation; not servable by TRT-LLM)
+lora: null             # e.g. {r: 32, alpha: 64, dropout: 0.05} for LoRA instead of full FT
+log_every: 10

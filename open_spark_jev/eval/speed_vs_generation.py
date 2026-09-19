@@ -175,6 +175,32 @@ def run_endpoint(base_url: str, model: str, recs, warmup: int, max_new: int) -> 
     return summarise(f"endpoint ({model}, JSON)", lat, correct, fails, {"base_url": base_url})
 
 
+def jev_recorded(path: str, recs) -> dict | None:
+    """Reference arm from a source repo's committed Jev run: same rows, their latency and answers.
+
+    Not measured by us and not comparable like-for-like - a hosted API call includes network
+    round-trip and server-side batching, where our arms are local, batch-1, on this box. It is
+    here because it is the only real Jev number we have on the same 60 decisions.
+    """
+    try:
+        rows = {json.loads(ln)["id"]: json.loads(ln) for ln in open(path) if ln.strip()}
+    except OSError:
+        return None
+    lat, correct = [], []
+    for r in recs:
+        rid = r.id.rsplit("/", 1)[-1]
+        row = rows.get(rid)
+        if row is None:
+            continue
+        lat.append(row["latency_ms"])
+        correct.append(row["choice"] == r.target["label"])
+    if not lat:
+        return None
+    d = summarise("jev (hosted, recorded by the source repo)", lat, correct, 0)
+    d["note"] = "includes network round-trip; not measured on this machine"
+    return d
+
+
 def gpu_busy() -> str | None:
     """A training job actively holding the GPU, or None. A SIGSTOPped (state T) job is skipped:
     it keeps its GPU memory but runs no kernels, which is how a measurement window is made
@@ -214,6 +240,8 @@ def main() -> None:
     ap.add_argument("--endpoint-model", default="")
     ap.add_argument("--skip", nargs="*", default=[], choices=["menu", "generate", "generate_think", "endpoint"], help="arm names; 'menu' skips the spark-s1 arm")
     ap.add_argument("--allow-busy", action="store_true", help="measure even if a training job is using the GPU (numbers will be contended)")
+    ap.add_argument("--jev-recorded", default="data/external/ext-toolcall-risk/raw/results/jev-jev-latest.jsonl",
+                    help="committed Jev run for the same rows, added as a reference arm (not measured here)")
     ap.add_argument("--out", default="runs/speed_vs_generation.json")
     a = ap.parse_args()
 
@@ -237,6 +265,11 @@ def main() -> None:
         arms.append(run_endpoint(a.endpoint, a.endpoint_model, recs, a.warmup, a.max_new))
         print(json.dumps(arms[-1]), flush=True)
 
+    if a.jev_recorded:
+        ref = jev_recorded(a.jev_recorded, recs)
+        if ref:
+            arms.append(ref)
+            print(json.dumps(ref), flush=True)
     menu = next((x for x in arms if x["arm"].startswith("spark-s1")), None)
     report = {"data": a.data, "n": len(recs), "menu_model": a.menu_model, "base_model": a.base_model,
               "gpu_contended": bool(busy), "arms": arms}
