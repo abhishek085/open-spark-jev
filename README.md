@@ -64,7 +64,7 @@ full-vocabulary logits. Verified against trtllm-serve 1.2.1. Details: [docs/ARCH
   GRPO baseline and a no-RL temperature-only control (`eval/calibration_baseline.py`) round
   out the comparison.
 
-Data: [docs/DATA.md](docs/DATA.md). Training-mechanism experiments: [docs/RESEARCH.md](docs/RESEARCH.md). Architecture-level experiments (including our own proposed novel decision-head design): [docs/NOVELTY.md](docs/NOVELTY.md).
+Data: [docs/DATA.md](docs/DATA.md). Training-mechanism experiments: [docs/RESEARCH.md](docs/RESEARCH.md). Architecture-level experiments (including our own proposed novel decision-head design): [docs/NOVELTY.md](docs/NOVELTY.md). A real, reproducible comparison against Jev on public data: [docs/JEV_COMPARISON.md](docs/JEV_COMPARISON.md).
 
 **Want to build your own domain-specific version of this, not just run this one?**
 [docs/COOKBOOK.md](docs/COOKBOOK.md) is a start-to-finish, reusable recipe: pick a backbone, write known-posterior simulators for your domains, generate and grade synthetic data with multiple teachers, run SFT + RLCD, evaluate, quantize, serve - with a reusability matrix showing what ports over as-is versus what you rewrite.
