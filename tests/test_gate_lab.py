@@ -118,3 +118,16 @@ def test_lab_endpoints(client):
     d = client.get("/v1/lab/fixtures").json()
     assert len(d["fixtures"]) >= 10 and d["options"] == ["allow", "ask", "deny"] and d["default_threshold"] == 0.995
     assert client.get("/v1/lab/benchmarks").json()["runs"]
+
+
+def test_slm_comparison_data_is_complete_and_consistent(client):
+    d = client.get("/v1/lab/comparison").json()
+    fx = {f["id"] for f in json.loads((LAB / "tool_calls.json").read_text())}
+    assert set(d["fixtures"]) == fx and "caveat" in d["_meta"]
+    for size in ("4b", "1.7b"):
+        rows = d["aggregate"][size]["rows"]
+        assert len(rows) == 4 and rows[-1]["time_vs_spark"] == 1.0 and rows[-1]["tokens"] == 0
+        assert rows[0]["time_vs_spark"] > 5  # writing JSON is many times slower than one forward pass
+        for f in fx:
+            r = d["fixtures"][f][size]
+            assert r["raw"] and r["tokens"] > 0 and (r["choice"] is None) == (r["action"] is None)
