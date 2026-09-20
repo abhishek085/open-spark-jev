@@ -33,7 +33,7 @@ curl -s localhost:8400/v1/gate -H 'content-type: application/json' \
   "policy_trace": ["Model: allow (0.948); P(allow)=0.948, threshold 0.995",
                    "Model allow is below the auto-allow threshold: escalate",
                    "Final policy action: ask"],
-  "latency_ms": 65.0
+  "latency_ms": 66.8
 }
 ```
 

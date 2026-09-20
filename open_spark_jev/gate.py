@@ -118,6 +118,9 @@ def gate(state: GateState, scorer=None, threshold: float = DEFAULT_THRESHOLD, mo
     t0 = time.perf_counter()
     findings = policy.analyze(state.tool, state.text())
     choice = probs = conf = posture = None
+    prev_cache = getattr(scorer, "use_state_cache", None)
+    if prev_cache is not None:
+        scorer.use_state_cache = False  # one question: the shared-prefix cache only adds overhead (about 110 ms vs 65 ms measured for the 4B)
     if scorer is not None:
         try:
             if mode == "direct":
@@ -133,6 +136,9 @@ def gate(state: GateState, scorer=None, threshold: float = DEFAULT_THRESHOLD, mo
             conf = float(probs[choice])
         except Exception as e:  # evaluator failure must fail closed, not raise into the agent
             findings.matches.append(policy.Match("evaluator_error", "ask", f"model evaluation failed: {type(e).__name__}"))
+        finally:
+            if prev_cache is not None:
+                scorer.use_state_cache = prev_cache
     action, trace = policy.resolve(findings, choice, probs, threshold)
     ms = (time.perf_counter() - t0) * 1000
     return GateResult(choice=choice, probabilities=probs, confidence=conf, policy_action=action, policy_trace=trace, mode=mode, posture_probabilities=posture,

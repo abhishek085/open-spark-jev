@@ -333,7 +333,11 @@ def main(argv: list[str] | None = None) -> None:
         if DEFAULT_MODEL is None and not a.lab:
             raise SystemExit("no checkpoints found under checkpoints/ (see docs/UI.md; `osj lab` runs without weights)")
         if DEFAULT_MODEL is not None and not a.lab:
-            get_backend(DEFAULT_MODEL)  # load now so the first request is fast (in lab mode it loads on first live use)
+            _b = get_backend(DEFAULT_MODEL)  # load now so the first request is fast (in lab mode it loads on first live use)
+            try:  # one throwaway decision so the first real request is not slowed by kernel warm-up
+                _b.decide(State(content="warm-up"), [Choice(prompt="warm-up", options=["a", "b"])])
+            except Exception:  # noqa: BLE001
+                pass
     else:
         build_backend(a.backend, a.model, a.upstream)
     uvicorn.run(app, host=a.host, port=a.port)
