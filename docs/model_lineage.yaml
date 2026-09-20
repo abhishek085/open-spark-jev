@@ -53,7 +53,7 @@ rlcd-direct-qwen3-1.7b-BUGGY-archived:
     calibration.'
   notes: Archived, not deleted, specifically so this failure mode has a preserved before/after rather
     than just a prose description. Do not use this checkpoint for anything except the negative-result
-    comparison in docs/BENCHMARKS.md M8a.
+    comparison in docs/BENCHMARKS.md B8a.
 rlcd-contrastive-qwen3-1.7b:
   date: '2026-09-19'
   checkpoint: checkpoints/rlcd-contrastive-qwen3-1.7b
@@ -99,3 +99,25 @@ grpo-qwen3-1.7b:
     others) for practicality, so the comparison is not perfectly matched on training scale -- but the
     direction and magnitude of the ECE/injection gap are consistent with the mechanism-level prediction,
     not just an undertrained model (accuracy alone dropping ~6pts wouldn''t explain an 8x ECE regression).'
+v3-4b:
+  date: '2026-09-20'
+  checkpoint: checkpoints/v3-4b
+  parent: null
+  eval: null
+  mechanism: 'spark-s1-4b-v3. Qwen3-4B, LoRA r16 (merged) trained 3 epochs with cross-entropy plus a Brier regulariser on the 967-row os-datagen train split
+    (code-derived labels), each choice row also shown in 4 random option orders (4,277 examples). Choice temperature fitted on the os-datagen calibration split
+    (3.17); boolean and score temperatures left at 1.0. Single forward pass, letter-token readout, no generation.'
+  jev_comparison: 'Same contract as Jev (typed Choice / Boolean / Score questions over runtime-defined options, a full probability distribution and a confidence, no generated text)
+    and the same single-forward-pass readout idea. Not Jev: Jev is trained from scratch or otherwise by TypeSafe with an undisclosed method; this is a public backbone fine-tuned
+    with supervised loss. On the 60-row tool-call set 0.850 vs Jev 0.917 (recorded), p50 65.9 ms vs 421.6 ms hosted.'
+  notes: 'os-datagen locked test 0.785 / challenge 0.790 (B27). External: best of our models on 5 of 7 suites, Kev 0.773 / 0.749 with no overlap (B31). Weak: router, urgency, retrieval,
+    termination packs; vulnerable-code detection (0.56). Binary-question calibration not fitted. RLCD not applied (v7 blocked, no unseen rows).'
+v3-1.7b:
+  date: '2026-09-20'
+  checkpoint: checkpoints/v3-1.7b
+  parent: null
+  eval: null
+  mechanism: 'spark-s1-1.7b-v3. Same recipe and data as v3-4b on a Qwen3-1.7B backbone (58 min training). Choice temperature 4.37 fitted on the os-datagen calibration split.'
+  jev_comparison: 'Same contract and readout as v3-4b; the speed pick. 60-row tool-call set 0.783 vs Jev 0.917, p50 29.6 ms vs 421.6 ms hosted (14x).'
+  notes: 'os-datagen locked test 0.603 / challenge 0.694 (B27), tying the 0.6B model, so size only pays off at 4B for this data. Inconsistent transfer: Jev-directory 0.557, injection-with-context 0.819.'
+

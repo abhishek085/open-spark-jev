@@ -38,3 +38,9 @@ By contributing you agree your contribution is licensed under Apache-2.0 (see `L
 Do not add third-party code or data without recording it in `NOTICE` and, for data, a
 `PROVENANCE.md`. Do not commit model weights, API keys, or anything under a license that
 forbids redistribution.
+
+## Evaluation rule: keep per-row data
+
+Every evaluation run must save per-row predictions (id, slice, gold, prediction, per-option probabilities)
+next to its aggregate metrics, so failures can be analysed without re-running. `eval/external.py` writes
+`runs/external/<name>/<source>.rows.jsonl`; new eval code must do the same.

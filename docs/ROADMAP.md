@@ -16,7 +16,7 @@
 | M10 | Comparison table vs LLM+regex baseline and Jev-format public examples | pending |
 | M11 | Multi-teacher registry + ground-truth teacher benchmark (`configs/teachers.yaml`, `eval/teacher_benchmark.py`) | done: qwen27b 0.142, nemotron120b 0.315, gemma26b 0.129 (best, smallest); gptoss120b blocked by an unresolved upstream ARM64 bug, see docs/DGX_SPARK.md |
 | M11b | Regenerate teacher_train.jsonl with gemma26b (the now-best-measured teacher) and rerun mechanism 1 (contrastive) on the regenerated data -- the current 473-record file predates the teacher benchmark and was generated with qwen27b by default, not the now-known-better choice | teacher data regenerated 2026-09-19 (9270 records, gemma26b, Jev-shaped elicitation, 99.9% teacher self-consistency); rlcd-contrastive retrain in progress |
-| M17 | Rerun SFT with `data/raw/public_train.jsonl` included (ag_news/emotion/banking77/toxic-chat/boolq/yelp) -- every checkpoint trained so far used only the six synthetic simulator domains, never real-world text, which is a real, untested generalization gap | **done 2026-09-19, hypothesis not supported**: public text left the 60-set at 0.733, helped only overlapping sources, degraded injection ECE (BENCHMARKS.md M23). LoRA arm running. |
+| M17 | Rerun SFT with `data/raw/public_train.jsonl` included (ag_news/emotion/banking77/toxic-chat/boolq/yelp) -- every checkpoint trained so far used only the six synthetic simulator domains, never real-world text, which is a real, untested generalization gap | **done 2026-09-19, hypothesis not supported**: public text left the 60-set at 0.733, helped only overlapping sources, degraded injection ECE (BENCHMARKS.md B23). LoRA arm done (B24): same pattern, text hurts off-distribution. |
 | M18 | Expand `DOMAIN_BRIEFS` from 8 to 31 domains covering document intelligence, extraction, RAG, search, coding, data engineering, communication, knowledge work, security, UI/workflow, ops, personal productivity and e-commerce, beyond the original support/security/ops set | done 2026-09-19; teacher_train.jsonl (M11b) already covers all 31 |
 | M12 | Reusability cookbook for retraining on other domains (`docs/COOKBOOK.md`) | done |
 | M14 | Architecture-experiment ledger + A1 (single-pass parallel multi-question readout) prototype (`docs/NOVELTY.md`) | A1 implemented, measurement queued behind the in-flight SFT/RLCD/GRPO run |
@@ -29,3 +29,14 @@
 2. Teacher for synthetic data / mechanism-1 pairs: `nvidia/Qwen3.6-27B-NVFP4` via vLLM on :8010 (as in sibling projects), `nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4`, or `openai/gpt-oss-120b` -- all three registered in configs/teachers.yaml.
 3. Single Spark (assumed) or two? A second node only helps by hosting the teacher.
 4. Latency target: per-question p95 under 50 ms via the gateway is the working goal; confirm.
+
+## Next (2026-09-20)
+| # | item | status |
+|---|---|---|
+| N1 | Generate substantially more os-datagen rows (new seeds, new scenario families, more rows for the weak packs; add code/data-workflow and security-style packs) | planned, needs the data factory run |
+| N2 | Retrain spark-s1-4b-v3 / 1.7b-v3 on the larger data (v4 releases) | blocked on N1 |
+| N3 | Fit calibration for Boolean and Score heads (needs more Boolean/Score calibration rows) | blocked on N1 |
+| N4 | v7: outcome-based calibration (RLCD-direct) on rows the model has not memorised | blocked on N1 |
+| N5 | Quantize (FP8/NVFP4) and re-fit temperature; latency grid | pending |
+| N6 | Publish weights to a Hugging Face repo; create the git remote | needs the maintainers |
+

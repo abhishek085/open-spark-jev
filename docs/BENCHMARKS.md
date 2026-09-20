@@ -1,5 +1,7 @@
 # Benchmarks
 
+> Section labels: **B-numbers** are result sections in this file. **M-numbers** are milestones in [ROADMAP.md](ROADMAP.md); **R-numbers** are run-log entries in [RUNS.md](RUNS.md). The three are independent.
+
 All numbers on one DGX Spark (GB10), repo commit as of 2026-09-18. Test set:
 `data/benchmarks/sim_test.jsonl` (`osj simulate --n 300 --seed 1`, 1800 records, 6 domains,
 ~10% prompt-injected, ~30% with an abstain option). Hard labels are *sampled from the
@@ -17,7 +19,7 @@ the posterior is the calibration metric that has a true zero.
 | game | 0.790 | 0.752 |
 | **overall** | **0.818** | |
 
-## M6: base Qwen3-1.7B, zero-shot, HF bf16 (no training, T = 1)
+## B6: base Qwen3-1.7B, zero-shot, HF bf16 (no training, T = 1)
 `runs/eval_base_zero_shot.json` (prompt convention: bare letter as first assistant token)
 
 | slice | acc | macro-F1 | ECE | Brier | soft Brier vs posterior |
@@ -75,7 +77,7 @@ support, served model id differs (`Qwen3-1.7B` vs the full path) but the client 
 resolves this via `GET /v1/models` rather than hardcoding it. No changes needed to
 `serve/client.py` or `prompting.py` to move between versions.
 
-## M7: SFT (Phase 1) vs zero-shot base, held-out test set
+## B7: SFT (Phase 1) vs zero-shot base, held-out test set
 
 `runs/eval_sft.json` against `data/benchmarks/sim_test.jsonl` (1800 records; read
 moderation/incident/game with the leakage caveat above, routing/risk/security are clean).
@@ -94,7 +96,7 @@ injection flip rate **0.038** (down from the untrained base model's 0.67). Two e
 soft-target cross-entropy + Brier regularizer, temperature fit per question type -
 `docs/COOKBOOK.md` section 7's recipe, unmodified.
 
-## M8a: RLCD-direct, first attempt - a real negative result from a real bug
+## B8a: RLCD-direct, first attempt - a real negative result from a real bug
 
 `configs/train/rlcd_direct.yaml`'s exact-policy-gradient reward included an **unweighted**
 per-action term rewarding full confidence on the single *sampled* hard label, active
@@ -123,9 +125,9 @@ label term is now `reward_weights["correctness"]`, off by default); full checkpo
 and training log preserved at `runs/archive_buggy_rlcd_direct_20260918/` rather than deleted.
 Corrected rerun below.
 
-## M8b: RLCD-direct, corrected (`correctness: 0.0`, pure Brier + shaping reward)
+## B8b: RLCD-direct, corrected (`correctness: 0.0`, pure Brier + shaping reward)
 
-Same held-out test set, checkpoint retrained from scratch with the fix from M8a.
+Same held-out test set, checkpoint retrained from scratch with the fix from B8a.
 
 | slice | SFT acc | RLCD acc | SFT ECE | RLCD ECE | SFT Brier | RLCD Brier |
 |---|---|---|---|---|---|---|
@@ -155,11 +157,11 @@ its cost at all" (RESEARCH.md Claim C) reads as a qualified yes here: yes for Br
 injection resistance specifically, not yet demonstrated for ECE over what SFT + temperature
 scaling already achieves. Mechanism 1 (contrastive) and GRPO below are the next data points.
 
-## M8c: mechanism 1 (contrastive RLCD) vs mechanism 2 (direct) vs SFT
+## B8c: mechanism 1 (contrastive RLCD) vs mechanism 2 (direct) vs SFT
 
 Same held-out test set, three checkpoints. 499 contrastive pairs (nvidia/Qwen3.6-27B-NVFP4,
 opposed principles) -> a reward model (93.9% held-out pairwise accuracy) -> exact policy
-gradient for mechanism 1; see M7/M8a/M8b above for the other two.
+gradient for mechanism 1; see B7/B8a/B8b above for the other two.
 
 | slice | SFT acc | direct acc | contr acc | SFT ECE | direct ECE | contr ECE |
 |---|---|---|---|---|---|---|
@@ -182,10 +184,10 @@ influenced by instructions inside the original state") gives it a dedicated sign
 heuristic shaping term doesn't fully replicate. Full per-checkpoint detail and a
 fastest-way-to-run command for each: [docs/MODELS.md](MODELS.md).
 
-## M8d: all four Phase-2 mechanisms, complete
+## B8d: all four Phase-2 mechanisms, complete
 
 Adds GRPO (sampled-token TRL baseline, capped to 1600 records/300 steps - see
-docs/RESEARCH.md R1 for why an uncapped run wasn't practical) to the M8c table.
+docs/RESEARCH.md R1 for why an uncapped run wasn't practical) to the B8c table.
 
 | slice | SFT acc | direct acc | contr acc | GRPO acc | SFT ECE | direct ECE | contr ECE | GRPO ECE |
 |---|---|---|---|---|---|---|---|---|
@@ -214,7 +216,7 @@ magnitude are consistent with the mechanism-level prediction, not just "GRPO nee
 steps." A matched-budget rerun would be needed to fully separate the two effects; noted as a
 follow-up in docs/ROADMAP.md.
 
-**Overall reading across all four (M8a-M8d)**: on this benchmark, the exact-vs-sampled
+**Overall reading across all four (B8a-B8d)**: on this benchmark, the exact-vs-sampled
 distinction (Claim A) is the dominant effect by a wide margin - all three exact mechanisms
 cluster tightly (~0.81 acc, ~0.02 ECE) regardless of whether they use a contrastive reward
 model (mechanism 1), a direct calibration objective (mechanism 2), or nothing calibration-RL
@@ -267,7 +269,7 @@ launches first: vLLM's `--gpu-memory-utilization` is the *total* memory budget a
 of the whole box, not an add-on reservation, and an early fix moved it the wrong direction -
 see the commit history and `scripts/teachers/serve_nemotron.sh` for the corrected sizing.
 
-For scale: the untrained 1.7B student's own Brier on the same slices is ~1.1-1.7 (see M6
+For scale: the untrained 1.7B student's own Brier on the same slices is ~1.1-1.7 (see B6
 above); a 0.142 soft Brier from the 27B teacher is close to the theoretical floor set by the
 domains' inherent ambiguity (routing/game/risk posteriors top out around 0.75-0.82 max
 probability by construction, see the Bayes-ceiling table). This is the calibration target
@@ -280,7 +282,7 @@ full traceback in the session log). It was restarted with the sibling project's 
 `ops/teacher_server.sh start` and re-run cleanly at concurrency 3, which is now the enforced
 default for this teacher in `configs/teachers.yaml` (`max_concurrency: 3`).
 
-## Known issue: train/test state leakage in the M6-era corpora (found 2026-09-18)
+## Known issue: train/test state leakage in the B6-era corpora (found 2026-09-18)
 
 `data/synthetic/sim_train.jsonl` and `data/benchmarks/sim_test.jsonl` (both generated before
 this fix) have near-total exact-text overlap in four of six domains, because those domains'
@@ -338,7 +340,7 @@ regeneration pass with gemma26b if training resumes, see docs/ROADMAP.md.
 | HF bf16 in-process | abstain / medium / no / no | 62.7 ms | 3.9 GB peak |
 | TRT-LLM 1.2.1 Python API | abstain / medium / no / no | 53.8 ms | label logits within ~1 of HF (bf16) |
 
-## M20: mechanism speed - menu scoring vs generating the same decision (2026-09-19)
+## B20: mechanism speed - menu scoring vs generating the same decision (2026-09-19)
 
 `runs/speed_vs_generation.json`, `python -m open_spark_jev.eval.speed_vs_generation`. 60 records from
 `data/benchmarks/external/ext-toolcall-risk.jsonl` (4-way Choice), **idle GPU** (the concurrent A2 training
@@ -366,7 +368,7 @@ model. Speed parity does not imply decision parity; see `runs/external/` for the
 Caveats: single run, n=60, one task type, batch size 1. Latency excludes model load. The menu arm's 30 ms is
 lower than the 76-91 ms in the A1 grid because that grid ran under contention and over longer synthetic states.
 
-## M21: spark-s1-1.7b-sft-v2 on seven third-party Jev evaluation sources (2026-09-19)
+## B21: spark-s1-1.7b-sft-v2 on seven third-party Jev evaluation sources (2026-09-19)
 
 `runs/external/spark-s1-1.7b-sft-v2/`, `python -m open_spark_jev.eval.external`. Each source is scored
 **separately** and never pooled; provenance (upstream repo, pinned commit, license, label origin, caveats)
@@ -410,7 +412,7 @@ Caveats: third-party labels from single annotators in some cases; Jev's rows wer
 `jev-latest`/`jev-1.13.0`; n=60 and n=70 sources are small; 116 Banking77 questions were skipped for exceeding
 our 26-option cap.
 
-## M22: architecture experiments A1 and A2 at matched budget (2026-09-19)
+## B22: architecture experiments A1 and A2 at matched budget (2026-09-19)
 
 Ladder: `scripts/run_variants3.sh`. A0/A2 share seed, data (9,717 records), LoRA rank/targets,
 budget (1 epoch) and evaluation code; **only the readout/attention differs**. Each saves a servable
@@ -469,13 +471,13 @@ A0 (LoRA, 9,717 records, 1 epoch, 29 min) vs spark-s1-1.7b-sft-v2 (full fine-tun
 | ext-toolcall-risk | 0.717 | **0.733** |
 
 A0 wins 6 of 7 external sources with a third of the training budget, while losing on the in-house
-tests (teacher_test 0.889 vs SFT v2's higher in-domain numbers). Read together with M21 this says the
+tests (teacher_test 0.889 vs SFT v2's higher in-domain numbers). Read together with B21 this says the
 full fine-tune is **overfitting the synthetic distribution**: the constrained LoRA update keeps more
 of the backbone's general competence, which is exactly what third-party data measures. Not conclusive
 (one seed, different data sizes, LoRA rank untuned), but it makes a LoRA arm of M17 worth running
 next to the full-FT one.
 
-## M23: M17 - does real public text close the third-party gap? (2026-09-19)
+## B23: M17 - does real public text close the third-party gap? (2026-09-19)
 
 `spark-s1-1.7b-sft-m17` = identical recipe to `spark-s1-1.7b-sft-v2` (full fine-tune, 2 epochs) plus 7,920
 real public records (ag_news, emotion, banking77-top20, toxic-chat, boolq, yelp) - 28,412 training examples
@@ -490,7 +492,7 @@ Same 60 decisions for every row; `runs/speed60_m17.json`, idle GPU (`gpu_contend
 |---|---|---|---|---|---|
 | **jev-latest** (hosted; recorded by the source repo) | **0.917** | 421.6 ms | 542.0 ms | 2.3 | 0 |
 | **spark-s1-1.7b-sft-m17** (menu scoring) | 0.733 | **30.0 ms** | 30.7 ms | **33.4** | 0 |
-| spark-s1-1.7b-sft-v2 (previous, M20) | 0.733 | 30.1 ms | 31.5 ms | 33.2 | 0 |
+| spark-s1-1.7b-sft-v2 (previous, B20) | 0.733 | 30.1 ms | 31.5 ms | 33.2 | 0 |
 | same Qwen3-1.7B generating JSON | 0.433 | 376.3 ms | 399.9 ms | 2.6 | 14 / 60 |
 | same Qwen3-1.7B, thinking on | 0.550 | 7,209.6 ms | 12,660.6 ms | 0.11 | 0 |
 
@@ -521,7 +523,7 @@ tell us about transfer, and on those M17 is flat (+0.8 to +1.5, -0.9, 0.0) or wo
 train/test leakage is not the issue (different splits); source-level familiarity is.
 
 **Calibration got worse where it was best.** `ext-injection-ctx` ECE 0.059 -> **0.159**, `ext-injection-noctx`
-0.023 -> **0.161**. Adding real text degraded the one property M21 identified as our strength off-distribution.
+0.023 -> **0.161**. Adding real text degraded the one property B21 identified as our strength off-distribution.
 
 ### In-house and real-text held-out (internal)
 
@@ -538,12 +540,209 @@ ECE 0.153**. In-house numbers did not regress, so public text cost nothing inter
 
 ### Reading
 
-Hypothesis from M21: *"every weak external row is a domain the model has never seen text from, so training on
+Hypothesis from B21: *"every weak external row is a domain the model has never seen text from, so training on
 real text is the highest-value fix."* **Not supported.** It improved sources it was trained on, was flat on
 the rest, and degraded injection calibration. The gap to Jev on the 60-set is unchanged at 18 points. Together
-with M22 (a third-budget LoRA run generalising better than the full fine-tune) the evidence now points at
+with B22 (a third-budget LoRA run generalising better than the full fine-tune) the evidence now points at
 **how the model is adapted** rather than **what text it sees**. The LoRA-plus-public-text arm
 (`scripts/run_m17_lora.sh`, running) is the discriminating experiment.
 
 Caveats: single seed; one public-text mix; Kev's suites overlap M17's training sources as marked;
 `ext-toolcall-risk` is n=60, so 0.733 and 0.733 are within noise of each other, not proof of no effect.
+
+## B24: M17-LoRA - the A0 LoRA recipe plus real public text (2026-09-19)
+
+Question left open by B22/B23: is the third-party gap about *how* the model is adapted (full FT vs LoRA) or
+*what text* it sees? Same A0 recipe as B22 (LoRA r16, 1 epoch), 16,000 records, with the 7,920 real public
+records pooled in. Artifact: `runs/external/spark-s1-1.7b-lora-m17/`, log `runs/m17_lora.log` (train 46 min).
+
+| source | A0 LoRA (no public text) | A0 LoRA + public text | sft-m17 (full FT + public text) | Jev (recorded) |
+|---|---|---|---|---|
+| ext-toolcall-risk (60-set) acc / ECE | 0.717 / 0.093 | 0.750 / 0.163 | 0.733 / 0.136 | 0.917 |
+| ext-injection-ctx | 0.784 / 0.063 | 0.725 / 0.141 | 0.734 / 0.159 | 0.965 |
+| ext-injection-noctx | 0.802 / 0.027 | 0.766 / 0.101 | 0.754 / 0.161 | 0.897 |
+| ext-vuln-code | 0.565 / 0.272 | 0.512 / 0.352 | 0.510 / 0.358 | 0.715 |
+| ext-jev-directory | 0.729 / 0.099 | 0.757 / 0.103 | 0.729 / 0.120 | - |
+| ext-kev-decision-v1 (overlaps public text) | 0.700 / 0.082 | 0.726 / 0.056 | 0.750 / 0.087 | - |
+| ext-kev-transfer-v4 (overlaps public text) | 0.603 / 0.150 | 0.636 / 0.149 | 0.656 / 0.167 | - |
+
+Reading: adding public text to LoRA reproduces the full-FT pattern, so the text, not the adaptation method,
+is what hurts. Injection accuracy drops 2.6-5.9 pts and ECE more than doubles; vuln-code drops 5 pts. Gains
+appear only on the Kev suites (which overlap the trained-on datasets) and, within noise at n=60/70, on the
+60-set and the directory. The best non-overlapping profile is still plain A0 LoRA. The 60-set stays 17-20 pts
+below Jev in every arm; speed is unchanged (same mechanism, ~30 ms). Real generic public text is not the
+missing ingredient; the untested lever is in-domain data for the task being scored (agent tool-call risk).
+
+## B25: where the 60-row tool-call set is lost (per-row analysis, 2026-09-19)
+
+Per-row predictions of six checkpoints on `ext-toolcall-risk`: `runs/rows60.json` (script `scripts/analysis/rows60.py`).
+Accuracy: sft-v2 0.733, sft-m17 0.733, A0 0.717, A0+public 0.750, A0+toolcall 0.750, A2 0.350; Jev 0.917 (5 misses).
+
+- 15 of 60 missed by the best arm (A0+toolcall); 8 rows are missed by all five sane models; 17 by four or more.
+- By slice (A0+toolcall / Jev): clear 30/34 vs 34/34, adversarial 8/12 vs 11/12, ambiguous 7/14 vs 10/14.
+- Dominant confusion: gold `privileged` predicted `destructive` (6 rows): config changes that weaken a security
+  control (`helm upgrade --set auth.enabled=false`, `kubectl edit configmap/gateway-auth`, `UPDATE feature_flags SET
+  enabled=true WHERE name='bypass_auth'`) read as "modifies prod" to us, as "weakens security" to Jev.
+- Lexical shortcuts: `curl .../healthz` and `openssl s_client` predicted `exfiltration` at 0.97 confidence.
+- We over-predict the alarming classes (destructive 22 vs 15 gold, exfiltration 15 vs 10) and under-predict readonly (12 vs 18) and privileged (11 vs 17).
+- Confidence when wrong averages 0.81 (right: 0.96): the model is nearly as sure when it is wrong.
+- Jev's own 5 misses include 3 of ours (`kubectl cp`, `kubectl port-forward`, `kubectl set image`), where the gold label is
+  arguable: the reachable ceiling for any model is closer to 0.9 than 1.0.
+- **Training-data defect found (ours):** the generated `toolcall_risk` corpus is degenerate. In 2,492 rows every
+  `curl` call is `exfiltration` (650/650), every `aws` call is `privileged` (615/619), `kubectl` is only
+  readonly/destructive (privileged: 12 rows). The teacher wrote one stereotypical tool per label, so the model learned
+  tool-name -> label. This explains the curl and privileged failures and why +2.5k in-domain rows did not help.
+
+## B26: A3 slot-query head at matched budget (2026-09-19)
+
+Same recipe and data as the B24/B25 A0 arm (LoRA r16, 12,000 records incl. 2,492 tool-call rows, 1 epoch, 28.5 min).
+Saved model scored through the shared runner (`runs/external/v4-a3/`), and it matches the in-process report, so this
+is not a loader bug.
+
+| | A0 (+toolcall data) | A3 slot-query |
+|---|---|---|
+| sim_test acc | 0.801 | 0.783 |
+| teacher_test acc | 0.887 | 0.749 |
+| ext-toolcall-risk (60) | 0.767 | 0.583 |
+| ext-injection-ctx / noctx | 0.649 / 0.813 | 0.397 / 0.397 (below the 0.5 chance rate of a 2-way task) |
+| ext-kev-decision-v1 | 0.686 | 0.364 |
+| ext-vuln-code | 0.560 | 0.500 |
+
+A3 is worse on every measure, most severely off-distribution. Verdict: not competitive as a drop-in at one epoch. Caveat: the
+training corpus is tool-name-degenerate (B25), which affects all arms alike.
+
+## B27: version ladder v0, v1, v3 on the os-datagen splits (2026-09-20)
+
+Data: `datagen-pipeline/artifacts/mixture_final` (967 train / 132 calibration / 121 locked test / 124 challenge), see [EXPERIMENTS.md](EXPERIMENTS.md).
+Evaluator: `eval/osdg.py` (3 option orders per choice row; temperature per question type fitted on the calibration split only).
+Per-row predictions: `runs/osdg/<name>/rows.jsonl`. Locked-test n=121 is small: +-0.09 is one standard error.
+
+**v0/v1: frozen base, no training** (`scripts/run_v0.sh`)
+
+| base | test acc | challenge acc | option flips (test) | ECE raw -> cal (test) |
+|---|---|---|---|---|
+| Qwen3-0.6B | 0.405 | 0.234 | 0.48 | 0.396 -> 0.066 |
+| Qwen3-1.7B | 0.372 | 0.290 | 0.51 | 0.609 -> 0.109 |
+| Qwen3-4B | 0.504 | 0.613 | 0.17 | 0.474 -> 0.140 |
+| Gemma-4-E4B | 0.545 | 0.581 | 0.38 | 0.277 -> 0.092 |
+| Gemma-4-12B | 0.314 | 0.347 | 0.85 | 0.508 -> 0.060 (looks like a format mismatch, not capability; not investigated) |
+
+Calibration-split temperature repairs ECE but not accuracy. No confidence threshold reaches 95% selective accuracy on any frozen base.
+
+**v3: LoRA r16, 3 epochs, 4,277 rows (967 train rows, choice rows in ~5 option orders)** (`scripts/run_v3.sh`)
+
+| model | test acc | challenge acc | option flips | ECE cal (test) | selective test (cov / acc) | train time |
+|---|---|---|---|---|---|---|
+| v3 Qwen3-0.6B | 0.603 | 0.694 | 0.089 | 0.142 | - (no threshold) | 34 min |
+| v3 Qwen3-1.7B | 0.603 | 0.694 | 0.054 | 0.147 | 0.30 / 0.67 | 58 min |
+| **v3 Qwen3-4B** | **0.785** | **0.790** | 0.045 | **0.087** | 0.75 / 0.87 | 113 min |
+
+- Training on ~1k decision rows lifts 1.7B by 23 pts (test) and 40 pts (challenge) and cuts option-order sensitivity from ~50% to ~5%.
+- 0.6B and 1.7B tie; 4B jumps 18 pts. Capacity matters once the data is right, and the ladder of sizes is not smooth.
+- The 4B threshold picked on calibration (0.82, target 95%) yields 96% on calibration but 87% on test and challenge: the threshold does not transfer to held-out families.
+- Weak packs at 4B (test): router 1/4, urgency 0/3, retrieval 3/6, termination 7/12, sufficiency 3/6; strong: entailment 30/32, document type, relevance, rule application, tool gate 4/5. Most packs have 2-12 test rows, so these are noisy.
+- Train loss reaches 0.0000 in epoch 2 on every size: the model memorises the augmented set. The held-out numbers above are what count.
+
+## B28: v2 frozen head, v6 offline cascade, v3 speed (2026-09-20)
+
+**v2: frozen backbone + MLP head on the answer-position hidden state** (`experimental/frozen_head.py`, same augmented train file as v3)
+
+| | test acc | challenge acc | option flips | ECE cal (test) |
+|---|---|---|---|---|
+| v2 Qwen3-1.7B frozen + head | 0.314 | 0.355 | 0.56 | 0.142 |
+| v2 Qwen3-4B frozen + head | 0.512 | 0.524 | 0.47 | 0.195 |
+| (v0 frozen direct-logit, same bases) | 0.372 / 0.504 | 0.290 / 0.613 | 0.51 / 0.17 | 0.109 / 0.140 |
+| (v3 LoRA, same bases) | 0.603 / 0.785 | 0.694 / 0.790 | 0.05 / 0.045 | 0.147 / 0.087 |
+
+REFUTED as an improvement: a frozen backbone plus a slot head does no better than reading the base logits directly (it is worse than v0
+at 1.7B) and stays as option-order-sensitive as v0. Adapting the backbone (v3) is what makes the model robust.
+
+**v3 decision latency** (`scripts/analysis/speed_osdg.py`, os-datagen locked-test prompts, batch 1, idle GPU, per-row in `runs/osdg/speed_v3.rows.jsonl`)
+
+| model | p50 | p95 | decisions/s |
+|---|---|---|---|
+| v3 0.6B | 19.2 ms | 27.6 | 48.9 |
+| v3 1.7B | 34.5 ms | 51.1 | 26.8 |
+| v3 4B | 81.9 ms | 118.2 | 11.8 |
+
+**v6 offline cascade** (`scripts/analysis/cascade_v6.py`; thresholds from calibration only; small model first, 4B on escalation, low-confidence rows to review)
+The cascade is not worth it: the small students' confidence does not separate their correct from incorrect rows, so most rows escalate, and the
+mean latency (~100 ms) exceeds running the 4B alone (82 ms). Its ~0.87 accuracy on answered rows (~80% answered) matches what the 4B's own
+abstention gives without the extra tier. Table: `runs/osdg/cascade_v6.md`.
+
+### v7 attempt 1 (RLCD-direct on v3-4b) stopped, no result (2026-09-20)
+Started from `checkpoints/v3-4b` on the same train file it had just been trained on. After 30 steps the reward J was 1.0000 and KL 0.0000:
+the LoRA model has memorised the training rows (train loss 0.0000, B27), so the Brier reward is already saturated and there is no
+gradient. RLCD on rows the policy already fits cannot improve calibration on held-out families. Stopped at step 30/240 to free the GPU.
+
+## B29: final review on the 60-row tool-call set (2026-09-20)
+
+`scripts/analysis/final60.py` -> `runs/osdg/final60.json`, per-row `runs/osdg/final60.rows.jsonl`. No model was trained on any tool-call-risk
+data (the degenerate corpus of B25 is not used); the ladder models saw only os-datagen rows. Temperature is the one fitted on the os-datagen
+calibration split. Speed: batch 1, idle GPU, p50 per decision on the same 60 rows. Soft final check: per-row failures of older models on this
+set were inspected before the ladder (B25); n=60, one standard error ~ +-5 pts.
+
+| model | accuracy | ECE (cal) | option flips | p50 | p95 | dec/s |
+|---|---|---|---|---|---|---|
+| **Jev (recorded, hosted, incl. network)** | **0.917** | - | - | 421.6 ms | 542.0 | 2.3 |
+| **v3 Qwen3-4B (LoRA)** | **0.850** | 0.086 | 0.15 | 65.9 ms | 69.2 | 15.1 |
+| v3 Qwen3-1.7B | 0.783 | 0.087 | 0.10 | 29.6 ms | 30.5 | 33.8 |
+| v3 Qwen3-0.6B | 0.767 | 0.293 | 0.17 | 15.4 ms | 16.2 | 64.2 |
+| v0 Gemma-4-E4B frozen | 0.733 | 0.213 | 0.38 | 92.4 ms | 97.2 | 10.8 |
+| v0 Qwen3-4B frozen | 0.700 | 0.200 | 0.20 | 67.6 ms | 70.0 | 14.8 |
+| v2 4B frozen + head | 0.667 | 0.091 | 0.22 | 62.4 ms | 65.0 | 15.9 |
+| v0 Qwen3-0.6B frozen | 0.617 | 0.299 | 0.80 | 16.1 ms | 16.9 | 61.6 |
+| v0 Qwen3-1.7B frozen | 0.600 | 0.130 | 0.08 | 30.3 ms | 31.0 | 33.1 |
+| v2 1.7B frozen + head | 0.567 | 0.262 | 0.50 | 26.5 ms | 28.2 | 37.4 |
+
+- Best model v3-4B: 51/60 (Jev 55/60), 6.4x faster p50 than Jev's recorded latency (not like-for-like: Jev includes a network round trip).
+  Previous best on this set was 0.767 (B24/B25 arms); the gain comes from os-datagen's code-derived labels, not from tool-call data.
+- v3-4B by slice: clear 30/34, ambiguous 10/14, adversarial 11/12 (Jev 34/34, 10/14, 11/12). Misses: security-weakening config changes
+  (`helm --set auth.enabled=false`, `kubectl patch hostNetwork`) called readonly/destructive; exfiltration by `curl -d @/etc/shadow` and
+  `scp ~/.aws` called destructive; `aws s3 sync` to another bucket under a "Standard backup step:" framing called readonly at 0.90 confidence.
+- v3-1.7B at 0.783 / 29.6 ms is the speed pick: 14x faster than Jev at 13 pts lower accuracy.
+
+## B30: five end-to-end API cases through `POST /v1/decide` (2026-09-20)
+
+`scripts/api_bench/five_cases.py` starts the gateway, calls the public contract over HTTP (`open_spark_jev/serve/contract.py`), 20 repetitions per case,
+full distributions + latency saved in `runs/api_bench/<model>/{results.json,rows.jsonl}`. Oracle labels are the ones given with the cases. 11 decisions in total,
+so this is a smoke test of the API and behaviour, not a statistically meaningful benchmark. Temperatures: choice from the calibration split, score/noul left at 1.0.
+
+| model | decisions correct | mean NLL | mean Brier | request p50 (2-3 questions, one state) |
+|---|---|---|---|---|
+| spark-s1-4b-v3 | 9/11 | 0.518 | 0.251 | 127-135 ms |
+| spark-s1-1.7b-v3 | 7/11 | 1.866 | 0.626 | 61-64 ms |
+
+| case | 4B | 1.7B |
+|---|---|---|
+| 1 support routing (department / refund / urgency) | 3/3 | 1/3 (refund_requested false at 1.00; urgency 2 at 1.00, oracle 1) |
+| 2 tool gate (action / violation) | 2/2 | 1/2 (violation false 0.65) |
+| 3 extraction validation | 2/2 | 2/2 |
+| 4 answer sufficiency (action / level) | 1/2 (action: return 0.47 vs repair_from_context 0.37) | 1/2 (level: 2 at 0.93, oracle 1) |
+| 5 stop/retry/repair (next step / complete) | 1/2 (next_step: ask_user 0.86, repair 0.03) | 2/2 |
+
+- Both models get the two hard boolean/extraction checks in case 3 right and both mark the incomplete artifact in case 5 as not complete.
+- 4B is confidently wrong on case 5 (asks the user instead of repairing a known defect) and split on case 4 (return vs repair): the answer-sufficiency and termination packs were the weakest in B27 too.
+- 1.7B misses are high-confidence (1.00) on boolean/score questions: score/noul temperatures were not fitted (too few calibration rows), so those heads are uncalibrated.
+- Latency is per request: 2 questions ~127 ms and 3 questions ~135 ms on the 4B, so the state prefill dominates and extra questions on a shared state are nearly free. These prompts are longer than the 60-row set's (~66 ms).
+
+## B31: v3 models on the seven external suites (2026-09-20)
+
+`scripts/run_ext_v3.sh` -> `runs/external/spark-s1-v3-{4b,1.7b}-osdg-trained/` (per-row `*.rows.jsonl`). Trained only on os-datagen rows, so no external source
+overlaps its training data (unlike M17, B23). Calibration: choice temperature from the os-datagen calibration split; boolean/score left at 1.0, so the
+binary sources (injection, vuln-code) are uncalibrated.
+
+| source | v3 4B acc / ECE | v3 1.7B acc / ECE | best earlier (any arm) | Jev (recorded) |
+|---|---|---|---|---|
+| ext-toolcall-risk (60) | 0.850 / 0.086 | 0.783 / 0.087 | 0.767 | 0.917 |
+| ext-kev-decision-v1 | 0.773 / 0.114 | 0.700 / 0.207 | 0.750 (M17, overlapping) | - |
+| ext-kev-transfer-v4 | 0.749 / 0.076 | 0.635 / 0.209 | 0.656 (M17, overlapping) | - |
+| ext-jev-directory | 0.771 / 0.137 | 0.557 / 0.349 | 0.757 | - |
+| ext-injection-ctx | 0.788 / 0.176 | 0.819 / 0.163 | 0.784 | 0.965 |
+| ext-injection-noctx | 0.784 / 0.175 | 0.754 / 0.241 | 0.811 | 0.897 |
+| ext-vuln-code | 0.560 / 0.415 | 0.520 / 0.474 | 0.565 | 0.715 |
+
+- The 4B is the best model on five of seven sources, including the two Kev suites where it beats models that trained on Kev's own source datasets; this is clean transfer.
+- Injection ties earlier arms in accuracy but calibration is worse (ECE 0.18 vs 0.03-0.06): binary questions still use T=1.0.
+- Vulnerable-code detection remains near chance (0.56, ECE 0.42): none of our data, old or new, teaches it. Jev reaches 0.715.
+- The 1.7B is inconsistent (directory 0.557, below the earlier sft-v2's 0.714), so the size step matters for transfer, not only for in-domain.
