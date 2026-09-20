@@ -79,7 +79,7 @@ async function init(){const r=await (await fetch('/v1/lab/fixtures')).json();FX=
  $('opts').innerHTML=OPTS.map(o=>`<div class=opt><b style="color:${colors[o]}">${o}</b><span>${DESC[o]}</span></div>`).join('');
  $('fx').innerHTML=FX.map((f,i)=>`<option value=${i}>${f.title}</option>`).join('')+'<option value=-1>custom input</option>';
  const src=[];if(Object.keys(REC).some(k=>k[0]!=='_'))src.push(['recorded','Recorded real model output (fixtures only)']);LIVE.forEach(m=>src.push(['live:'+m.id,'Live model: '+m.name]));src.push(['none','No model: deterministic rules only']);
- $('source').innerHTML=src.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');$('thr').value=r.default_threshold;$('thv').textContent=r.default_threshold;
+ $('source').innerHTML=src.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');$('thr').value=r.default_threshold;$('thv').textContent=r.default_threshold;const qt=new URLSearchParams(location.search).get('thr');if(qt&&+qt>=0.5&&+qt<=1){$('thr').value=qt;$('thv').textContent=qt}
  const h=location.hash.slice(1);if(h){const i=FX.findIndex(f=>f.id===h);if(i>=0)$('fx').value=i}
  $('fx').onchange=load;$('thr').oninput=()=>$('thv').textContent=$('thr').value;$('go').onclick=decide;load();bench();if(h&&FX.some(f=>f.id===h))decide();
  document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{$('t-arch').classList.toggle('hidden',b.dataset.t!=='arch');$('t-bench').classList.toggle('hidden',b.dataset.t!=='bench')});
