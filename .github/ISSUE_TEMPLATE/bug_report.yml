@@ -1,0 +1,18 @@
+name: Bug report
+description: Something in the code, API, UI or docs does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes: {label: What happened, description: What you did, what you expected, what you saw.}
+    validations: {required: true}
+  - type: input
+    id: version
+    attributes: {label: Version, description: "Commit hash and model id (for example spark-s1-4b-v3)"}
+    validations: {required: true}
+  - type: textarea
+    id: env
+    attributes: {label: Environment, description: "OS, Python, GPU and driver, install path (`pip install -e .[serve]` or full setup)."}
+  - type: textarea
+    id: repro
+    attributes: {label: Steps to reproduce, description: "Sanitised commands only. Do not paste credentials or private data."}

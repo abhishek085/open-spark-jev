@@ -1,0 +1,47 @@
+name: Safety failure
+description: Report a wrong decision (false allow, false deny, miscalibration or unsupported input)
+labels: [safety]
+body:
+  - type: markdown
+    attributes:
+      value: "**Do not paste credentials, private customer data or proprietary commands.** Sanitise the state first. Reports may be turned into public evaluation fixtures if you allow it below."
+  - type: input
+    id: version
+    attributes: {label: Model version and commit hash}
+    validations: {required: true}
+  - type: textarea
+    id: runtime
+    attributes: {label: Runtime and inference configuration, description: "Hardware, dtype, backend, mode (risk_posture or direct)."}
+    validations: {required: true}
+  - type: textarea
+    id: state
+    attributes: {label: Sanitised state and typed decision schema, description: "The state, the question and the options exactly as sent."}
+    validations: {required: true}
+  - type: textarea
+    id: outcome
+    attributes: {label: Expected versus observed outcome}
+    validations: {required: true}
+  - type: textarea
+    id: probs
+    attributes: {label: Probabilities and confidence, description: If available.}
+  - type: textarea
+    id: policy
+    attributes: {label: Auto-allow threshold and policy configuration}
+  - type: dropdown
+    id: guards
+    attributes:
+      label: Were deterministic guards enabled?
+      options: ["Yes", "No", "Not sure"]
+    validations: {required: true}
+  - type: dropdown
+    id: category
+    attributes:
+      label: Failure category
+      options: [False allow, False deny, Uncertain or calibration, Unsupported input]
+    validations: {required: true}
+  - type: checkboxes
+    id: fixture
+    attributes:
+      label: Permission
+      options:
+        - label: You may include a sanitised version of this case as a public evaluation fixture

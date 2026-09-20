@@ -1,0 +1,27 @@
+name: Benchmark result
+description: Share a benchmark run (any hardware) for a spark-s1 model
+labels: [benchmark]
+body:
+  - type: input
+    id: model
+    attributes: {label: Model and revision, description: "For example spark-s1-4b-v3, Hugging Face revision"}
+    validations: {required: true}
+  - type: input
+    id: benchmark
+    attributes: {label: Benchmark and revision, description: Name plus hash or version; say whether it is a locked test or a diagnostic set.}
+    validations: {required: true}
+  - type: textarea
+    id: hardware
+    attributes: {label: Hardware and configuration, description: "GPU, dtype, framework, batch size, state cache on or off."}
+    validations: {required: true}
+  - type: textarea
+    id: results
+    attributes: {label: Results, description: "JSON matching docs/benchmark_run.schema.json (accuracy, p50 latency, decisions per second, notes)."}
+    validations: {required: true}
+  - type: checkboxes
+    id: ok
+    attributes:
+      label: Checks
+      options:
+        - label: I did not include credentials, private data or proprietary content
+          required: true

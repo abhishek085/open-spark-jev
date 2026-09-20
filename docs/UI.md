@@ -1,4 +1,29 @@
-# Playground: web UI and API
+# UI
+
+Two local pages share one gateway: the **Decision Lab** (`/lab`, tool-call decisions, described first) and the original **playground** (`/`, general typed questions, described below). Both are for local use.
+
+## Decision Lab (`osj lab`)
+
+```bash
+pip install -e ".[serve]"     # enough for the Lab: no torch, no weights
+osj lab                       # http://127.0.0.1:8400/lab   (--port, --host, --model)
+```
+
+![Decision Lab](img/decision-lab.png)
+
+**Areas.** A. *Agent state*: tool, proposed command (text only, never run), optional session context, and a selector of ten safe fixtures. B. *Typed decision contract*: the fixed options (`allow`, `ask`, `deny`) and their definitions, the auto-allow threshold, which question is asked (the benchmarked risk-posture question mapped to allow/ask/deny, or the unbenchmarked direct question) and the source of the model output. C. *Decision response*: selected choice, a probability bar for every option, the risk-posture distribution, confidence, latency and the final policy action. *Policy trace*: model output plus every rule match, and an explicit line when a rule overrode the model. D. *Workflow comparison*: an explanatory diagram of a generative loop versus this one (not a performance claim, nothing is simulated). E. *Benchmark view*: the runs in `open_spark_jev/serve/lab_data/benchmark_runs.json`, labelled diagnostic, with hardware and caveats.
+
+**Sources of the model output, always labelled in the page.** *Recorded*: real `spark-s1` outputs saved for the ten fixtures (`recorded_outputs.json`, produced by `scripts/analysis/record_lab_outputs.py` on a DGX Spark), available without weights. *Live*: inference on this machine, when a checkpoint is present under `checkpoints/`. *No model*: deterministic rules only, which can never produce `allow`. A link such as `/lab#curl_exfil_shadow` opens a fixture and runs it.
+
+**Data flow and security boundaries.** The browser calls `GET /v1/lab/fixtures`, `POST /v1/gate` (or `POST /v1/lab/resolve` for recorded outputs) and `GET /v1/lab/benchmarks` on the local process. Nothing in `policy.py`, `gate.py` or the gateway executes, spawns or evaluates a command; the text is tokenised and pattern-matched, or rendered into the model prompt. Request bodies are not logged by the application (the server's access log records the request line only). The server binds to `127.0.0.1` by default; if you expose it on a network, add authentication and TLS first, because anyone who can reach it can use the model.
+
+**Screenshots and GIF.** `docs/img/decision-lab.png` is a headless-browser capture of `/lab#curl_exfil_shadow` in recorded mode; regenerate it with headless Chromium after starting `osj lab`. A screen recording placeholder and the recording checklist are in [LAUNCH.md](LAUNCH.md).
+
+**Tests.** Policy behaviour (`tests/test_policy.py`), the gate and Lab endpoints, fixture loading and the no-execution guarantee (`tests/test_gate_lab.py`).
+
+---
+
+## Playground: web UI and API (`osj ui`)
 
 A local web UI and a Jev-compatible HTTP API over the spark-s1 checkpoints (release ids look like
 `spark-s1-1.7b-sft-v2`; "menu scoring" is the mechanism, not a model name). One process serves both.

@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest an improvement or an integration
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes: {label: What are you trying to do, description: The decision or workflow you want to support.}
+    validations: {required: true}
+  - type: textarea
+    id: proposal
+    attributes: {label: Proposed change}
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [integration, benchmark, safety, documentation, DGX Spark, UI, other]

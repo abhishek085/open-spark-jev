@@ -1,0 +1,61 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "spark-s1 benchmark run",
+ "type": "object",
+ "required": [
+  "run_id",
+  "model",
+  "benchmark",
+  "benchmark_revision",
+  "hardware",
+  "accuracy",
+  "p50_latency_ms",
+  "decisions_per_second",
+  "notes"
+ ],
+ "properties": {
+  "run_id": {
+   "type": "string"
+  },
+  "model": {
+   "type": "string"
+  },
+  "benchmark": {
+   "type": "string"
+  },
+  "benchmark_revision": {
+   "type": "string",
+   "description": "source pin and/or file hash"
+  },
+  "hardware": {
+   "type": "string"
+  },
+  "accuracy": {
+   "type": "number",
+   "minimum": 0,
+   "maximum": 1
+  },
+  "ece_calibrated": {
+   "type": "number"
+  },
+  "option_order_flip_rate": {
+   "type": "number"
+  },
+  "p50_latency_ms": {
+   "type": "number"
+  },
+  "p95_latency_ms": {
+   "type": "number"
+  },
+  "decisions_per_second": {
+   "type": "number"
+  },
+  "false_auto_allow_by_threshold": {
+   "type": "object",
+   "description": "threshold -> {auto_allowed, false_auto_allow}"
+  },
+  "notes": {
+   "type": "string"
+  }
+ }
+}
