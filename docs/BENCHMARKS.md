@@ -746,3 +746,22 @@ binary sources (injection, vuln-code) are uncalibrated.
 - Injection ties earlier arms in accuracy but calibration is worse (ECE 0.18 vs 0.03-0.06): binary questions still use T=1.0.
 - Vulnerable-code detection remains near chance (0.56, ECE 0.42): none of our data, old or new, teaches it. Jev reaches 0.715.
 - The 1.7B is inconsistent (directory 0.557, below the earlier sft-v2's 0.714), so the size step matters for transfer, not only for in-domain.
+
+## B32: spark-s1 v3 against Kev's published family on Kev's transfer-v4 suite (2026-09-20)
+
+Kev (jaredpalmer/kev) released Kev-0.6B / 4B / 8B on 2026-09-20 (LoRA r16 + pointer head on Qwen3 bases, trained on 10-13 public sources plus programmatic policy pairs).
+Our `ext-kev-transfer-v4` is Kev's `evals/v4/transfer-v4/test.jsonl` (764 records; sha256 identical to the file in Kev's main branch on 2026-09-20), i.e. their **locked test** for the
+out-of-domain suite. Kev's numbers are copied from their README; ours are `runs/external/spark-s1-v3-*-osdg-trained/ext-kev-transfer-v4.json`. We did not run Kev's models.
+
+| model | trained on | transfer-v4 locked test acc | dev acc | confident errors (p>=0.9, wrong) |
+|---|---|---|---|---|
+| Kev-8B | 10-13 public sources + policy pairs | 0.780 | 0.796 | 9.9% (dev) |
+| Kev-4B | same | 0.806 | 0.790 | 8.2% (dev) |
+| **spark-s1-4b-v3** | 967 os-datagen rows | **0.749** (ECE 0.076, Brier 0.374) | not measured | **5.9%** |
+| spark-s1-1.7b-v3 | same | 0.635 (ECE 0.210) | not measured | 13.4% |
+| Kev-0.6B | 10-13 public sources + policy pairs | 0.642 | 0.620 | 10.8% (dev) |
+| Jev (hosted) | unknown | not measured | 0.857 | 3.7% (dev) |
+
+Reading: 4B is 3-6 points below Kev-8B/4B and ~10 above Kev-0.6B; 1.7B ties Kev-0.6B. Kev also finds capacity dominates out of domain, more public data helps in-distribution but not transfer
+(our M17), and calibration is usable but not transferable. Caveats: this is Kev's suite (their rendering, option order, sources), Kev trains on far more and more varied data, dev and locked-test
+columns are different partitions, we read their locked test with several of our models, and none of this is an in-distribution comparison (their decision-v4 suite is not run here).
