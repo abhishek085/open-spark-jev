@@ -765,3 +765,8 @@ out-of-domain suite. Kev's numbers are copied from their README; ours are `runs/
 Reading: 4B is 3-6 points below Kev-8B/4B and ~10 above Kev-0.6B; 1.7B ties Kev-0.6B. Kev also finds capacity dominates out of domain, more public data helps in-distribution but not transfer
 (our M17), and calibration is usable but not transferable. Caveats: this is Kev's suite (their rendering, option order, sources), Kev trains on far more and more varied data, dev and locked-test
 columns are different partitions, we read their locked test with several of our models, and none of this is an in-distribution comparison (their decision-v4 suite is not run here).
+
+Development partition (added the same day, `scripts/external/build_external.py kev-transfer-v4-dev`, `runs/external/kevdev-v3-*/`): spark-s1-4b-v3 0.706 (ECE 0.126), spark-s1-1.7b-v3 0.598 (ECE 0.251), against Kev-8B 0.796,
+Kev-4B 0.790, Kev-0.6B 0.620, Jev 0.857 as published by Kev. Per source (4B vs Kev-4B / Jev): QNLI 0.85 vs 0.89/0.93, SciQ 0.91 vs 0.99/0.99, TweetEval 0.59 vs 0.75/0.81, PAWS 0.73 vs 0.72/0.79,
+Emotion 0.57 vs 0.66/0.59, MMLU 0.63 vs 0.65/0.90, deadline 0.55 vs 0.53/0.93. Chart: `docs/img/kev-comparison.png` (data in `docs/img/kev-comparison.json`; Kev's published numbers in
+`data/external/ext-kev-transfer-v4-dev/kev_published.json`).

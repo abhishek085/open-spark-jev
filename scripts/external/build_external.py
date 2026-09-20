@@ -220,6 +220,9 @@ SOURCES = {
     "kev-transfer-v4": lambda: build_kev("ext-kev-transfer-v4", "evals/v4/transfer-v4/test.jsonl",
                                          "Test partition of Kev's transfer-v4 suite: MMLU, Emotion, TweetEval-offensive, QNLI, PAWS, SciQ and a contrastive slice - sources Kev did not train on.",
                                          "No row-level Jev output. Aggregate Jev accuracy per task for the v1 transfer suite is in raw/docs/kev-vs-jev-transfer-summary.json (a different revision of the suite)."),
+    "kev-transfer-v4-dev": lambda: build_kev("ext-kev-transfer-v4-dev", "evals/v4/transfer-v4/development.jsonl",
+                                             "Development partition of Kev's transfer-v4 suite (same sources as the test partition). Kev publishes per-source Kev and Jev accuracy on this partition, so it is the like-for-like chart set.",
+                                             "No row-level Jev output; Kev's cards publish Jev's per-source and overall accuracy on this development partition (0.857 overall)."),
 }
 
 if __name__ == "__main__":

@@ -1,0 +1,15 @@
+{
+  "source": "https://github.com/jaredpalmer/kev (README 'Comparison with Jev' and docs/model-cards/kev-{0.6b,4b,8b}.md), read 2026-09-20 at main 75cc15d",
+  "note": "Numbers are Kev's, copied verbatim. Per-source values are on the transfer-v4 development partition; Jev was scored by Kev on that partition only. Per-source values for Kev-0.6B and Kev-8B are from their model cards; deadline for Kev-0.6B is not published (near chance).",
+  "overall_dev": {"Jev": 0.857, "Kev-8B": 0.796, "Kev-4B": 0.790, "Kev-0.6B": 0.620},
+  "overall_locked_test": {"Kev-8B": 0.780, "Kev-4B": 0.806, "Kev-0.6B": 0.642},
+  "per_source_dev": {
+    "qnli":            {"Jev": 0.93, "Kev-4B": 0.89, "Kev-8B": 0.91, "Kev-0.6B": 0.85},
+    "sciq":            {"Jev": 0.99, "Kev-4B": 0.99, "Kev-8B": 1.00, "Kev-0.6B": 0.93},
+    "tweet_offensive": {"Jev": 0.81, "Kev-4B": 0.75, "Kev-8B": 0.79, "Kev-0.6B": 0.69},
+    "paws":            {"Jev": 0.79, "Kev-4B": 0.72, "Kev-8B": 0.78, "Kev-0.6B": 0.59},
+    "emotion":         {"Jev": 0.59, "Kev-4B": 0.66, "Kev-8B": 0.56, "Kev-0.6B": 0.49},
+    "mmlu":            {"Jev": 0.90, "Kev-4B": 0.65, "Kev-8B": 0.70, "Kev-0.6B": 0.50},
+    "contrastive_deadline": {"Jev": 0.93, "Kev-4B": 0.53, "Kev-8B": 0.60}
+  }
+}

@@ -1,0 +1,72 @@
+{
+ "overall": {
+  "Jev (hosted)": {
+   "dev": 0.857,
+   "locked_test": null
+  },
+  "Kev-8B": {
+   "dev": 0.796,
+   "locked_test": 0.78
+  },
+  "Kev-4B": {
+   "dev": 0.79,
+   "locked_test": 0.806
+  },
+  "spark-s1-4b-v3": {
+   "dev": 0.7055,
+   "locked_test": 0.7487
+  },
+  "Kev-0.6B": {
+   "dev": 0.62,
+   "locked_test": 0.642
+  },
+  "spark-s1-1.7b-v3": {
+   "dev": 0.5982,
+   "locked_test": 0.6348
+  }
+ },
+ "per_source_dev": {
+  "qnli": {
+   "Jev": 0.93,
+   "Kev-4B": 0.89,
+   "spark-s1-4b-v3": 0.85,
+   "spark-s1-1.7b-v3": 0.6875
+  },
+  "sciq": {
+   "Jev": 0.99,
+   "Kev-4B": 0.99,
+   "spark-s1-4b-v3": 0.9138,
+   "spark-s1-1.7b-v3": 0.8966
+  },
+  "tweet_offensive": {
+   "Jev": 0.81,
+   "Kev-4B": 0.75,
+   "spark-s1-4b-v3": 0.5875,
+   "spark-s1-1.7b-v3": 0.65
+  },
+  "paws": {
+   "Jev": 0.79,
+   "Kev-4B": 0.72,
+   "spark-s1-4b-v3": 0.725,
+   "spark-s1-1.7b-v3": 0.6625
+  },
+  "emotion": {
+   "Jev": 0.59,
+   "Kev-4B": 0.66,
+   "spark-s1-4b-v3": 0.569,
+   "spark-s1-1.7b-v3": 0.4828
+  },
+  "mmlu": {
+   "Jev": 0.9,
+   "Kev-4B": 0.65,
+   "spark-s1-4b-v3": 0.6293,
+   "spark-s1-1.7b-v3": 0.5172
+  },
+  "contrastive_deadline": {
+   "Jev": 0.93,
+   "Kev-4B": 0.53,
+   "spark-s1-4b-v3": 0.55,
+   "spark-s1-1.7b-v3": 0.3
+  }
+ }
+}

@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 990" width="1200" height="990" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="1200" height="990" fill="#fcfcfb"/>
+<text x="48" y="54" font-size="26" font-weight="600" fill="#0b0b0b">spark-s1 vs Kev vs Jev on Kev's out-of-domain suite</text>
+<text x="48" y="82" font-size="15" fill="#52514e">Kev transfer-v4: 764 items per partition; sources Kev and spark-s1 never trained on (Jev unknown). Kev and Jev numbers are Kev's published ones; spark-s1 was measured by us.</text>
+<text x="48" y="130" font-size="16" font-weight="600" fill="#0b0b0b">Overall accuracy</text>
+<text x="48" y="150" font-size="13" fill="#52514e">Bar = development partition (Jev measured there only). Ring = locked test, where published or measured.</text>
+<line x1="250.0" y1="178" x2="250.0" y2="424" stroke="#e4e3df" stroke-width="1"/>
+<text x="250.0" y="442" font-size="12" fill="#8a8985" text-anchor="middle">0.00</text>
+<line x1="422.5" y1="178" x2="422.5" y2="424" stroke="#e4e3df" stroke-width="1"/>
+<text x="422.5" y="442" font-size="12" fill="#8a8985" text-anchor="middle">0.25</text>
+<line x1="595.0" y1="178" x2="595.0" y2="424" stroke="#e4e3df" stroke-width="1"/>
+<text x="595.0" y="442" font-size="12" fill="#8a8985" text-anchor="middle">0.50</text>
+<line x1="767.5" y1="178" x2="767.5" y2="424" stroke="#e4e3df" stroke-width="1"/>
+<text x="767.5" y="442" font-size="12" fill="#8a8985" text-anchor="middle">0.75</text>
+<line x1="940.0" y1="178" x2="940.0" y2="424" stroke="#e4e3df" stroke-width="1"/>
+<text x="940.0" y="442" font-size="12" fill="#8a8985" text-anchor="middle">1.00</text>
+<text x="236" y="206" font-size="14" fill="#0b0b0b" text-anchor="end" >Jev (hosted)</text>
+<rect x="250" y="190" width="591.3" height="22" rx="3" fill="#0b0b0b"><title>Jev (hosted) development accuracy 0.857</title></rect>
+<text x="990" y="206" font-size="13" fill="#0b0b0b" text-anchor="end">0.857</text>
+<text x="1100" y="206" font-size="13" fill="#52514e" text-anchor="end">-</text>
+<text x="236" y="246" font-size="14" fill="#0b0b0b" text-anchor="end" >Kev-8B</text>
+<rect x="250" y="230" width="549.2" height="22" rx="3" fill="#2a78d6"><title>Kev-8B development accuracy 0.796</title></rect>
+<text x="990" y="246" font-size="13" fill="#0b0b0b" text-anchor="end">0.796</text>
+<text x="1100" y="246" font-size="13" fill="#52514e" text-anchor="end">0.780</text>
+<circle cx="788.2" cy="241.0" r="6" fill="#fcfcfb" stroke="#0b0b0b" stroke-width="2"><title>Kev-8B locked test accuracy 0.780</title></circle>
+<text x="236" y="286" font-size="14" fill="#0b0b0b" text-anchor="end" >Kev-4B</text>
+<rect x="250" y="270" width="545.1" height="22" rx="3" fill="#2a78d6"><title>Kev-4B development accuracy 0.790</title></rect>
+<text x="990" y="286" font-size="13" fill="#0b0b0b" text-anchor="end">0.790</text>
+<text x="1100" y="286" font-size="13" fill="#52514e" text-anchor="end">0.806</text>
+<circle cx="806.1" cy="281.0" r="6" fill="#fcfcfb" stroke="#0b0b0b" stroke-width="2"><title>Kev-4B locked test accuracy 0.806</title></circle>
+<text x="236" y="326" font-size="14" fill="#0b0b0b" text-anchor="end" font-weight="600">spark-s1-4b-v3</text>
+<rect x="250" y="310" width="486.8" height="22" rx="3" fill="#eb6834"><title>spark-s1-4b-v3 development accuracy 0.706</title></rect>
+<text x="990" y="326" font-size="13" fill="#0b0b0b" text-anchor="end">0.706</text>
+<text x="1100" y="326" font-size="13" fill="#52514e" text-anchor="end">0.749</text>
+<circle cx="766.6" cy="321.0" r="6" fill="#fcfcfb" stroke="#0b0b0b" stroke-width="2"><title>spark-s1-4b-v3 locked test accuracy 0.749</title></circle>
+<text x="236" y="366" font-size="14" fill="#0b0b0b" text-anchor="end" >Kev-0.6B</text>
+<rect x="250" y="350" width="427.8" height="22" rx="3" fill="#2a78d6"><title>Kev-0.6B development accuracy 0.620</title></rect>
+<text x="990" y="366" font-size="13" fill="#0b0b0b" text-anchor="end">0.620</text>
+<text x="1100" y="366" font-size="13" fill="#52514e" text-anchor="end">0.642</text>
+<circle cx="693.0" cy="361.0" r="6" fill="#fcfcfb" stroke="#0b0b0b" stroke-width="2"><title>Kev-0.6B locked test accuracy 0.642</title></circle>
+<text x="236" y="406" font-size="14" fill="#0b0b0b" text-anchor="end" font-weight="600">spark-s1-1.7b-v3</text>
+<rect x="250" y="390" width="412.8" height="22" rx="3" fill="#eb6834"><title>spark-s1-1.7b-v3 development accuracy 0.598</title></rect>
+<text x="990" y="406" font-size="13" fill="#0b0b0b" text-anchor="end">0.598</text>
+<text x="1100" y="406" font-size="13" fill="#52514e" text-anchor="end">0.635</text>
+<circle cx="688.0" cy="401.0" r="6" fill="#fcfcfb" stroke="#0b0b0b" stroke-width="2"><title>spark-s1-1.7b-v3 locked test accuracy 0.635</title></circle>
+<text x="990" y="176" font-size="12" font-weight="600" fill="#52514e" text-anchor="end">dev</text>
+<text x="1100" y="176" font-size="12" font-weight="600" fill="#52514e" text-anchor="end">locked test</text>
+<text x="48" y="500" font-size="16" font-weight="600" fill="#0b0b0b">Accuracy by source, development partition</text>
+<polygon points="55,519 62,526 55,533 48,526" fill="#0b0b0b"/>
+<text x="69" y="531" font-size="13" fill="#52514e">Jev</text>
+<circle cx="135" cy="526" r="6.5" fill="#2a78d6"/>
+<text x="149" y="531" font-size="13" fill="#52514e">Kev-4B</text>
+<circle cx="239" cy="526" r="6.5" fill="#eb6834"/>
+<text x="253" y="531" font-size="13" fill="#52514e">spark-s1-4b-v3</text>
+<circle cx="407" cy="526" r="6" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"/>
+<text x="421" y="531" font-size="13" fill="#52514e">spark-s1-1.7b-v3</text>
+<line x1="250.0" y1="548" x2="250.0" y2="854" stroke="#e4e3df"/>
+<text x="250.0" y="874" font-size="12" fill="#8a8985" text-anchor="middle">0.2</text>
+<line x1="457.5" y1="548" x2="457.5" y2="854" stroke="#e4e3df"/>
+<text x="457.5" y="874" font-size="12" fill="#8a8985" text-anchor="middle">0.4</text>
+<line x1="665.0" y1="548" x2="665.0" y2="854" stroke="#e4e3df"/>
+<text x="665.0" y="874" font-size="12" fill="#8a8985" text-anchor="middle">0.6</text>
+<line x1="872.5" y1="548" x2="872.5" y2="854" stroke="#e4e3df"/>
+<text x="872.5" y="874" font-size="12" fill="#8a8985" text-anchor="middle">0.8</text>
+<line x1="1080.0" y1="548" x2="1080.0" y2="854" stroke="#e4e3df"/>
+<text x="1080.0" y="874" font-size="12" fill="#8a8985" text-anchor="middle">1.0</text>
+<text x="236" y="571" font-size="14" fill="#0b0b0b" text-anchor="end">QNLI (entailment)</text>
+<line x1="250" y1="566" x2="1080" y2="566" stroke="#e4e3df" stroke-dasharray="2 4"/>
+<polygon points="1007.4,558 1015.4,566 1007.4,574 999.4,566" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="2"><title>Jev QNLI (entailment): 0.930</title></polygon>
+<circle cx="965.9" cy="566" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Kev-4B QNLI (entailment): 0.890</title></circle>
+<circle cx="924.4" cy="566" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>spark-s1-4b-v3 QNLI (entailment): 0.850</title></circle>
+<circle cx="755.8" cy="566" r="6.5" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"><title>spark-s1-1.7b-v3 QNLI (entailment): 0.688</title></circle>
+<text x="924.4" y="554" font-size="11" fill="#52514e" text-anchor="middle">0.85</text>
+<text x="236" y="615" font-size="14" fill="#0b0b0b" text-anchor="end">SciQ (science QA)</text>
+<line x1="250" y1="610" x2="1080" y2="610" stroke="#e4e3df" stroke-dasharray="2 4"/>
+<polygon points="1069.6,602 1077.6,610 1069.6,618 1061.6,610" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="2"><title>Jev SciQ (science QA): 0.990</title></polygon>
+<circle cx="1069.6" cy="610" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Kev-4B SciQ (science QA): 0.990</title></circle>
+<circle cx="990.6" cy="610" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>spark-s1-4b-v3 SciQ (science QA): 0.914</title></circle>
+<circle cx="972.7" cy="610" r="6.5" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"><title>spark-s1-1.7b-v3 SciQ (science QA): 0.897</title></circle>
+<text x="990.6" y="598" font-size="11" fill="#52514e" text-anchor="middle">0.91</text>
+<text x="236" y="659" font-size="14" fill="#0b0b0b" text-anchor="end">TweetEval offensive</text>
+<line x1="250" y1="654" x2="1080" y2="654" stroke="#e4e3df" stroke-dasharray="2 4"/>
+<polygon points="882.9,646 890.9,654 882.9,662 874.9,654" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="2"><title>Jev TweetEval offensive: 0.810</title></polygon>
+<circle cx="820.6" cy="654" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Kev-4B TweetEval offensive: 0.750</title></circle>
+<circle cx="652.0" cy="654" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>spark-s1-4b-v3 TweetEval offensive: 0.588</title></circle>
+<circle cx="716.9" cy="654" r="6.5" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"><title>spark-s1-1.7b-v3 TweetEval offensive: 0.650</title></circle>
+<text x="652.0" y="642" font-size="11" fill="#52514e" text-anchor="middle">0.59</text>
+<text x="236" y="703" font-size="14" fill="#0b0b0b" text-anchor="end">PAWS (paraphrase)</text>
+<line x1="250" y1="698" x2="1080" y2="698" stroke="#e4e3df" stroke-dasharray="2 4"/>
+<polygon points="862.1,690 870.1,698 862.1,706 854.1,698" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="2"><title>Jev PAWS (paraphrase): 0.790</title></polygon>
+<circle cx="789.5" cy="698" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Kev-4B PAWS (paraphrase): 0.720</title></circle>
+<circle cx="794.7" cy="698" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>spark-s1-4b-v3 PAWS (paraphrase): 0.725</title></circle>
+<circle cx="729.8" cy="698" r="6.5" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"><title>spark-s1-1.7b-v3 PAWS (paraphrase): 0.662</title></circle>
+<text x="794.7" y="686" font-size="11" fill="#52514e" text-anchor="middle">0.72</text>
+<text x="236" y="747" font-size="14" fill="#0b0b0b" text-anchor="end">Emotion (noisy labels)</text>
+<line x1="250" y1="742" x2="1080" y2="742" stroke="#e4e3df" stroke-dasharray="2 4"/>
+<polygon points="654.6,734 662.6,742 654.6,750 646.6,742" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="2"><title>Jev Emotion (noisy labels): 0.590</title></polygon>
+<circle cx="727.2" cy="742" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Kev-4B Emotion (noisy labels): 0.660</title></circle>
+<circle cx="632.8" cy="742" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>spark-s1-4b-v3 Emotion (noisy labels): 0.569</title></circle>
+<circle cx="543.4" cy="742" r="6.5" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"><title>spark-s1-1.7b-v3 Emotion (noisy labels): 0.483</title></circle>
+<text x="632.8" y="730" font-size="11" fill="#52514e" text-anchor="middle">0.57</text>
+<text x="236" y="791" font-size="14" fill="#0b0b0b" text-anchor="end">MMLU (knowledge)</text>
+<line x1="250" y1="786" x2="1080" y2="786" stroke="#e4e3df" stroke-dasharray="2 4"/>
+<polygon points="976.2,778 984.2,786 976.2,794 968.2,786" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="2"><title>Jev MMLU (knowledge): 0.900</title></polygon>
+<circle cx="716.9" cy="786" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Kev-4B MMLU (knowledge): 0.650</title></circle>
+<circle cx="695.4" cy="786" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>spark-s1-4b-v3 MMLU (knowledge): 0.629</title></circle>
+<circle cx="579.1" cy="786" r="6.5" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"><title>spark-s1-1.7b-v3 MMLU (knowledge): 0.517</title></circle>
+<text x="695.4" y="774" font-size="11" fill="#52514e" text-anchor="middle">0.63</text>
+<text x="236" y="835" font-size="14" fill="#0b0b0b" text-anchor="end">Deadline (date arithmetic)</text>
+<line x1="250" y1="830" x2="1080" y2="830" stroke="#e4e3df" stroke-dasharray="2 4"/>
+<polygon points="1007.4,822 1015.4,830 1007.4,838 999.4,830" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="2"><title>Jev Deadline (date arithmetic): 0.930</title></polygon>
+<circle cx="592.4" cy="830" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Kev-4B Deadline (date arithmetic): 0.530</title></circle>
+<circle cx="613.1" cy="830" r="7" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>spark-s1-4b-v3 Deadline (date arithmetic): 0.550</title></circle>
+<circle cx="353.8" cy="830" r="6.5" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"><title>spark-s1-1.7b-v3 Deadline (date arithmetic): 0.300</title></circle>
+<text x="613.1" y="818" font-size="11" fill="#52514e" text-anchor="middle">0.55</text>
+<text x="48" y="908" font-size="12" fill="#52514e">spark-s1 v3 is a public Qwen3 backbone fine-tuned on 967 code-labelled decision rows; Kev is trained on 10-13 public datasets plus programmatic policy pairs; Jev&#x27;s training data is unknown.</text>
+<text x="48" y="927" font-size="12" fill="#52514e">This is Kev&#x27;s suite (their rendering and option order), so it favours Kev. Jev was scored only on the development partition, where spark-s1 was also read once for this chart.</text>
+<text x="48" y="946" font-size="12" fill="#52514e">Kev-0.6B deadline accuracy is not published. Numbers: docs/img/kev-comparison.json. Sources: github.com/jaredpalmer/kev (2026-09-20), docs/BENCHMARKS.md B32.</text>
+</svg>
