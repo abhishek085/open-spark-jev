@@ -220,6 +220,8 @@ def reverify(run: RunOpt, out: Annotated[Path, typer.Option("--out")], config: C
         _stop(pipe)
     for n, b in summary["by_pack"].items():
         typer.echo(f"  {n}: accepted {b['accepted']}/{b['candidates']} ({b['acceptance_rate']:.0%})")
+    if mixture:
+        _balance_mixture(out, yaml.safe_load(mixture.read_text())["targets"])
 
 
 @app.command()

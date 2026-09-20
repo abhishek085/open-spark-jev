@@ -198,16 +198,19 @@ Raw softmax scores are not calibrated probabilities; make no calibration claim w
 
 ## Measured status (real local models, 2026-09-20)
 
-End-to-end run `os-datagen generate --all --count 50` with `configs/models.smoke.yaml` (random seed; generator `nvidia/Gemma-4-26B-A4B-NVFP4`, verifier and supportability solver
-`nvidia/Qwen3.6-35B-A3B-NVFP4`, judge `nvidia/Qwen3.6-27B-NVFP4`; one role at a time, 2 parallel instances each), then `reverify` after comparator fixes.
-750 candidates -> **620 accepted (83%)**, 613 after the record-level prune of 7 answer-sufficiency rows that echoed the constraint text. Split isolation OK, all checksums verify,
-`validate` reports 0 issues on the pruned files, judge routed 6 cases (0 human-review). Truth tiers: deterministic 315, controlled_world 244, executable 54, adjudicated 7.
+Final run: `os-datagen generate-mixture --count 1400` with `configs/models.smoke.yaml` (generator `nvidia/Gemma-4-26B-A4B-NVFP4`; verifier and blind supportability solver
+`nvidia/Qwen3.6-35B-A3B-NVFP4`; judge `nvidia/Qwen3.6-27B-NVFP4`; one role at a time, 2 parallel instances each), then `reverify --mixture` with the final code.
 
-Accepted per pack (of 50): entailment 42, document type 46, relevance 44, extraction 47, rule application 46, temporal 38, intent 48, urgency 37, authorization 42,
-router 38, tool gate 34, retrieval 38, termination 47, answer sufficiency 33 (26 after prune), injection 40.
+* 1,729 candidates -> **1,385 accepted (80%)**; judge routed 8 cases (0 human-review); split isolation OK; all checksums verify; `validate` reports 0 issues on every split.
+* Trimmed to the target composition: **1,344 rows** (train 967, calibration 132, locked test 121, challenge 124 after the clean-up prune). Truth tiers: deterministic 815, controlled_world 397, executable 135, adjudicated 38.
+* Accepted per pack (of candidates): entailment 355/455, document type 122/136, extraction 115/136, termination 115/121, relevance 78/91, rule application 81/91, temporal 71/91, answer sufficiency 69/91,
+  router 82/121, tool gate 87/121, retrieval 65/91, urgency 39/46, authorization 41/46, intent 34/46, injection 31/46.
 
-Read these numbers as a smoke test, not a benchmark: 50 worlds per pack, one seed, one generator/verifier pair. Known limits: composition vs the long-term target is off (entailment is
-6.8% vs 25%, security 13% vs 5%: the smoke run used equal counts per pack; `generate-mixture` applies targets); `data_code_workflows` has no pack yet; the supportability solver is itself an LLM
-(it rejects only on a wrong choice for policy packs and is tag-only elsewhere); nothing has been fine-tuned; baselines on the locked test are near chance (prior 0.25 top-1) and the
-uniform baseline is position-sensitive on 84% of rows (option-order check), as expected. Throughput: 3 generator instances ~1.3x one (GB10 decode is memory-bandwidth-bound).
-Review samples: `artifacts/smoke_e2e_v2/samples_for_review.md`.
+Read this as a pilot dataset, not a benchmark: one seed, one generator/verifier pair, about 1.3k rows. Known limits:
+* Router, retrieval, injection and intent accept ~65-75% (mostly generator-fidelity rejections); answer sufficiency was raised from 53% to 76% by building the candidate answer and sources by code.
+* The `data_code_workflows` target (5%) has no task pack yet; targets are renormalised over the 7 families that do (the mixture report lists it as unfilled).
+* The supportability solver is itself an LLM (it rejects only on a wrong choice for policy packs and only tags elsewhere); adjudicated and intent rows should be human-audited before high-stakes evaluation.
+* Model-route rollout success rates are declared profiles, not measurements. Nothing has been fine-tuned on this data yet: training is out of scope here (see "Using this data to train models").
+* Throughput: 3 generator instances ~1.3x one instance (GB10 decode is memory-bandwidth-bound).
+
+Review samples: `artifacts/mixture_final/samples_for_review.md` (not committed; regenerate with `examples/sample_review.py`).

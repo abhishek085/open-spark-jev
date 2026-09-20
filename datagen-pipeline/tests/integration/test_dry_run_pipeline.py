@@ -266,3 +266,15 @@ def test_training_exports_all_formats_and_jev_records_load_in_the_root_trainer_s
         assert len(labels) == len(row["target"]["dist"])
         n += 1
     assert n > 10
+
+
+def test_reverify_with_mixture_writes_balanced_files(tmp_path, run):
+    from typer.testing import CliRunner
+
+    from os_datagen.cli import app
+
+    out, *_ = run
+    res = CliRunner().invoke(app, ["reverify", "--run", str(out), "--out", str(tmp_path / "re"), "--dry-run",
+                                   "--mixture", "configs/mixtures/general_decision_v1.yaml"])
+    assert res.exit_code == 0, res.output
+    assert (tmp_path / "re" / "mixture_accepted_train.jsonl").exists() and (tmp_path / "re" / "reports" / "mixture.json").exists()
