@@ -1,7 +1,7 @@
 # Phase 1 (M17): supervised multi-task menu heads, WITH real public text.
 # Identical to sft.yaml except for the added public corpus and the output dir, so the two runs
 # isolate exactly one variable: does real-world text fix the third-party generalisation gap
-# measured in docs/BENCHMARKS.md M21?
+# measured in docs/BENCHMARKS.md B21?
 model: models/Qwen3-1.7B
 output_dir: checkpoints/sft-m17-qwen3-1.7b
 data:

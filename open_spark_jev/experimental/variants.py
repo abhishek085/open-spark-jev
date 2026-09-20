@@ -203,6 +203,7 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     ap.add_argument("--n-train", type=int, default=12000)
     ap.add_argument("--extra-data", nargs="*", default=[], help="extra training jsonl files pooled with sim+teacher before sampling (e.g. M17 public text)")
+    ap.add_argument("--always-data", nargs="*", default=[], help="jsonl files included in full; the rest of --n-train is sampled from sim+teacher(+extra)")
     ap.add_argument("--epochs", type=int, default=1)
     ap.add_argument("--bs", type=int, default=8)
     ap.add_argument("--accum", type=int, default=2)
@@ -231,7 +232,9 @@ def main() -> None:
     for _extra in a.extra_data:
         recs += read_jsonl(_extra)
     random.Random(a.seed).shuffle(recs)
-    recs = recs[: 300 if a.smoke else a.n_train]
+    always = [r for _f in a.always_data for r in read_jsonl(_f)]
+    recs = recs[: 300 if a.smoke else max(0, a.n_train - len(always))] + always
+    random.Random(a.seed + 1).shuffle(recs)
     train_r, val_r = split_records(recs, 0.1, a.seed)
     train_ex = build_examples(base, train_r, a.max_len)
     val_ex = build_examples(base, val_r, a.max_len)

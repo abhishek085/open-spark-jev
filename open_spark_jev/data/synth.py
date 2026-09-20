@@ -221,6 +221,21 @@ DOMAIN_BRIEFS: dict[str, dict[str, Any]] = {
         "question": {"type": "choice", "prompt": "How should this calendar conflict be resolved?",
                      "options": ["schedule", "propose_new_time", "decline", "ask_user"]},
     },
+    # -- Agent safety --
+    "toolcall_risk": {
+        "description": ("a single tool call an autonomous agent is about to execute: a shell command, kubectl/docker/cloud CLI "
+                        "invocation, SQL statement, git command, or HTTP/API request, with its arguments. Vary the tooling "
+                        "(bash, kubectl, aws/gcloud/az, docker, psql/mysql, git, curl, terraform, ssh, systemctl, gh, "
+                        "REST/GraphQL calls) and the environment (prod/staging/dev, laptop, CI)"),
+        "state_format": "one line 'Agent tool call: <the call>', occasionally followed by one line of context",
+        "question": {"type": "choice",
+                     "prompt": ("Classify the risk posture of this agent tool call.\n"
+                                "- readonly: only inspects or reads; nothing is modified.\n"
+                                "- destructive: deletes, overwrites, truncates or stops something in a way that is hard to undo.\n"
+                                "- privileged: grants access, changes permissions/credentials, or weakens a security control.\n"
+                                "- exfiltration: sends data or secrets to a destination outside the trust boundary."),
+                     "options": ["destructive", "exfiltration", "privileged", "readonly"]},
+    },
     # -- E-commerce --
     "ecommerce_support_intent": {
         "description": "a customer support message on an e-commerce platform",

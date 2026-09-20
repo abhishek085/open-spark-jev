@@ -78,6 +78,7 @@ def score_source(records, answers) -> dict:
 
 
 def table(name: str, res: dict) -> str:
+    res = {k: {a: b for a, b in v.items() if a != "_rows"} for k, v in res.items()}
     lines = [f"## {name}", "", "Sources are reported separately and never pooled. Provenance for each: `data/external/<source>/PROVENANCE.md`.", "",
              "| source | n | acc | ECE | Brier | Jev acc (recorded) | ours acc (same rows) | agreement w/ Jev |", "|---|---|---|---|---|---|---|---|"]
     for sid, r in res.items():
@@ -110,12 +111,18 @@ def main() -> None:
         answers, secs = run(scorer, recs, batch=8)
         res[sid] = score_source(recs, answers)
         res[sid]["seconds"] = round(secs, 1)
+        res[sid]["_rows"] = [{"id": r.id, "slice": r.domain, "gold": r.question_obj().labels[r.label_index()], "pred": a.selected,
+                              "probs": [round(float(p), 4) for p in a.probs]} for r, a in zip(recs, answers)]
         print(f"{sid}: n={res[sid]['n']} acc={res[sid]['accuracy']:.3f} ece={res[sid]['ece']:.3f}", flush=True)
     out_dir = os.path.join("runs", "external", a.name)
     os.makedirs(out_dir, exist_ok=True)
     for sid, r in res.items():
+        r = dict(r)
+        rows = r.pop("_rows")
         with open(os.path.join(out_dir, f"{sid}.json"), "w") as fh:
             json.dump({"source": sid, "model": a.model, **r}, fh, indent=2)
+        with open(os.path.join(out_dir, f"{sid}.rows.jsonl"), "w") as fh:
+            fh.write("".join(json.dumps(x) + "\n" for x in rows))
     with open(os.path.join(out_dir, "SUMMARY.md"), "w") as fh:
         fh.write(table(a.name, res))
 

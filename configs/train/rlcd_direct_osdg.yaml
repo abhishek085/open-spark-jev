@@ -1,0 +1,18 @@
+# spark-s1-v7 (RLCD-direct, Brier-only reward) on the os-datagen train split, starting from the v3 LoRA-merged model.
+# Reward is the exact-gradient Brier score against target.dist (one-hot for deterministic truth, declared otherwise).
+# Shaping terms that need abstain options or injection twins are off: osdg data has neither.
+seed: 0
+data:
+  - data/synthetic/osdg_train_aug.jsonl
+policy_init: checkpoints/v3-4b
+rm_path: null
+output_dir: checkpoints/v7-4b
+epochs: 1
+batch_size: 4
+grad_accum: 4
+lr: 5.0e-6
+kl_beta: 0.05
+max_len: 2048
+gradient_checkpointing: true
+reward_weights: {brier: 1.0, abstain: 0.0, conservative: 0.0, injection: 0.0, rm: 0.0, correctness: 0.0}
+log_every: 10
