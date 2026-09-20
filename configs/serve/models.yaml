@@ -6,6 +6,12 @@
 # Directory names under checkpoints/ are historical paths and may differ from the release id. Key = directory under checkpoints/ (or the path for `base`).
 # Update `name`/`note` here when a checkpoint is retrained, so the UI never mislabels a model.
 models:
+  v3-4b:
+    name: "spark-s1-4b-v3"
+    note: "Qwen3-4B LoRA-merged on the os-datagen train split (967 rows, options shuffled). Best accuracy (60-set 0.850). Temperature refit on the calibration split."
+  v3-1.7b:
+    name: "spark-s1-1.7b-v3"
+    note: "Qwen3-1.7B LoRA-merged on the os-datagen train split (967 rows, options shuffled). Speed pick (60-set 0.783 at ~30 ms). Temperature refit on the calibration split."
   sft-qwen3-1.7b:
     name: "spark-s1-1.7b-sft-v2"
     note: "Qwen3-1.7B fine-tuned on simulators + gemma-graded synthetic data over 31 task domains (2026-09-19). Start here."

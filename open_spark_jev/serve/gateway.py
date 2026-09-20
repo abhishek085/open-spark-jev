@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -109,6 +109,7 @@ def get_backend(model: str | None):
 
         _LOADED[mid] = VariantScorer(avail[mid]["path"]) if is_variant(avail[mid]["path"]) else MenuScorer(avail[mid]["path"])
         _LOADED[mid].model_id = mid
+        _LOADED[mid].release_id = avail[mid].get("name", mid)
         return _LOADED[mid]
 
 
@@ -167,15 +168,30 @@ def models():
             "data": [{"id": k, "object": "model", "name": v["name"], "note": v["note"], "loaded": k in _LOADED} for k, v in discover_models().items()]}
 
 
-@app.post("/v1/decide", response_model=DecisionResponse)
-def decide(req: DecisionRequest):
+@app.post("/v1/decide")
+def decide(body: dict[str, Any] = Body(...)):
+    from . import contract
+
+    if contract.is_contract(body):
+        backend = get_backend(body.get("model"))
+        try:
+            state, qs, ids = contract.parse(body)
+        except (KeyError, ValueError) as e:
+            raise HTTPException(400, str(e)) from e
+        t0 = time.perf_counter()
+        with _GPU_LOCK:
+            answers = backend.decide(state, qs)
+        ms = (time.perf_counter() - t0) * 1000
+        return {"model": getattr(backend, "release_id", getattr(backend, "model_id", getattr(backend, "name", "?"))),
+                "decisions": {i: contract.format_answer(a, ms / len(qs)) for i, a in zip(ids, answers)}, "latency_ms": round(ms, 2)}
+    req = DecisionRequest(**body)
     backend = get_backend(req.model)
     qs = req.parsed_questions()
     t0 = time.perf_counter()
     with _GPU_LOCK:
         answers = backend.decide(req.state, qs, temperature=req.temperature, return_logits=req.return_logits)
     ms = (time.perf_counter() - t0) * 1000
-    return DecisionResponse(answers=answers, model=getattr(backend, "model_id", getattr(backend, "name", "?")), latency_ms=ms, state_tokens=-1, backend=BACKEND_KIND)
+    return DecisionResponse(answers=answers, model=getattr(backend, "model_id", getattr(backend, "name", "?")), latency_ms=ms, state_tokens=-1, backend=BACKEND_KIND).model_dump()
 
 
 @app.post("/v1/evaluate")
