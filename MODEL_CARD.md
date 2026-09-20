@@ -80,7 +80,7 @@ Post-hoc temperature scaling, fitted on the os-datagen calibration split only. T
 
 ## Latency methodology
 
-Batch size 1, idle GPU, one NVIDIA DGX Spark (GB10), bf16, Hugging Face Transformers, no state-cache reuse, median over the 60 diagnostic rows (4B 65.9 ms p50 and 15.1 decisions/s; 1.7B 29.6 ms and 33.8/s). Prompts on the os-datagen rows are longer (4B about 82 ms), and requests with several questions on one state reuse the cached prefix. The recorded hosted Jev reference (421.6 ms p50, 2.3 decisions/s) comes from a third party's committed run, includes a network round trip and service overhead, and is **not** a like-for-like model comparison. Same-backbone comparison: the untrained Qwen3-1.7B prompted for JSON took 376 ms with 14 of 60 malformed outputs.
+Batch size 1, idle GPU, one NVIDIA DGX Spark (GB10), bf16, Hugging Face Transformers, no state-cache reuse, median over the 60 diagnostic rows (4B 65.9 ms p50 and 15.1 decisions/s; 1.7B 29.6 ms and 33.8/s). Prompts on the os-datagen rows are longer (4B about 82 ms), and requests with several questions on one state reuse the cached prefix. The recorded hosted Jev reference (421.6 ms p50, 2.3 decisions/s) comes from a third party's committed run, includes a network round trip and service overhead, and is **not** a like-for-like model comparison. Same-backbone comparison (B33): the untrained Qwen3-4B prompted for JSON took 833 ms (0.833 accuracy, 0 malformed) and the untrained Qwen3-1.7B 390 ms (0.433, 14 of 60 malformed); with thinking on, 16.4 s and 7.6 s.
 
 ## Known limitations
 

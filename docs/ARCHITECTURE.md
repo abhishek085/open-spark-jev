@@ -41,9 +41,9 @@ derived from it. Nothing is generated or parsed. Several questions on one state 
 |---|---|---|---|
 | Question interface | typed Choice / Boolean / Score over runtime-defined options | same idea | free text, usually JSON by prompt |
 | Answer | full probability distribution from token logits, one forward pass | calibrated distribution and confidence, no generated text | generated text; "confidence" is a number the model writes |
-| Output failures | none by construction (closed answer space) | none by construction | malformed JSON: 14 of 60 rows for the same 1.7B backbone (B20) |
-| Latency, 60-row set | 65.9 ms (4B), 29.6 ms (1.7B) | 421.6 ms recorded, hosted, includes network | 376 ms generating JSON, 7,210 ms with reasoning (1.7B) |
-| Accuracy, 60-row set | 0.850 (4B), 0.783 (1.7B) | 0.917 (recorded) | 0.433 JSON, 0.550 with reasoning (1.7B, untrained); frozen direct-logit 0.60-0.73 |
+| Output failures | none by construction (closed answer space) | none by construction | malformed JSON: 14 of 60 rows for the same 1.7B backbone, 0 of 60 at 4B (B33) |
+| Latency, 60-row set | 65.9 ms (4B), 29.6 ms (1.7B) | 421.6 ms recorded, hosted, includes network | 390 ms writing JSON and 7,586 ms reasoning first (1.7B); 833 ms and 16,418 ms (4B) (B33) |
+| Accuracy, 60-row set | 0.850 (4B), 0.783 (1.7B) | 0.917 (recorded) | 0.433 JSON, 0.550 with reasoning (1.7B, untrained); 0.833 JSON, 0.650 with reasoning (4B, untrained); untrained direct-logit 0.60-0.70 (B33) |
 | Sensitive to option order | ~5% of os-datagen rows change answer (v3), ~50% for untrained 0.6B/1.7B | not published | not measured |
 | Probabilities calibrated on held-out data | yes for Choice (ECE 0.087 at 4B); Boolean/Score not yet fitted | stated goal (RLCD) | no |
 | Trained how | supervised fine-tune of a public backbone (CE + Brier) + post-hoc temperature | undisclosed (TypeSafe calls it RLCD) | not trained for this task |

@@ -153,7 +153,7 @@ scripts/run_ui.sh                            # playground for general typed ques
 
 <p align="center"><img src="docs/img/decision-lab.png" alt="spark-s1 Decision Lab" width="820" /></p>
 
-The **Decision Lab** is a demo page for tool-call decisions: pick a sample command or type your own, and see the model's probabilities next to the deterministic safety rules that can override them. Without a model it uses recorded outputs, clearly labelled.
+The **Decision Lab** is a demo page for tool-call decisions: pick a sample command or type your own, and see the model's probabilities next to the deterministic safety rules that can override them, and compare with a same-size generative model on time, tokens and malformed output. Without a model it uses recorded outputs, clearly labelled.
 
 The **playground** has example tasks for support triage, retrieval routing, SQL safety, prompt-injection checks, tool-call risk, email triage, RAG sufficiency, incident routing, CI failure triage and form completion, plus confidence gating, side-by-side model comparison and API inspection. See [docs/UI.md](docs/UI.md).
 
@@ -240,6 +240,23 @@ Neither `spark-s1` nor Kev trained on these sources, and the suite was built by 
 | `spark-s1-1.7b-v3` (Qwen3-1.7B, LoRA) | 0.783 | 29.6 ms | 33.8 | High-throughput routing/triage candidate |
 
 > The 60-case set is a diagnostic benchmark used during development, not a locked final holdout, and it is small (about ±5 points). Results should not be read as broad Jev parity or a pure local-model-speed comparison: the hosted Jev timing includes a network round trip. These numbers are an early-release snapshot, not a general measure of model capability.
+
+### Efficiency: `spark-s1` vs a generative small model (same backbone)
+
+The same 60 tool calls, answered by the **untrained model of the same size writing a JSON answer** and by `spark-s1` reading out the option probabilities. Batch size 1, one DGX Spark.
+
+| | Median time per decision | Decisions/s | Tokens written | Malformed output | Accuracy |
+|---|---:|---:|---:|---:|---:|
+| Qwen3-4B writing JSON (untrained) | 832.8 ms | 1.2 | 16 | 0 of 60 | 0.833 |
+| Qwen3-4B with thinking on (untrained) | 16,418 ms | 0.05 | 360 | 0 of 60 | 0.650 |
+| **`spark-s1-4b-v3`** | **65.9 ms** | **15.1** | **0** | **0 of 60** | **0.850** |
+| Qwen3-1.7B writing JSON (untrained) | 390.1 ms | 2.5 | 16 | 14 of 60 | 0.433 |
+| Qwen3-1.7B with thinking on (untrained) | 7,586 ms | 0.11 | 354 | 0 of 60 | 0.550 |
+| **`spark-s1-1.7b-v3`** | **29.6 ms** | **33.8** | **0** | **0 of 60** | **0.783** |
+
+`spark-s1` is about **13x faster** than the same-size model writing JSON and about **250x faster** than the same model reasoning first. At 4B the zero-shot JSON model is about as accurate as `spark-s1` on this small set (0.833 vs 0.850, within the ±5-point noise), so the gain there is efficiency; at 1.7B `spark-s1` is both faster and much more accurate, because the small model often breaks the JSON format. Reading options out with no training gets 0.70 (4B) and 0.60 (1.7B), so training on decision data is what makes the fast readout accurate. **Caveat:** the baseline is an untrained model prompted zero-shot; a fine-tuned or much larger generative model would score differently, and the set is a small diagnostic. The Decision Lab shows this comparison with the real recorded outputs for each sample command.
+
+<p align="center"><img src="docs/img/decision-lab-comparison.png" alt="Decision Lab: spark-s1 vs a generative small model" width="820" /></p>
 
 ---
 

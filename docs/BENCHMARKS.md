@@ -770,3 +770,20 @@ Development partition (added the same day, `scripts/external/build_external.py k
 Kev-4B 0.790, Kev-0.6B 0.620, Jev 0.857 as published by Kev. Per source (4B vs Kev-4B / Jev): QNLI 0.85 vs 0.89/0.93, SciQ 0.91 vs 0.99/0.99, TweetEval 0.59 vs 0.75/0.81, PAWS 0.73 vs 0.72/0.79,
 Emotion 0.57 vs 0.66/0.59, MMLU 0.63 vs 0.65/0.90, deadline 0.55 vs 0.53/0.93. Chart: `docs/img/kev-comparison.png` (data in `docs/img/kev-comparison.json`; Kev's published numbers in
 `data/external/ext-kev-transfer-v4-dev/kev_published.json`).
+
+## B33: spark-s1 vs the same-size untrained model writing JSON (efficiency), 2026-09-20
+
+`scripts/run_slm_baseline.sh` (uses `eval/speed_vs_generation.py`), idle GPU, batch 1, 60-call set, greedy decoding, at most 40 new tokens (512 with thinking). Artifacts: `runs/slm_baseline_{1.7b,4b}.json`; per-command recorded outputs for the Decision Lab in `open_spark_jev/serve/lab_data/slm_comparison.json` (`scripts/analysis/record_slm_comparison.py`).
+
+| System | p50 | decisions/s | tokens written | malformed | accuracy |
+|---|---:|---:|---:|---:|---:|
+| Qwen3-4B untrained, JSON | 832.8 ms | 1.19 | 16.1 | 0/60 | 0.833 |
+| Qwen3-4B untrained, thinking | 16,417.8 ms | 0.05 | 359.8 | 0/60 | 0.650 |
+| Qwen3-4B untrained, option-letter readout | 67.6 ms | 14.8 | 0 | 0/60 | 0.700 |
+| spark-s1-4b-v3 | 65.9 ms | 15.1 | 0 | 0/60 | 0.850 |
+| Qwen3-1.7B untrained, JSON | 390.1 ms | 2.5 | 15.5 | 14/60 | 0.433 |
+| Qwen3-1.7B untrained, thinking | 7,585.7 ms | 0.11 | 353.9 | 0/60 | 0.550 |
+| Qwen3-1.7B untrained, option-letter readout | 30.3 ms | 33.1 | 0 | 0/60 | 0.600 |
+| spark-s1-1.7b-v3 | 29.6 ms | 33.8 | 0 | 0/60 | 0.783 |
+
+Reading: 12.6x (4B) and 13.2x (1.7B) faster than writing JSON, 249x and 256x faster than thinking. At 4B the zero-shot JSON model matches spark-s1's accuracy within the n=60 noise (0.833 vs 0.850): the 4B gain is efficiency. At 1.7B the model writes malformed JSON on 14 of 60 calls and spark-s1 is both faster and 35 points more accurate. Untrained readout (0.70 / 0.60) is below the JSON model at 4B, so the decision-data training is what makes the fast readout accurate. Caveats: the baseline is untrained and zero-shot, not a tuned generative model; single run; diagnostic set.
