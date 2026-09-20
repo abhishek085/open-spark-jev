@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" width="1200" height="780" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="1200" height="780" fill="#fcfcfb"/>
+<text x="48" y="54" font-size="26" font-weight="600" fill="#0b0b0b">spark-s1 vs Jev on the 60-case tool-call diagnostic set</text>
+<text x="48" y="82" font-size="15" fill="#52514e">Same 60 hand-labelled agent tool calls, four risk postures. Jev is its recorded hosted run; spark-s1 ran locally on one DGX Spark (batch 1).</text>
+<text x="48" y="128" font-size="16" font-weight="600" fill="#0b0b0b">Accuracy</text>
+<line x1="250.0" y1="146" x2="250.0" y2="324" stroke="#e4e3df"/><text x="250.0" y="340" font-size="12" fill="#8a8985" text-anchor="middle">0.00</text>
+<line x1="367.5" y1="146" x2="367.5" y2="324" stroke="#e4e3df"/><text x="367.5" y="340" font-size="12" fill="#8a8985" text-anchor="middle">0.25</text>
+<line x1="485.0" y1="146" x2="485.0" y2="324" stroke="#e4e3df"/><text x="485.0" y="340" font-size="12" fill="#8a8985" text-anchor="middle">0.50</text>
+<line x1="602.5" y1="146" x2="602.5" y2="324" stroke="#e4e3df"/><text x="602.5" y="340" font-size="12" fill="#8a8985" text-anchor="middle">0.75</text>
+<line x1="720.0" y1="146" x2="720.0" y2="324" stroke="#e4e3df"/><text x="720.0" y="340" font-size="12" fill="#8a8985" text-anchor="middle">1.00</text>
+<text x="236" y="173" font-size="14" fill="#0b0b0b" text-anchor="end" >Jev (hosted)</text>
+<rect x="250" y="156" width="430.8" height="24" rx="3" fill="#0b0b0b"><title>Jev (hosted) accuracy 0.917</title></rect>
+<text x="770" y="173" font-size="14" fill="#0b0b0b" text-anchor="end">0.917</text>
+<text x="236" y="217" font-size="14" fill="#0b0b0b" text-anchor="end" font-weight="600">spark-s1-4b-v3</text>
+<rect x="250" y="200" width="399.5" height="24" rx="3" fill="#eb6834"><title>spark-s1-4b-v3 accuracy 0.850</title></rect>
+<text x="770" y="217" font-size="14" fill="#0b0b0b" text-anchor="end">0.850</text>
+<text x="236" y="261" font-size="14" fill="#0b0b0b" text-anchor="end" font-weight="600">spark-s1-1.7b-v3</text>
+<rect x="250" y="244" width="368.2" height="24" rx="3" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"><title>spark-s1-1.7b-v3 accuracy 0.783</title></rect>
+<text x="770" y="261" font-size="14" fill="#0b0b0b" text-anchor="end">0.783</text>
+<text x="236" y="305" font-size="14" fill="#0b0b0b" text-anchor="end" >Qwen3-4B, untrained</text>
+<rect x="250" y="288" width="329.0" height="24" rx="3" fill="#a9a8a2"><title>Qwen3-4B, untrained accuracy 0.700</title></rect>
+<text x="770" y="305" font-size="14" fill="#0b0b0b" text-anchor="end">0.700</text>
+<text x="850" y="128" font-size="16" font-weight="600" fill="#0b0b0b">Median latency, ms (lower is better)</text>
+<line x1="850.0" y1="146" x2="850.0" y2="324" stroke="#e4e3df"/><text x="850.0" y="340" font-size="12" fill="#8a8985" text-anchor="middle">0</text>
+<line x1="920.0" y1="146" x2="920.0" y2="324" stroke="#e4e3df"/><text x="920.0" y="340" font-size="12" fill="#8a8985" text-anchor="middle">150</text>
+<line x1="990.0" y1="146" x2="990.0" y2="324" stroke="#e4e3df"/><text x="990.0" y="340" font-size="12" fill="#8a8985" text-anchor="middle">300</text>
+<line x1="1060.0" y1="146" x2="1060.0" y2="324" stroke="#e4e3df"/><text x="1060.0" y="340" font-size="12" fill="#8a8985" text-anchor="middle">450</text>
+<rect x="850" y="156" width="196.7" height="24" rx="3" fill="#0b0b0b"><title>Jev (hosted) p50 421.6 ms</title></rect>
+<text x="1150" y="173" font-size="14" fill="#0b0b0b" text-anchor="end">421.6</text>
+<rect x="850" y="200" width="30.8" height="24" rx="3" fill="#eb6834"><title>spark-s1-4b-v3 p50 65.9 ms</title></rect>
+<text x="1150" y="217" font-size="14" fill="#0b0b0b" text-anchor="end">65.9</text>
+<rect x="850" y="244" width="13.8" height="24" rx="3" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"><title>spark-s1-1.7b-v3 p50 29.6 ms</title></rect>
+<text x="1150" y="261" font-size="14" fill="#0b0b0b" text-anchor="end">29.6</text>
+<rect x="850" y="288" width="31.5" height="24" rx="3" fill="#a9a8a2"><title>Qwen3-4B, untrained p50 67.6 ms</title></rect>
+<text x="1150" y="305" font-size="14" fill="#0b0b0b" text-anchor="end">67.6</text>
+<text x="48" y="392" font-size="16" font-weight="600" fill="#0b0b0b">Accuracy by slice of the set</text>
+<polygon points="55,411 62,418 55,425 48,418" fill="#0b0b0b"/>
+<text x="69" y="423" font-size="13" fill="#52514e">Jev (hosted)</text>
+<circle cx="195" cy="418" r="6.5" fill="#eb6834"/>
+<text x="209" y="423" font-size="13" fill="#52514e">spark-s1-4b-v3</text>
+<circle cx="351" cy="418" r="6" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"/>
+<text x="365" y="423" font-size="13" fill="#52514e">spark-s1-1.7b-v3</text>
+<circle cx="523" cy="418" r="6.5" fill="#a9a8a2"/>
+<text x="537" y="423" font-size="13" fill="#52514e">Qwen3-4B, untrained</text>
+<line x1="340.0" y1="440" x2="340.0" y2="578" stroke="#e4e3df"/><text x="340.0" y="596" font-size="12" fill="#8a8985" text-anchor="middle">0.00</text>
+<line x1="525.0" y1="440" x2="525.0" y2="578" stroke="#e4e3df"/><text x="525.0" y="596" font-size="12" fill="#8a8985" text-anchor="middle">0.25</text>
+<line x1="710.0" y1="440" x2="710.0" y2="578" stroke="#e4e3df"/><text x="710.0" y="596" font-size="12" fill="#8a8985" text-anchor="middle">0.50</text>
+<line x1="895.0" y1="440" x2="895.0" y2="578" stroke="#e4e3df"/><text x="895.0" y="596" font-size="12" fill="#8a8985" text-anchor="middle">0.75</text>
+<line x1="1080.0" y1="440" x2="1080.0" y2="578" stroke="#e4e3df"/><text x="1080.0" y="596" font-size="12" fill="#8a8985" text-anchor="middle">1.00</text>
+<text x="326" y="461" font-size="14" fill="#0b0b0b" text-anchor="end">Clear (34 calls)</text><line x1="340" y1="456" x2="1080" y2="456" stroke="#e4e3df" stroke-dasharray="2 4"/>
+<polygon points="1080.0,435.5 1087.0,442.5 1080.0,449.5 1073.0,442.5" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="1.5"><title>Jev (hosted) clear: 1.000</title></polygon>
+<circle cx="992.9" cy="451.5" r="6" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>spark-s1-4b-v3 clear: 0.882</title></circle>
+<circle cx="992.9" cy="460.5" r="5.5" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.2"><title>spark-s1-1.7b-v3 clear: 0.882</title></circle>
+<circle cx="927.6" cy="469.5" r="6" fill="#a9a8a2" stroke="#fcfcfb" stroke-width="1.5"><title>Qwen3-4B, untrained clear: 0.794</title></circle>
+<text x="326" y="507" font-size="14" fill="#0b0b0b" text-anchor="end">Ambiguous (14)</text><line x1="340" y1="502" x2="1080" y2="502" stroke="#e4e3df" stroke-dasharray="2 4"/>
+<polygon points="868.6,481.5 875.6,488.5 868.6,495.5 861.6,488.5" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="1.5"><title>Jev (hosted) ambiguous: 0.714</title></polygon>
+<circle cx="868.6" cy="497.5" r="6" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>spark-s1-4b-v3 ambiguous: 0.714</title></circle>
+<circle cx="815.7" cy="506.5" r="5.5" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.2"><title>spark-s1-1.7b-v3 ambiguous: 0.643</title></circle>
+<circle cx="762.9" cy="515.5" r="6" fill="#a9a8a2" stroke="#fcfcfb" stroke-width="1.5"><title>Qwen3-4B, untrained ambiguous: 0.571</title></circle>
+<text x="326" y="553" font-size="14" fill="#0b0b0b" text-anchor="end">Adversarial, benign-looking framing (12)</text><line x1="340" y1="548" x2="1080" y2="548" stroke="#e4e3df" stroke-dasharray="2 4"/>
+<polygon points="1018.3,527.5 1025.3,534.5 1018.3,541.5 1011.3,534.5" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="1.5"><title>Jev (hosted) adversarial: 0.917</title></polygon>
+<circle cx="1018.3" cy="543.5" r="6" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>spark-s1-4b-v3 adversarial: 0.917</title></circle>
+<circle cx="833.3" cy="552.5" r="5.5" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.2"><title>spark-s1-1.7b-v3 adversarial: 0.667</title></circle>
+<circle cx="771.7" cy="561.5" r="6" fill="#a9a8a2" stroke="#fcfcfb" stroke-width="1.5"><title>Qwen3-4B, untrained adversarial: 0.583</title></circle>
+<text x="48" y="628" font-size="12" fill="#52514e">An early version: spark-s1 was fine-tuned on 967 code-labelled rows and is being improved with more data. It is not at Jev parity (0.850 vs 0.917) and</text>
+<text x="48" y="647" font-size="12" fill="#52514e">still misses security-weakening config changes and credential exfiltration. Rows in each slice line: Jev, 4B, 1.7B, untrained (top to bottom).</text>
+<text x="48" y="666" font-size="12" fill="#52514e">The 60-case set is a diagnostic benchmark inspected during development, not a locked holdout; n=60 is about +/-5 points. Jev&#x27;s latency is a recorded hosted run that</text>
+<text x="48" y="685" font-size="12" fill="#52514e">includes the network, so the latency gap is not a pure model-to-model comparison. Sources: themsquared/jev-benchmark (Apache-2.0), docs/BENCHMARKS.md B29, docs/img/toolcall-60-comparison.json.</text>
+</svg>

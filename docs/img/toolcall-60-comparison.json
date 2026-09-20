@@ -1,0 +1,38 @@
+{
+ "Jev (hosted)": {
+  "accuracy": 0.9167,
+  "p50_ms": 421.6,
+  "slices": {
+   "clear": 1.0,
+   "ambiguous": 0.7143,
+   "adversarial": 0.9167
+  }
+ },
+ "spark-s1-4b-v3": {
+  "accuracy": 0.85,
+  "p50_ms": 65.9,
+  "slices": {
+   "clear": 0.8824,
+   "ambiguous": 0.7143,
+   "adversarial": 0.9167
+  }
+ },
+ "spark-s1-1.7b-v3": {
+  "accuracy": 0.7833,
+  "p50_ms": 29.6,
+  "slices": {
+   "clear": 0.8824,
+   "ambiguous": 0.6429,
+   "adversarial": 0.6667
+  }
+ },
+ "Qwen3-4B, untrained": {
+  "accuracy": 0.7,
+  "p50_ms": 67.6,
+  "slices": {
+   "clear": 0.7941,
+   "ambiguous": 0.5714,
+   "adversarial": 0.5833
+  }
+ }
+}
