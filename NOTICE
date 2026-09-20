@@ -16,14 +16,16 @@ under their own licenses and terms. Redistribution here does not relicense them.
 1. Model weights (not distributed in this repository)
 --------------------------------------------------------------------------------
 
-Qwen3-1.7B -- Apache-2.0 -- Alibaba Cloud / Qwen team
+Qwen3-1.7B, Qwen3-4B (and Qwen3-0.6B for experiments) -- Apache-2.0 -- Alibaba Cloud / Qwen team
+  https://huggingface.co/Qwen/Qwen3-4B
   https://huggingface.co/Qwen/Qwen3-1.7B
-  Downloaded at setup time by scripts/download_weights.sh. spark-s1 checkpoints are
+  Downloaded at setup time by scripts/download_weights.sh. spark-s1-4b-v3 and spark-s1-1.7b-v3 are
   derivatives of this backbone and inherit its license terms.
 
 Teacher models used only for offline data generation, never shipped:
-  nvidia/Gemma-4-26B-A4B-NVFP4      -- Gemma terms of use (Google DeepMind) + NVIDIA packaging
+  nvidia/Gemma-4-26B-A4B-NVFP4      -- Gemma terms of use (Google DeepMind) + NVIDIA packaging (also the os-datagen generator)
   nvidia/Qwen3.6-27B-NVFP4          -- Apache-2.0 (Qwen) + NVIDIA packaging
+  nvidia/Qwen3.6-35B-A3B-NVFP4      -- Apache-2.0 (Qwen) + NVIDIA packaging (os-datagen verifier)
   nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4 -- NVIDIA Open Model License
   openai/gpt-oss-120b               -- Apache-2.0 (registered but unusable on this hardware)
   See configs/teachers.yaml. Check each model card before using it commercially.

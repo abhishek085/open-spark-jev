@@ -12,8 +12,8 @@ Choice / Score / Noul questions in, calibrated per-option probabilities and a co
 one forward pass with no generated text.
 
 **An open, local System One decision model for NVIDIA DGX Spark.**
-Qwen3-1.7B backbone · single-pass menu scoring · calibrated Choice / Score / Noul answers ·
-RLCD training · served through TensorRT-LLM behind a typed JSON API.
+Qwen3-4B and Qwen3-1.7B backbones · single-pass menu scoring · calibrated Choice / Score / Noul answers ·
+code-labelled decision data · served behind a typed JSON API (TensorRT-LLM optional).
 
 open-spark-Jev does one thing: given a *state* (text, JSON, logs, traces, game observations)
 and a set of typed *questions*, it returns typed, calibrated answers in a single forward pass.
@@ -42,10 +42,32 @@ answers = m.decide(state, [
 # 3 decisions, 1 state prefix pass, ~tens of ms on a GB10
 ```
 
+## The current models (2026-09-20)
+
+| release id | backbone | 60-row tool-call set | p50 latency | best for |
+|---|---|---|---|---|
+| **spark-s1-4b-v3** | Qwen3-4B + LoRA | **0.850** (Jev, recorded: 0.917) | 66 ms (Jev recorded: 422 ms, hosted) | accuracy; best on 5 of 7 external suites |
+| **spark-s1-1.7b-v3** | Qwen3-1.7B + LoRA | 0.783 | 30 ms | speed; 14x faster than Jev's recorded latency |
+
+Both are public Qwen3 backbones fine-tuned (LoRA, merged) on 967 code-labelled decision rows from our data factory
+([`datagen-pipeline/`](datagen-pipeline/), reshuffled into ~4.3k examples with random option orders), then read out the Jev way:
+one forward pass, first-token logits restricted to the option letters, temperature fitted on a separate calibration split.
+No text is generated. **How they compare with Jev and with an ordinary prompted SLM, and what they are not:**
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#0-the-two-current-models-spark-s1-4b-v3-and-spark-s1-17b-v3).
+Numbers and caveats (the 60-row set is a soft final check, n=60, Jev's latency is hosted and includes the network):
+[docs/BENCHMARKS.md](docs/BENCHMARKS.md) B27, B29-B31.
+
+**This is an early release, and we are going to keep expanding it.** The models were trained on under a thousand rows, and it shows in the weak
+packs (agent next-action routing, urgency scoring, retrieval and termination gates, answer sufficiency), in vulnerable-code detection (0.56, near
+chance) and in uncalibrated Boolean/Score heads. Next: generate substantially more data with the factory across more task families (including new
+capabilities such as code/data workflows and security), retrain, fit calibration for every question type, and apply outcome-based calibration
+training (RLCD) on rows the model has not memorised. The plan and the reasoning are in [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) and
+[docs/ROADMAP.md](docs/ROADMAP.md); releases will be versioned (`spark-s1-<size>-v<n>`) as data and capability grow.
+
 ## Try it: the playground (UI + API)
 ```bash
 scripts/setup_env.sh && scripts/download_weights.sh Qwen/Qwen3-1.7B   # once
-scripts/fetch_checkpoints.sh <hf-repo-id>                              # released checkpoints -> checkpoints/ (or train your own)
+scripts/fetch_checkpoints.sh abhishek085/spark-s1-4b-v3                # released weights (also spark-s1-1.7b-v3) -> checkpoints/; repos are private until the maintainers make them public
 scripts/run_ui.sh                                                      # open http://127.0.0.1:8400
 ```
 A single-page web UI with ten example tasks (support triage, retrieval routing, SQL safety, prompt-injection
@@ -142,18 +164,16 @@ Noul-specific Brier/ECE, and the prompt-injection flip rate. `eval/latency.py` p
 Spark latency/throughput grid over state length × questions per state.
 
 ## Status
-Work in progress (2026-09-19). Pipeline, serving path, 31-domain data (simulators plus a
-gemma-graded teacher corpus) and the external eval suites are built. Earlier checkpoints trained
-on simulators only (accuracy about 0.81 and ECE about 0.02 on our simulator test, three of six
-domains inflated by a since-fixed train/test leak, see docs/BENCHMARKS.md); a clean retrain that
-includes the new domains is running. Architecture experiments A0-A6 ([docs/NOVELTY.md](docs/NOVELTY.md))
-are implemented but not yet measured, and no checkpoint has been scored on the external suites
-yet. Not trained on any real-world text so far, so do not expect it to match public-data-trained
-peers such as Kev-0.5B out of the box. See [docs/ROADMAP.md](docs/ROADMAP.md) and
-[docs/MODELS.md](docs/MODELS.md).
+Work in progress (2026-09-20), first public release candidate. Built: the serving path and API (including the `POST /v1/decide` contract with per-decision probabilities,
+confidence, margin, entropy and latency), the os-datagen data factory, seven third-party evaluation suites reported per source, and two trained models (above).
+Measured and recorded: the version ladder v0-v3 and v6 ([docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)), the 60-row final review, five end-to-end API cases and the external sweep.
+Refuted at our scale and recorded as such: prefix-LM attention (A2), slot-query head (A3), frozen-backbone head (v2), a small-model cascade (v6), real public text as extra training data (M17).
+Not done: outcome-trained calibration on unseen rows (v7), a per-option scorer (v4), more data, FP8/NVFP4 engines. Older checkpoints (`spark-s1-1.7b-sft-v2`, RLCD variants) were trained on
+simulators and gemma-graded synthetic data and are kept for comparison. See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/MODELS.md](docs/MODELS.md) and [docs/RUNS.md](docs/RUNS.md).
 
 ## Layout
 ```
+datagen-pipeline/ os-datagen: code-labelled decision-data factory (own README, tests, Apache-2.0)
 open_spark_jev/   schema · prompting · model · calibration · data/ · train/ · eval/ · serve/ · cli
 configs/          model / train (sft, rlcd, rlcd_grpo) / serve (trtllm options, gateway) / quant (fp8, nvfp4)
 deploy/spark/     pull_trtllm · quantize · serve · gateway · smoke_curl
