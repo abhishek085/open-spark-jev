@@ -15,20 +15,20 @@
 </p>
 
 <p align="center">
-  <a href="https://huggingface.co/abhishek085/spark-s1-1.7b-v3">🤗 1.7B Model</a>
-  &nbsp;·&nbsp;
-  <a href="https://huggingface.co/abhishek085/spark-s1-4b-v3">🤗 4B Model</a>
-  &nbsp;·&nbsp;
-  <a href="docs/README.md">📖 Documentation</a>
+  <a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/Architecture-how%20it%20works-2a78d6?style=for-the-badge" alt="Architecture" /></a>
+  <a href="docs/EVALUATION.md"><img src="https://img.shields.io/badge/Evaluation-how%20we%20measure-eb6834?style=for-the-badge" alt="Evaluation" /></a>
+</p>
+
+<p align="center">
+  <a href="https://huggingface.co/abhishek085/spark-s1-4b-v3"><img src="https://img.shields.io/badge/spark--s1--4b--v3-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f2328" alt="spark-s1-4b-v3 on Hugging Face" /></a>
+  <a href="https://huggingface.co/abhishek085/spark-s1-1.7b-v3"><img src="https://img.shields.io/badge/spark--s1--1.7b--v3-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f2328" alt="spark-s1-1.7b-v3 on Hugging Face" /></a>
 </p>
 
 ---
 
 ## What is Open Spark Jev?
 
-TypeSafe introduced **Jev** and **System One** as an approach to AI decision-making where models return structured decisions and probabilities rather than generating free-form text.
-
-**Open Spark Jev** is an independent open-source implementation inspired by that idea, built for **local inference on NVIDIA DGX Spark**. The model it builds and releases is **`spark-s1`**.
+**Open Spark Jev** is an independent, open-source implementation inspired by TypeSafe's Jev and System One, built for local inference on NVIDIA DGX Spark; it is not Jev, not a reproduction of TypeSafe's proprietary system, and not affiliated with TypeSafe. It is for decisions that need a fast, structured answer rather than generated text, such as routing, urgency, tool-call safety, or whether an agent should continue, stop or ask. The model it builds and releases is **`spark-s1`**.
 
 Instead of asking a language model to generate an answer, you provide:
 
@@ -51,42 +51,6 @@ The project currently supports three decision primitives:
 Several typed questions can be answered from the same state: the state is encoded once and each question adds only a short extra pass.
 
 > **This is a very early release.** The models are trained on under a thousand examples, they are not at parity with Jev, and they have known failure modes (see [Current Limitations](#current-limitations)). We are generating substantially more data and expanding what the models can decide.
-
----
-
-## Why this project?
-
-Open Spark Jev is designed around a simple idea:
-
-**Not every AI problem needs generated text.**
-
-Many AI systems need to make decisions such as:
-
-- Which support queue should handle this ticket?
-- How urgent is this incident?
-- Is this tool call safe?
-- Does this retrieved context contain enough information?
-- Should an agent continue, stop, or ask for help?
-- Does a claim appear to be true?
-- Which action should happen next?
-
-For these tasks, a structured probability distribution can be easier to consume than free-form text, and much faster than generating and parsing JSON. Open Spark Jev makes this approach available as an **open implementation that can run locally**, rather than requiring a hosted decision model.
-
----
-
-## Relationship to TypeSafe's Jev
-
-Open Spark Jev is **inspired by TypeSafe's Jev and System One models**.
-
-Jev itself is not open-source, and TypeSafe has not released its underlying implementation or training stack. This project therefore **does not claim to reproduce Jev or TypeSafe's proprietary implementation**.
-
-Instead, Open Spark Jev independently implements a similar high-level decision-making contract:
-
-> **typed questions in → calibrated decisions and probabilities out**
-
-The model architecture, training pipeline, data generation pipeline, serving stack, and evaluation work in this repository are part of this independent implementation.
-
-**Open Spark Jev is not affiliated with, endorsed by, or produced by TypeSafe.**
 
 ---
 
@@ -387,7 +351,7 @@ open-spark-jev/
 - FP8 / NVFP4 inference and more local deployment configurations
 - Domain-specific decision recipes
 
-See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md), [docs/RUNS.md](docs/RUNS.md) and [docs/README.md](docs/README.md) for all documentation.
+See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md), and [docs/RUNS.md](docs/RUNS.md).
 
 ---
 
