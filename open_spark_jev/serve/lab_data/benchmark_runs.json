@@ -1,0 +1,144 @@
+[
+ {
+  "run_id": "jev-hosted-recorded",
+  "model": "Jev (hosted, recorded by a third party)",
+  "benchmark": "diagnostic-60",
+  "benchmark_revision": "jev-benchmark@daf02b3b59b2 (60 rows, converted file sha256:247742d4c7f20d27)",
+  "hardware": "hosted service; latency includes network round trip and service overhead",
+  "accuracy": 0.9167,
+  "p50_latency_ms": 421.6,
+  "p95_latency_ms": 542.0,
+  "decisions_per_second": 2.3,
+  "notes": "Reference from the benchmark repo's committed run; not produced by this project and not a like-for-like local timing."
+ },
+ {
+  "run_id": "spark-s1-4b-v3-diagnostic-60-2026-09-20",
+  "model": "spark-s1-4b-v3",
+  "benchmark": "diagnostic-60",
+  "benchmark_revision": "jev-benchmark@daf02b3b59b2 (60 rows, converted file sha256:247742d4c7f20d27)",
+  "hardware": "NVIDIA DGX Spark (GB10), bf16, HF Transformers, batch 1, idle GPU, one four-way question per call",
+  "accuracy": 0.85,
+  "ece_calibrated": 0.0859,
+  "option_order_flip_rate": 0.15,
+  "p50_latency_ms": 65.9,
+  "p95_latency_ms": 69.2,
+  "decisions_per_second": 15.1,
+  "notes": "v3 Qwen3-4B LoRA. Diagnostic set inspected during development; not a locked holdout.",
+  "false_auto_allow_by_threshold": {
+   "0.5": {
+    "auto_allowed": 20,
+    "false_auto_allow": 3
+   },
+   "0.7": {
+    "auto_allowed": 16,
+    "false_auto_allow": 1
+   },
+   "0.8": {
+    "auto_allowed": 16,
+    "false_auto_allow": 1
+   },
+   "0.9": {
+    "auto_allowed": 13,
+    "false_auto_allow": 0
+   },
+   "0.95": {
+    "auto_allowed": 3,
+    "false_auto_allow": 0
+   },
+   "0.99": {
+    "auto_allowed": 0,
+    "false_auto_allow": 0
+   },
+   "0.995": {
+    "auto_allowed": 0,
+    "false_auto_allow": 0
+   }
+  }
+ },
+ {
+  "run_id": "spark-s1-1.7b-v3-diagnostic-60-2026-09-20",
+  "model": "spark-s1-1.7b-v3",
+  "benchmark": "diagnostic-60",
+  "benchmark_revision": "jev-benchmark@daf02b3b59b2 (60 rows, converted file sha256:247742d4c7f20d27)",
+  "hardware": "NVIDIA DGX Spark (GB10), bf16, HF Transformers, batch 1, idle GPU, one four-way question per call",
+  "accuracy": 0.7833,
+  "ece_calibrated": 0.0873,
+  "option_order_flip_rate": 0.1,
+  "p50_latency_ms": 29.6,
+  "p95_latency_ms": 30.5,
+  "decisions_per_second": 33.8,
+  "notes": "v3 Qwen3-1.7B LoRA. Diagnostic set inspected during development; not a locked holdout.",
+  "false_auto_allow_by_threshold": {
+   "0.5": {
+    "auto_allowed": 21,
+    "false_auto_allow": 6
+   },
+   "0.7": {
+    "auto_allowed": 16,
+    "false_auto_allow": 3
+   },
+   "0.8": {
+    "auto_allowed": 4,
+    "false_auto_allow": 1
+   },
+   "0.9": {
+    "auto_allowed": 0,
+    "false_auto_allow": 0
+   },
+   "0.95": {
+    "auto_allowed": 0,
+    "false_auto_allow": 0
+   },
+   "0.99": {
+    "auto_allowed": 0,
+    "false_auto_allow": 0
+   },
+   "0.995": {
+    "auto_allowed": 0,
+    "false_auto_allow": 0
+   }
+  }
+ },
+ {
+  "run_id": "spark-s1-0.6b-v3-diagnostic-60-2026-09-20",
+  "model": "spark-s1-0.6b-v3 (not released)",
+  "benchmark": "diagnostic-60",
+  "benchmark_revision": "jev-benchmark@daf02b3b59b2 (60 rows, converted file sha256:247742d4c7f20d27)",
+  "hardware": "NVIDIA DGX Spark (GB10), bf16, HF Transformers, batch 1, idle GPU, one four-way question per call",
+  "accuracy": 0.7667,
+  "ece_calibrated": 0.2925,
+  "option_order_flip_rate": 0.167,
+  "p50_latency_ms": 15.4,
+  "p95_latency_ms": 16.2,
+  "decisions_per_second": 64.2,
+  "notes": "v3 Qwen3-0.6B LoRA. Diagnostic set inspected during development; not a locked holdout."
+ },
+ {
+  "run_id": "qwen3-4b-frozen-diagnostic-60-2026-09-20",
+  "model": "qwen3-4b-frozen",
+  "benchmark": "diagnostic-60",
+  "benchmark_revision": "jev-benchmark@daf02b3b59b2 (60 rows, converted file sha256:247742d4c7f20d27)",
+  "hardware": "NVIDIA DGX Spark (GB10), bf16, HF Transformers, batch 1, idle GPU, one four-way question per call",
+  "accuracy": 0.7,
+  "ece_calibrated": 0.1997,
+  "option_order_flip_rate": 0.2,
+  "p50_latency_ms": 67.6,
+  "p95_latency_ms": 70.0,
+  "decisions_per_second": 14.8,
+  "notes": "frozen Qwen3-4B, direct logits, no training. Diagnostic set inspected during development; not a locked holdout."
+ },
+ {
+  "run_id": "gemma-4-e4b-frozen-diagnostic-60-2026-09-20",
+  "model": "gemma-4-e4b-frozen",
+  "benchmark": "diagnostic-60",
+  "benchmark_revision": "jev-benchmark@daf02b3b59b2 (60 rows, converted file sha256:247742d4c7f20d27)",
+  "hardware": "NVIDIA DGX Spark (GB10), bf16, HF Transformers, batch 1, idle GPU, one four-way question per call",
+  "accuracy": 0.7333,
+  "ece_calibrated": 0.2126,
+  "option_order_flip_rate": 0.383,
+  "p50_latency_ms": 92.4,
+  "p95_latency_ms": 97.2,
+  "decisions_per_second": 10.8,
+  "notes": "frozen Gemma-4-E4B, direct logits, no training. Diagnostic set inspected during development; not a locked holdout."
+ }
+]

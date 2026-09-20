@@ -60,6 +60,38 @@ def _ui(a):
     gateway_main(argv)
 
 
+def _serve(a):
+    """Serve spark-s1 as a local HTTP API. ``--pull`` downloads a released model from Hugging Face first (once)."""
+    import os
+
+    from .serve.gateway import main as gateway_main
+
+    model = a.model
+    if a.pull:
+        from huggingface_hub import snapshot_download
+
+        repo = a.pull if "/" in a.pull else f"abhishek085/{a.pull}"
+        model = repo.split("/")[-1]
+        dest = os.path.join("checkpoints", model)
+        if not os.path.exists(os.path.join(dest, "config.json")):
+            print(f"downloading {repo} -> {dest} (one time)", flush=True)
+            snapshot_download(repo_id=repo, local_dir=dest)
+    argv = ["--backend", "hf", "--host", a.host, "--port", str(a.port)]
+    if model:
+        argv += ["--default-model", model]
+    gateway_main(argv)
+
+
+def _lab(a):
+    """Decision Lab: local UI for proposed tool-call decisions. Runs without weights (recorded outputs + policy rules); live mode uses a checkpoint if present."""
+    from .serve.gateway import main as gateway_main
+
+    argv = ["--backend", "hf", "--host", a.host, "--port", str(a.port), "--lab"]
+    if a.model:
+        argv += ["--default-model", a.model]
+    gateway_main(argv)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="osj")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -92,6 +124,19 @@ def main(argv=None):
     u.add_argument("--port", type=int, default=8400)
     u.add_argument("--model", help="default model id (see configs/serve/models.yaml)")
     u.set_defaults(fn=_ui)
+
+    sv = sub.add_parser("serve", help="serve spark-s1 as a local HTTP API (POST /v1/gate, /v1/decide); --pull downloads a released model first")
+    sv.add_argument("--pull", help="Hugging Face repo id or release name, e.g. abhishek085/spark-s1-4b-v3 or spark-s1-4b-v3")
+    sv.add_argument("--model", help="model id already under checkpoints/")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8400)
+    sv.set_defaults(fn=_serve)
+
+    lb = sub.add_parser("lab", help="Decision Lab UI at /lab (works without model weights; live mode loads a checkpoint on demand)")
+    lb.add_argument("--host", default="127.0.0.1")
+    lb.add_argument("--port", type=int, default=8400)
+    lb.add_argument("--model", help="model id for live mode (see configs/serve/models.yaml)")
+    lb.set_defaults(fn=_lab)
 
     y = sub.add_parser("synth", help="teacher-generated scenarios (+ optional distillation)")
     y.add_argument("--base-url")

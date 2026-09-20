@@ -24,6 +24,7 @@ from .schema import (
 
 __version__ = "0.1.0"
 __all__ = [
+    "classify_tool_call",
     "Answer",
     "Choice",
     "DecisionRequest",
@@ -33,3 +34,10 @@ __all__ = [
     "Score",
     "State",
 ]
+
+
+def classify_tool_call(*args, **kwargs):
+    """See :func:`open_spark_jev.gate.classify_tool_call` (imported lazily so `import open_spark_jev` stays light)."""
+    from .gate import classify_tool_call as _f
+
+    return _f(*args, **kwargs)

@@ -156,7 +156,7 @@ def render_index(path: str = "docs/MODELS.md") -> None:
         "",
         CONTRACT,
         "",
-        "| id | date | mechanism | parent | overall acc | overall ECE | card |",
+        "| id | date | mechanism | parent | overall acc | overall ECE | checkpoint dir |",
         "|---|---|---|---|---|---|---|",
     ]
     for entry_id, entry in lineage.items():
@@ -168,7 +168,7 @@ def render_index(path: str = "docs/MODELS.md") -> None:
                 acc = f"{d['overall'].get('accuracy', float('nan')):.3f}"
                 ece = f"{d['overall'].get('ece', float('nan')):.3f}"
         mech_short = (entry.get("mechanism") or "")[:60]
-        card_link = f"[{entry_id}]({entry['checkpoint']}/MODEL_CARD.md)"
+        card_link = f"`{entry['checkpoint']}`"  # checkpoints are not in git; released models have cards on Hugging Face and MODEL_CARD.md
         lines.append(f"| {entry_id} | {entry.get('date', '?')} | {mech_short} | {entry.get('parent') or '-'} | {acc} | {ece} | {card_link} |")
     lines += ["", "Full per-domain numbers and the honest before/after on any bug fixes are in "
                     "[docs/BENCHMARKS.md](BENCHMARKS.md); the architecture side (non-training-mechanism "

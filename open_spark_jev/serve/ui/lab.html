@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>spark-s1 Decision Lab</title>
+<style>
+:root{--bg:#0f1419;--panel:#171d25;--line:#2a3441;--fg:#e6edf3;--mut:#8b98a8;--allow:#3fb950;--ask:#d29922;--deny:#f85149;--acc:#58a6ff}
+@media (prefers-color-scheme:light){:root{--bg:#f6f8fa;--panel:#fff;--line:#d0d7de;--fg:#1f2328;--mut:#57606a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+h1{font-size:17px;margin:0}h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 10px}
+.sub{color:var(--mut)}main{padding:16px 20px;max-width:1300px;margin:auto}
+.warn{background:#3d2f0a33;border:1px solid var(--ask);border-radius:8px;padding:8px 12px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}@media(max-width:1000px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+label{display:block;color:var(--mut);font-size:12px;margin:8px 0 3px}
+select,input,textarea,button{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px;font:inherit}
+textarea{font-family:ui-monospace,Menlo,monospace;min-height:64px}button{cursor:pointer;background:var(--acc);border-color:var(--acc);color:#04121f;font-weight:600;margin-top:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.chip{border:1px solid var(--line);border-radius:12px;padding:2px 9px;font-size:12px;color:var(--mut)}.chip.on{color:var(--fg);border-color:var(--ask)}.chip.deny{border-color:var(--deny);color:var(--deny)}
+.opt{display:flex;gap:8px;margin:6px 0}.opt b{min-width:48px}.opt span{color:var(--mut)}
+.bar{display:flex;align-items:center;gap:8px;margin:5px 0}.bar .n{min-width:74px}.bar .t{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:5px;height:16px;overflow:hidden}.bar .f{height:100%}.bar .p{min-width:50px;text-align:right;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:3px 12px;border-radius:14px;font-weight:700;color:#fff}.b-allow{background:var(--allow)}.b-ask{background:var(--ask);color:#231a00}.b-deny{background:var(--deny)}
+.kv{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:4px 0}.kv span:first-child{color:var(--mut)}
+pre{margin:0;white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;font-size:12.5px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}th{color:var(--mut);font-weight:500}td.num{text-align:right;font-variant-numeric:tabular-nums}
+.src{font-size:12px;padding:2px 8px;border-radius:5px;border:1px solid var(--acc);color:var(--acc)}.tabs{display:flex;gap:8px;margin:14px 0 8px}.tabs button{width:auto;margin:0;background:var(--panel);color:var(--fg);border-color:var(--line)}
+.hidden{display:none}.small{font-size:12px;color:var(--mut)}
+</style></head><body>
+<header><h1>spark-s1 Decision Lab</h1><span class="sub">a System-1 decision model: state + fixed choices &rarr; option probabilities &rarr; deterministic policy. Not a chat interface.</span><span id="src" class="src"></span><span class="sub" style="margin-left:auto">part of <b>Nokast</b>, an open-source AI community</span></header>
+<main>
+<div class="warn"><b>Nothing here is executed.</b> Commands are proposed calls shown as text and pattern-matched; the model reads them as text. Do not use a model decision as the only authorization control: keep deterministic policy, least privilege, an auto-allow threshold, audit logging and human approval.</div>
+<div class="grid">
+ <div class="card"><h2>A. Agent state</h2>
+  <label>Safe sample</label><select id="fx"></select>
+  <label>Tool</label><input id="tool" value="bash">
+  <label>Proposed command (text only, never run)</label><textarea id="cmd"></textarea>
+  <label>Session context (JSON, optional)</label><textarea id="ctx">{"workspace":"/workspace"}</textarea>
+ </div>
+ <div class="card"><h2>B. Typed decision contract</h2>
+  <div class="small">Output space is fixed before inference:</div>
+  <div id="opts"></div>
+  <label>Auto-allow threshold: <span id="thv"></span></label><input id="thr" type="range" min="0.5" max="1" step="0.005" value="0.995">
+  <label>Question</label><select id="mode"><option value="risk_posture">risk posture (benchmarked) mapped to allow/ask/deny</option><option value="direct">allow / ask / deny asked directly (not benchmarked)</option></select>
+  <label>Source of the model output</label><select id="source"></select>
+  <div class="small" style="margin-top:8px">Detected by rules (not by the model):</div><div class="chips" id="chips"></div>
+  <button id="go">Decide</button>
+ </div>
+ <div class="card"><h2>C. Decision response</h2>
+  <div class="kv"><span>Model choice</span><b id="choice">-</b></div>
+  <div id="bars" style="margin:8px 0"></div>
+  <div class="kv"><span>Confidence</span><b id="conf">-</b></div>
+  <div class="kv"><span>Latency</span><b id="lat">-</b></div>
+  <div class="kv"><span>Final policy action</span><span id="final">-</span></div>
+  <div class="small" id="srcnote" style="margin-top:8px"></div>
+ </div>
+</div>
+<div class="card" style="margin-top:14px"><h2>Policy trace</h2><pre id="trace">Choose a sample and press Decide.</pre></div>
+<div class="tabs"><button data-t="arch">System-1 vs generative SLM</button><button data-t="bench">Benchmark view</button></div>
+<div class="card" id="t-arch"><h2 id="cmptitle">D. Workflow comparison (explanatory, not a performance claim)</h2>
+<pre>Generative SLM :  state -> prompt -> write text/JSON -> parse / validate / retry -> policy -> action
+spark-s1       :  state + fixed choices -> option probabilities (one forward pass) -> threshold + policy -> action</pre>
+<div id="cmpdata" class="hidden"><div class="small" style="margin:8px 0" id="cmpmeta"></div>
+<label>Backbone size</label><select id="cmpsize" style="max-width:220px"><option value="4b">4B (Qwen3-4B)</option><option value="1.7b">1.7B (Qwen3-1.7B)</option></select>
+<div class="small" style="margin-top:10px"><b>Measured on the 60-call tool-approval set</b> (batch 1, one DGX Spark)</div>
+<table id="cmptab"></table>
+<div class="small" style="margin:14px 0 6px"><b>The selected sample, both ways</b> (recorded real outputs)</div>
+<div class="grid" style="grid-template-columns:1fr 1fr"><div><div class="small">Generative SLM: untrained model asked to answer in JSON</div><pre id="cmpslm">-</pre></div><div><div class="small">spark-s1: option probabilities</div><pre id="cmpspark">-</pre></div></div>
+<div class="small" id="cmpnote" style="margin-top:8px"></div></div></div>
+<div class="card hidden" id="t-bench"><h2>E. Benchmark view</h2>
+<div class="warn">The 60-case set is a <b>diagnostic</b> benchmark used during development, not a locked holdout. The hosted Jev timing includes network and service overhead and is not a like-for-like local comparison. Source: <code>open_spark_jev/serve/lab_data/benchmark_runs.json</code>.</div>
+<table id="btab"></table></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);let FX=[],REC={},LIVE=[],DESC={},OPTS=[];
+const colors={allow:'var(--allow)',ask:'var(--ask)',deny:'var(--deny)'};
+function bars(p,el){el.innerHTML='';Object.entries(p||{}).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{const d=document.createElement('div');d.className='bar';d.innerHTML=`<span class=n>${k}</span><span class=t><span class=f style="display:block;width:${(v*100).toFixed(1)}%;background:${colors[k]||'var(--acc)'}"></span></span><span class=p>${(v*100).toFixed(1)}%</span>`;el.appendChild(d)})}
+function badge(a){return `<span class="badge b-${a}">${a}</span>`}
+function chips(det){const has=r=>det.some(d=>d.rule===r);const f=[['sensitive access',has('sensitive_path')],['external egress',has('network_egress')||has('cloud_copy')],['security weakening',has('security_weakening')],['mutation',has('mutation')],['opaque/unsupported',has('opaque')||has('unparsable')||has('unsupported_tool')||has('unsupported_input')]];
+ const fl=det.reduce((m,d)=>d.floor==='deny'?'deny':(m==='deny'?m:'ask'),'allow');$('chips').innerHTML=f.map(([n,on])=>`<span class="chip ${on?'on':''}">${n}: ${on?'yes':'no'}</span>`).join('')+`<span class="chip ${fl==='deny'?'deny':'on'}">rule floor: ${fl}</span>`}
+async function init(){const r=await (await fetch('/v1/lab/fixtures')).json();FX=r.fixtures;REC=r.recorded;LIVE=r.live_models;DESC=r.descriptions;OPTS=r.options;
+ $('opts').innerHTML=OPTS.map(o=>`<div class=opt><b style="color:${colors[o]}">${o}</b><span>${DESC[o]}</span></div>`).join('');
+ $('fx').innerHTML=FX.map((f,i)=>`<option value=${i}>${f.title}</option>`).join('')+'<option value=-1>custom input</option>';
+ const src=[];if(Object.keys(REC).some(k=>k[0]!=='_'))src.push(['recorded','Recorded real model output (fixtures only)']);LIVE.forEach(m=>src.push(['live:'+m.id,'Live model: '+m.name]));src.push(['none','No model: deterministic rules only']);
+ $('source').innerHTML=src.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');$('thr').value=r.default_threshold;$('thv').textContent=r.default_threshold;
+ const h=location.hash.slice(1);if(h){const i=FX.findIndex(f=>f.id===h);if(i>=0)$('fx').value=i}
+ $('fx').onchange=load;$('thr').oninput=()=>$('thv').textContent=$('thr').value;$('go').onclick=decide;load();bench();if(h&&FX.some(f=>f.id===h))decide();
+ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{$('t-arch').classList.toggle('hidden',b.dataset.t!=='arch');$('t-bench').classList.toggle('hidden',b.dataset.t!=='bench')});
+ $('cmpsize').onchange=cmp;$('fx').addEventListener('change',cmp);$('go').addEventListener('click',()=>setTimeout(cmp,50));cmpLoad()}
+function load(){const i=+$('fx').value;if(i>=0){const f=FX[i];$('tool').value=f.tool;$('cmd').value=f.command;$('ctx').value=JSON.stringify(f.context)}}
+function recordedFor(){const i=+$('fx').value;if(i<0)return null;const f=FX[i];const mid=Object.keys(REC).find(k=>k[0]!=='_'&&REC[k][f.id]);const order=['spark-s1-4b-v3','spark-s1-1.7b-v3'];const m=order.find(k=>REC[k]&&REC[k][f.id])||mid;return m?{model:m,out:REC[m][f.id][$('mode').value],meta:REC._meta}:null}
+async function decide(){const tool=$('tool').value,command=$('cmd').value,threshold=+$('thr').value,mode=$('mode').value,source=$('source').value;let ctx=null;try{ctx=JSON.parse($('ctx').value||'null')}catch(e){$('trace').textContent='Context is not valid JSON.';return}
+ let res,srcnote,srcLabel;
+ if(source==='recorded'){const r=recordedFor();if(!r){srcLabel='rules only';srcnote='No recorded output for custom input: showing deterministic rules only.';res=await (await fetch('/v1/gate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({state:{tool,command,context:ctx},policy:{auto_allow_threshold:threshold},model:'none'})})).json()}
+  else{const d=await (await fetch('/v1/lab/resolve',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({tool,command,choice:r.out.choice,probabilities:r.out.probabilities,threshold})})).json();
+   res={choice:r.out.choice,probabilities:r.out.probabilities,confidence:r.out.confidence,posture_probabilities:r.out.posture_probabilities,latency_ms:r.out.latency_ms,policy_action:d.policy_action,policy_trace:d.policy_trace,detections:d.detections};srcLabel='recorded: '+r.model;srcnote='Recorded real inference by '+r.model+' ('+r.meta.recorded+', '+r.meta.hardware+'). Latency is the recorded model-call time.'}}
+ else{const body={state:{tool,command,context:ctx},policy:{auto_allow_threshold:threshold},mode};if(source.startsWith('live:'))body.model=source.slice(5);else body.model='none';
+  const rr=await fetch('/v1/gate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});if(!rr.ok){$('trace').textContent='Request rejected: '+await rr.text();return}res=await rr.json();
+  srcLabel=source.startsWith('live:')?'live: '+source.slice(5):'rules only';srcnote=source.startsWith('live:')?'Live inference on this machine.':'No model output: with rules only the result can never be allow (fails closed).'}
+ $('src').textContent='source: '+srcLabel;$('srcnote').textContent=srcnote;
+ $('choice').textContent=res.choice||'no model output';bars(res.probabilities,$('bars'));
+ if(res.posture_probabilities){const d=document.createElement('div');d.className='small';d.textContent='risk posture probabilities:';$('bars').appendChild(d);const e=document.createElement('div');$('bars').appendChild(e);bars(res.posture_probabilities,e)}
+ $('conf').textContent=res.confidence!=null?res.confidence.toFixed(3):'-';$('lat').textContent=res.latency_ms!=null?res.latency_ms.toFixed(1)+' ms':'-';$('final').innerHTML=badge(res.policy_action);
+ $('trace').textContent=res.policy_trace.join('\n');chips(res.detections||[])}
+function bench(){fetch('/v1/lab/benchmarks').then(r=>r.json()).then(d=>{$('btab').innerHTML='<tr><th>Model</th><th>Benchmark revision</th><th>Accuracy</th><th>p50 ms</th><th>dec/s</th><th>Hardware / configuration</th><th>Notes</th></tr>'+d.runs.map(r=>`<tr><td>${r.model}</td><td class=small>${r.benchmark_revision}</td><td class=num>${r.accuracy.toFixed(3)}</td><td class=num>${r.p50_latency_ms}</td><td class=num>${r.decisions_per_second}</td><td class=small>${r.hardware}</td><td class=small>${r.notes}</td></tr>`).join('')})}
+let CMP=null;
+async function cmpLoad(){try{CMP=await (await fetch('/v1/lab/comparison')).json()}catch(e){CMP=null}cmp()}
+function cmp(){if(!CMP||!CMP.aggregate){$('cmpdata').classList.add('hidden');return}
+ $('cmpdata').classList.remove('hidden');$('cmptitle').textContent='D. System-1 vs a generative small model, same backbone (measured, not simulated)';
+ const z=$('cmpsize').value,ag=CMP.aggregate[z];$('cmpmeta').textContent=CMP._meta?CMP._meta.baseline+' Recorded '+CMP._meta.recorded+' on '+CMP._meta.hardware+'.':'';
+ $('cmptab').innerHTML='<tr><th>System</th><th class=num>Accuracy</th><th class=num>Malformed output</th><th class=num>p50 per decision</th><th>What it is</th></tr>'+ag.rows.map(r=>`<tr><td>${r.name}</td><td class=num>${r.accuracy.toFixed(3)}</td><td class=num>${r.malformed}</td><td class=num>${r.p50_ms.toFixed(1)} ms</td><td class=small>${r.what}</td></tr>`).join('');
+ const i=+$('fx').value,f=i>=0?FX[i]:null,fr=f&&CMP.fixtures&&CMP.fixtures[f.id]?CMP.fixtures[f.id][z]:null;
+ if(fr){$('cmpslm').textContent=fr.raw+'\n\n-> '+(fr.choice?'parsed: '+fr.choice+' (as '+fr.action+')':'could not be parsed into an option')+'\n'+fr.tokens+' tokens generated, '+fr.ms.toFixed(0)+' ms'}
+ else $('cmpslm').textContent=f?'No recorded generative output for this sample.':'Pick a sample to compare.';
+ const rc=f&&REC['spark-s1-'+z+'-v3']&&REC['spark-s1-'+z+'-v3'][f.id]?REC['spark-s1-'+z+'-v3'][f.id].risk_posture:null;
+ if(rc){$('cmpspark').textContent=Object.entries(rc.posture_probabilities).sort((a,b)=>b[1]-a[1]).map(([k,v])=>k.padEnd(13)+(v*100).toFixed(1)+'%').join('\n')+'\n\n-> '+rc.choice+' ('+(rc.confidence*100).toFixed(1)+'%), '+rc.latency_ms.toFixed(0)+' ms, one forward pass, always a valid option'}
+ else $('cmpspark').textContent='-';
+ $('cmpnote').textContent=(CMP._meta&&CMP._meta.caveat)||''}
+init();
+</script></body></html>

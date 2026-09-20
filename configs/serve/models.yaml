@@ -6,6 +6,12 @@
 # Directory names under checkpoints/ are historical paths and may differ from the release id. Key = directory under checkpoints/ (or the path for `base`).
 # Update `name`/`note` here when a checkpoint is retrained, so the UI never mislabels a model.
 models:
+  spark-s1-4b-v3:
+    name: "spark-s1-4b-v3"
+    note: "Qwen3-4B, LoRA-merged on os-datagen. Accuracy pick. Download: scripts/fetch_checkpoints.sh abhishek085/spark-s1-4b-v3"
+  spark-s1-1.7b-v3:
+    name: "spark-s1-1.7b-v3"
+    note: "Qwen3-1.7B, LoRA-merged on os-datagen. Speed pick. Download: scripts/fetch_checkpoints.sh abhishek085/spark-s1-1.7b-v3"
   v3-4b:
     name: "spark-s1-4b-v3"
     note: "Qwen3-4B LoRA-merged on the os-datagen train split (967 rows, options shuffled). Best accuracy (60-set 0.850). Temperature refit on the calibration split."

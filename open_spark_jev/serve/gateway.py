@@ -33,6 +33,7 @@ from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from ..gate import GateRequest
 from ..schema import Answer, Choice, DecisionRequest, DecisionResponse, Noul, Score, State
 
 log = logging.getLogger("osj.gateway")
@@ -209,6 +210,84 @@ def evaluate(req: JevRequest):
             "usage": {"input_tokens": None, "output_tokens": 0}, "latency_ms": round(ms, 1)}
 
 
+LAB_DATA = Path(__file__).parent / "lab_data"
+LAB_MODE = False
+PREFERRED = ["spark-s1-4b-v3", "v3-4b", "spark-s1-1.7b-v3", "v3-1.7b", "sft-qwen3-1.7b"]
+
+
+def _lab_json(name: str):
+    import json
+
+    p = LAB_DATA / name
+    return json.loads(p.read_text()) if p.exists() else None
+
+
+@app.get("/lab", include_in_schema=False)
+def lab_page():
+    return FileResponse(UI_DIR / "lab.html")
+
+
+@app.get("/v1/lab/fixtures")
+def lab_fixtures():
+    """Safe fixtures (proposed calls only, never executed), real recorded model outputs for them, and the runtime mode."""
+    from ..gate import DEFAULT_THRESHOLD, DESCRIPTIONS, OPTIONS
+
+    avail = discover_models() if BACKEND_KIND == "hf" else {}
+    return {"fixtures": _lab_json("tool_calls.json") or [], "recorded": _lab_json("recorded_outputs.json") or {},
+            "live_models": [{"id": k, "name": v["name"]} for k, v in avail.items()], "default_model": DEFAULT_MODEL,
+            "options": OPTIONS, "descriptions": DESCRIPTIONS, "default_threshold": DEFAULT_THRESHOLD}
+
+
+@app.get("/v1/lab/comparison")
+def lab_comparison():
+    """Recorded real measurements: spark-s1 versus the same-size untrained model generating JSON."""
+    return _lab_json("slm_comparison.json") or {}
+
+
+@app.get("/v1/lab/benchmarks")
+def lab_benchmarks():
+    return {"runs": _lab_json("benchmark_runs.json") or []}
+
+
+class ResolveRequest(BaseModel):
+    tool: str = "bash"
+    command: str
+    choice: str | None = None
+    probabilities: dict[str, float] | None = None
+    threshold: float = 0.995
+
+
+@app.post("/v1/lab/resolve")
+def lab_resolve(req: ResolveRequest):
+    """Decision Lab helper: apply the deterministic policy to a model output supplied by the caller (used to show recorded outputs). Executes nothing."""
+    from .. import policy as P
+
+    if len(req.command) > 8000 or not 0.5 <= req.threshold <= 1.0:
+        raise HTTPException(400, "command too long or threshold out of range")
+    f = P.analyze(req.tool, req.command)
+    action, trace = P.resolve(f, req.choice, req.probabilities, req.threshold)
+    return {"policy_action": action, "policy_trace": trace, "detections": [{"rule": m.rule, "floor": m.floor, "detail": m.detail} for m in f.matches]}
+
+
+@app.post("/v1/gate")
+def gate_endpoint(req: GateRequest):
+    """Tool-call gate: spark-s1 allow/ask/deny distribution + deterministic policy. Never executes anything. model="none" = policy rules only."""
+    from ..gate import gate as run_gate
+
+    scorer, version = None, None
+    if req.model != "none":
+        try:
+            scorer = get_backend(req.model)
+            version = getattr(scorer, "release_id", getattr(scorer, "model_id", getattr(scorer, "name", None)))
+        except HTTPException:
+            if req.model:
+                raise
+            scorer = None  # no model available: policy-only, which never returns allow
+    with _GPU_LOCK:
+        res = run_gate(req.state, scorer, req.policy.auto_allow_threshold, version, req.mode)
+    return res.model_dump()
+
+
 def build_backend(kind: str, model: str | None, upstream: str | None):
     global BACKEND, BACKEND_KIND
     if kind == "hf":
@@ -243,16 +322,18 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--default-model", help="hf backend: default model id (see configs/serve/models.yaml); the UI can switch per request")
     ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 or your Tailscale IP to reach it from another machine")
     ap.add_argument("--port", type=int, default=8400)
+    ap.add_argument("--lab", action="store_true", help="Decision Lab: start even with no checkpoints (recorded/policy-only fixture mode)")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
     global DEFAULT_MODEL, BACKEND_KIND
     if a.backend == "hf":
         BACKEND_KIND = "hf"
         avail = discover_models()
-        DEFAULT_MODEL = a.default_model or ("sft-qwen3-1.7b" if "sft-qwen3-1.7b" in avail else next(iter(avail), None))
-        if DEFAULT_MODEL is None:
-            raise SystemExit("no checkpoints found under checkpoints/ (see docs/UI.md)")
-        get_backend(DEFAULT_MODEL)  # load now so the first request is fast
+        DEFAULT_MODEL = a.default_model or next((m for m in PREFERRED if m in avail), next(iter(avail), None))
+        if DEFAULT_MODEL is None and not a.lab:
+            raise SystemExit("no checkpoints found under checkpoints/ (see docs/UI.md; `osj lab` runs without weights)")
+        if DEFAULT_MODEL is not None and not a.lab:
+            get_backend(DEFAULT_MODEL)  # load now so the first request is fast (in lab mode it loads on first live use)
     else:
         build_backend(a.backend, a.model, a.upstream)
     uvicorn.run(app, host=a.host, port=a.port)

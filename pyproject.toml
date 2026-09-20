@@ -32,6 +32,14 @@ train = [
   "safetensors>=0.4",
   "scikit-learn>=1.4",
 ]
+# Just enough to download a released model and run decisions or the API/Lab (torch installed separately, see README).
+infer = [
+  "transformers>=4.51",
+  "safetensors>=0.4",
+  "huggingface_hub>=0.24",
+  "fastapi>=0.111",
+  "uvicorn[standard]>=0.29",
+]
 serve = [
   "fastapi>=0.111",
   "uvicorn[standard]>=0.29",
@@ -58,3 +66,8 @@ markers = ["gpu: needs a CUDA device and model weights"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "B"]
 ignore = ["E501", "B008", "B905"]
+
+[tool.ruff.lint.per-file-ignores]
+# one-off analysis and benchmark scripts: dense on purpose, not part of the package
+"scripts/analysis/*" = ["E401", "E701", "E702", "E731", "E741", "F401", "I001", "B023", "F841", "B007"]
+"scripts/api_bench/*" = ["E401", "E701", "E702", "E731", "E741", "F401", "I001", "B023", "F841", "B007"]

@@ -9,11 +9,9 @@ per-slot logits (masked to the question's option count), and score it through th
 from __future__ import annotations
 
 import argparse
-import math
 import os
 import random
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -86,14 +84,16 @@ def main() -> None:
     Xv, yv, Kv = X[isval].to(sc.device), y[isval].to(sc.device), K[isval].to(sc.device)
     mask = lambda k: torch.arange(26, device=sc.device)[None] < k[:, None]  # noqa: E731
     best, best_state = 1e9, None
-    for ep in range(a.epochs):
+    for _ep in range(a.epochs):
         head.train()
         perm = torch.randperm(len(Xtr), device=sc.device)
         for i in range(0, len(perm), 64):
             b = perm[i : i + 64]
             z = head(Xtr[b]).masked_fill(~mask(Ktr[b]), -1e4)
             loss = F.cross_entropy(z, ytr[b])
-            opt.zero_grad(); loss.backward(); opt.step()
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
         head.eval()
         with torch.no_grad():
             zv = head(Xv).masked_fill(~mask(Kv), -1e4)
