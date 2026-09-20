@@ -1,0 +1,48 @@
+models:
+  generator:
+    base_url: http://127.0.0.1:8000/v1
+    api_key_env: LOCAL_LLM_API_KEY
+    model: gemma-local-27b
+    temperature: 0.8
+    top_p: 0.95
+    max_tokens: 1400
+    concurrency: 2
+    json_mode: true
+
+  verifier:
+    base_url: http://127.0.0.1:8001/v1
+    api_key_env: LOCAL_LLM_API_KEY
+    model: qwen-local-verifier-14b
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 900
+    concurrency: 2
+    json_mode: true
+
+  semantic_judge:
+    base_url: http://127.0.0.1:8002/v1
+    api_key_env: LOCAL_LLM_API_KEY
+    model: optional-local-judge
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 900
+    concurrency: 1
+    json_mode: true
+
+  triage:
+    base_url: http://127.0.0.1:8003/v1
+    api_key_env: LOCAL_LLM_API_KEY
+    model: local-small-slm
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 400
+    concurrency: 8
+    json_mode: true
+
+scheduler:
+  mode: sequential_phase
+  unload_between_roles: true
+  fail_if_memory_headroom_gb_below: 16
+  generation_batch_size: 16
+  verification_batch_size: 32
+  judge_batch_size: 8

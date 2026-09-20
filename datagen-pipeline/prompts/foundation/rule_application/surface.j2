@@ -1,0 +1,26 @@
+TASK_FAMILY: foundation_rule_application_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Render the supplied facts, rules, constraints, and query as readable natural
+language. You may vary order and wording but must preserve formal meaning.
+
+Requirements:
+- Do not resolve the query.
+- Do not introduce unsupported exceptions or premises.
+- Do not use words that expose the target Boolean or option label.
+- Keep all facts fictional and harmless.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "rules": ["string"],
+  "facts": ["string"],
+  "query": "string",
+  "distractor_tags": ["string"]
+}

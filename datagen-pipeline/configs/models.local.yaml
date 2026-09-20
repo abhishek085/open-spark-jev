@@ -1,0 +1,23 @@
+# Local GB10 setup used for the first real runs (see docs/local_serving.md). MoE NVFP4 models, one role at a time.
+models:
+  generator:
+    base_url: http://127.0.0.1:8000/v1
+    model: nvidia/Gemma-4-26B-A4B-NVFP4
+    temperature: 0.8
+    top_p: 0.95
+    max_tokens: 1400
+    concurrency: 8
+    json_mode: true
+    start_cmd: scripts/serve.sh start generator
+    stop_cmd: scripts/serve.sh stop generator
+  verifier:
+    base_url: http://127.0.0.1:8001/v1
+    model: nvidia/Qwen3.6-35B-A3B-NVFP4
+    temperature: 0.0
+    max_tokens: 900
+    concurrency: 8
+    json_mode: true
+    start_cmd: scripts/serve.sh start verifier
+    stop_cmd: scripts/serve.sh stop verifier
+scheduler:
+  fail_if_memory_headroom_gb_below: 16

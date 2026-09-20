@@ -1,0 +1,27 @@
+TASK_FAMILY: foundation_document_type_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate a fictional document body and optional metadata from the supplied
+structured document facts.
+
+Requirements:
+- Preserve the hidden document class and its required factual features without
+  naming that class in metadata or visible text unless naturally unavoidable.
+- Include optional realistic formatting, headers, OCR noise, dates, amounts,
+  or filenames only when permitted by WORLD_FACTS.
+- Add at most one controlled distractor feature.
+- Do not mention labels, task categories, or expected classification.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "document_text": "string",
+  "metadata": {"filename": "string", "source": "string", "date": "string|null"},
+  "noise_tags": ["string"]
+}

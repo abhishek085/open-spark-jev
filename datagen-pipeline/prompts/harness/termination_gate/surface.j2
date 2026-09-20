@@ -1,0 +1,28 @@
+TASK_FAMILY: harness_termination_gate_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate a concise agent execution trace and artifact-validation summary.
+
+Requirements:
+- Preserve artifact existence, required-field coverage, schema validity,
+  test results, retry count, transient/permanent error classification, and
+  whether user input is missing.
+- Include realistic but irrelevant log noise if allowed.
+- Do not use the words finish, continue, repair, retry, escalate, or ask user.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "goal": "string",
+  "agent_trace": ["string"],
+  "artifacts": [{"name": "string", "status": "string"}],
+  "validation_summary": {"key": "value"},
+  "remaining_open_items": ["string"],
+  "noise_tags": ["string"]
+}

@@ -1,0 +1,20 @@
+# Long-term target shares by composition family (not an immediate release requirement).
+targets:
+  general_semantic: 0.25
+  document_intelligence: 0.15
+  agent_harness: 0.20
+  search_rag: 0.15
+  general_reasoning: 0.10
+  communication_productivity: 0.05
+  data_code_workflows: 0.05     # no task pack yet: reported as 0% against target
+  security_policy: 0.05
+# Which packs feed each family (a pack may feed several; its count is split evenly).
+families:
+  general_semantic: [foundation_semantic_entailment_v1]
+  document_intelligence: [foundation_document_type_v1, foundation_extraction_validation_v1]
+  agent_harness: [harness_next_action_router_v1, harness_tool_action_gate_v1, harness_termination_gate_v1]
+  search_rag: [foundation_document_relevance_v1, harness_retrieval_gate_v1, harness_answer_sufficiency_v1]
+  general_reasoning: [foundation_rule_application_v1, foundation_temporal_reasoning_v1]
+  communication_productivity: [foundation_communication_intent_v1, foundation_communication_urgency_v1]
+  data_code_workflows: []
+  security_policy: [foundation_authorization_gate_v1, harness_prompt_injection_gate_v1]

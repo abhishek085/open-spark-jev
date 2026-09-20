@@ -1,0 +1,7 @@
+name: foundation_communication_intent_v1
+namespace: foundation
+version: 1.0.0
+enabled: true
+# Per-pack overrides consumed by the pipeline (see docs/task_pack_authoring.md).
+generation: {variants_per_world: 1}
+leakage: {extra_deny_patterns: [], allow_patterns: []}

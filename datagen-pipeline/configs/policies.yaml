@@ -1,0 +1,22 @@
+# Parameters consumed by the code oracles. Changing these changes truth: bump the pack's oracle_version.
+retry:
+  default_budget: 2
+freshness:
+  default_max_age_days: 180
+urgency:
+  # points -> level: <=0 low(0); 1-2 normal(1); 3-4 high(2); >=5 critical(3)
+  level_cutoffs: [0, 2, 4]
+  scope_points: {single: 0, team: 1, org: 2, all_customers: 3}
+  service_points: {normal: 0, degraded: 1, down: 2}
+  revenue_points: {none: 0, minor: 1, major: 2}
+  workaround_points: {none: 0, partial: -1, full: -3}
+  deadline_hour_cutoffs: [[4, 3], [24, 2], [72, 1]]   # (<=hours, points); beyond -> 0
+  missing_info_level: 1   # exact level when the message does not say who/what is affected (safety still overrides)
+router:
+  cost_units: {use_cache: 0, use_python: 1, call_small_model: 4, call_large_model: 20, search_web: 5, ask_user: 2}
+  cache_ttl_days_default: 30
+authorization:
+  classification_order: [public, internal, confidential, restricted]
+rollout:
+  required_success_probability: 0.95
+  confidence: 0.95

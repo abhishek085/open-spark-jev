@@ -1,0 +1,19 @@
+# Merged over configs/models.example.yaml (pass both with --config / --models, or copy models: here).
+generation:
+  max_render_attempts: 2      # first attempt + one repair pass (repair output re-runs every gate)
+  repair_enabled: true
+  variants_per_world: 1       # >1 re-renders the same world with different option order / wording
+  label_balance_slack: 1.6    # per-label cap = ceil(n/k * slack)
+  oversample_factor: 6
+
+validation:
+  dedupe_near_threshold: 0.90 # Jaccard on n-gram shingles (or cosine when an embedder is injected)
+  use_judge: true
+  judge_max_share: 0.25
+  fail_closed: true
+
+retention:
+  keep_raw_generations: true
+  max_raw_bytes: 20000
+
+split_shares: {train: 0.7, calibration: 0.1, locked_test: 0.1, challenge: 0.1}

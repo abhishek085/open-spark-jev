@@ -1,0 +1,27 @@
+TASK_FAMILY: foundation_authorization_gate_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate a fictional access request, resource description, role context, and
+policy excerpt from the structured facts.
+
+Requirements:
+- Preserve roles, permissions, tenant boundaries, data classification,
+  approval state, validity period, and purpose limitations.
+- Do not announce whether access should be granted.
+- Do not include actual credentials, systems, or organizations.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "access_request": "string",
+  "requester_context": {},
+  "resource_context": {},
+  "policy_excerpt": "string",
+  "distractor_tags": ["string"]
+}

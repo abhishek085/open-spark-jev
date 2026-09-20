@@ -1,0 +1,21 @@
+# Dev setup: ONE model role up at a time, as N parallel instances of that model (round-robin). Start with
+#   OSJ_INSTANCES=3 OSJ_GPU_UTIL=0.18 scripts/serve.sh start generator          (ports 8000-8002)
+#   OSJ_INSTANCES=3 OSJ_GPU_UTIL=0.18 OSJ_PORT=8100 scripts/serve.sh start verifier   (ports 8100-8102)
+models:
+  generator:
+    base_url: http://127.0.0.1:8000/v1
+    base_urls: [http://127.0.0.1:8000/v1, http://127.0.0.1:8001/v1]
+    model: nvidia/Gemma-4-26B-A4B-NVFP4
+    temperature: 0.8
+    top_p: 0.95
+    max_tokens: 1400
+    concurrency: 16
+  verifier:
+    base_url: http://127.0.0.1:8100/v1
+    base_urls: [http://127.0.0.1:8100/v1, http://127.0.0.1:8101/v1]
+    model: nvidia/Qwen3.6-35B-A3B-NVFP4
+    temperature: 0.0
+    max_tokens: 900
+    concurrency: 16
+scheduler:
+  fail_if_memory_headroom_gb_below: 16

@@ -1,0 +1,25 @@
+TASK_FAMILY: foundation_temporal_reasoning_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate an event timeline, dates/times, and a temporal question.
+
+Requirements:
+- Preserve exact timestamps, time zones, durations, recurrence details, and
+  the hidden event graph.
+- Use natural date formatting and permitted paraphrases.
+- Do not state the temporal relation being tested.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "timeline": ["string"],
+  "question": "string",
+  "timezone_context": "string|null",
+  "distractor_tags": ["string"]
+}

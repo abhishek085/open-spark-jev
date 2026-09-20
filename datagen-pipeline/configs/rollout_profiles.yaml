@@ -1,0 +1,5 @@
+# DECLARED (not measured) success probabilities for model routes, used only by the simulated executor.
+# Replace with measured numbers by pointing the rollout executor at real endpoints.
+simulated_model_success:
+  call_small_model: {low: 0.90, high: 0.40}
+  call_large_model: {low: 0.97, high: 0.90}

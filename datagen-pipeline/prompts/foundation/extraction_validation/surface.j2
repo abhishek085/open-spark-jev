@@ -1,0 +1,26 @@
+TASK_FAMILY: foundation_extraction_validation_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate a fictional source document and a proposed structured extraction.
+
+Requirements:
+- Preserve source facts exactly.
+- Produce the proposed extraction exactly as represented in WORLD_FACTS;
+  it may be correct, incorrect, incomplete, or ambiguous by design.
+- Do not state whether the extraction is accurate.
+- Avoid labels that reveal the intended judgment.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "document": "string",
+  "proposed_extraction": {},
+  "required_fields": ["string"],
+  "source_metadata": {}
+}

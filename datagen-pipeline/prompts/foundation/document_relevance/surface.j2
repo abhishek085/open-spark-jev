@@ -1,0 +1,28 @@
+TASK_FAMILY: foundation_document_relevance_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate a user query and one candidate document excerpt from a controlled
+knowledge world.
+
+Requirements:
+- Preserve entity identity, required fact coverage, date/freshness, source
+  authority, and whether the document directly answers, partly helps, conflicts,
+  or is irrelevant according to WORLD_FACTS.
+- Make topical overlap possible without changing factual coverage where a hard
+  negative is requested.
+- Do not name relevance labels or state whether the document answers the query.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "query": "string",
+  "candidate_document": {"title": "string", "date": "string|null", "authority": "string", "text": "string"},
+  "query_constraints": ["string"],
+  "distractor_tags": ["string"]
+}

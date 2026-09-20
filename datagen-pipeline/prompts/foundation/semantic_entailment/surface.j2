@@ -1,0 +1,31 @@
+TASK_FAMILY: foundation_semantic_entailment_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate a compact, realistic evidence set and a single claim from the
+structured facts. The domain may be everyday objects, scheduling, simple
+workplace processes, travel, education, or fictional organizations.
+
+Requirements:
+- Preserve facts, negations, rule relations, entity identities, temporal
+  qualifiers, and source authority exactly.
+- Use natural wording; rules and facts may be prose, bullet points, notes, or
+  short source excerpts.
+- Add only allowed distractor facts.
+- Do not use the words entailed, contradicted, unknown, correct answer, or any
+  phrase that tells the reader how to classify the claim.
+- Do not expose hidden logical labels or rule IDs.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "evidence": ["string"],
+  "claim": "string",
+  "source_metadata": [{"source_id": "string", "authority": "string"}],
+  "distractor_tags": ["string"]
+}

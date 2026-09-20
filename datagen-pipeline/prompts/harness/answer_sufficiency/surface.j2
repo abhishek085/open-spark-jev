@@ -1,0 +1,29 @@
+TASK_FAMILY: harness_answer_sufficiency_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate a user request, source excerpts, a candidate answer, and required
+answer constraints from the supplied structured facts.
+
+Requirements:
+- Preserve which required facts are present, absent, conflicting, or unsupported.
+- Preserve whether a missing fact exists in currently available context.
+- Make citations/source references internally consistent.
+- Candidate text can be incomplete or wrong only when WORLD_FACTS specify it.
+- Do not identify the correct evaluator action.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "user_request": "string",
+  "source_excerpts": [{"source_id": "string", "authority": "string", "text": "string"}],
+  "candidate_answer": "string",
+  "required_answer_constraints": ["string"],
+  "agent_trace": "string",
+  "distractor_tags": ["string"]
+}

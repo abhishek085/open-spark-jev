@@ -1,0 +1,28 @@
+TASK_FAMILY: {{ task_family }}
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate a fictional user communication suitable for email, chat, support,
+workplace coordination, or personal productivity contexts.
+
+Requirements:
+- Preserve the hidden intent, affected scope, deadline, workaround status,
+  impact level, and required scenario features exactly.
+- Vary tone, formality, length, typos, and indirect wording only as allowed.
+- Do not explicitly name the label, urgency level, or expected routing.
+- Avoid real people, companies, customer data, or credentials.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "message": "string",
+  "channel": "email|chat|ticket|note",
+  "context": ["string"],
+  "metadata": {},
+  "distractor_tags": ["string"]
+}

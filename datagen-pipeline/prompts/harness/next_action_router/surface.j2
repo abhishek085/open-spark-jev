@@ -1,0 +1,41 @@
+TASK_FAMILY: harness_next_action_router_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+
+VISIBLE_TOOL_CATALOG:
+{{ visible_tools_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Create one realistic agent state for a general software assistant.
+
+Requirements:
+- Generate a user request, a compact agent trace, visible tool descriptions,
+  and constraints visible to the harness.
+- Preserve the supplied file/context/network/exactness/task-stage facts.
+- Add one or two benign distractors selected from ALLOWED_DISTRACTORS.
+- Do not say which tool should be selected.
+- Do not use any option identifier or phrase that obviously exposes the answer.
+- Do not make the task domain-specific unless WORLD_FACTS request a domain.
+- Avoid template-like repetition from common examples.
+
+ALLOWED_DISTRACTORS:
+{{ allowed_distractors_json }}
+
+OUTPUT_SCHEMA:
+{
+  "user_request": "string",
+  "agent_trace": "string",
+  "tool_descriptions": [
+    {"name": "string", "description": "string"}
+  ],
+  "visible_constraints": {"key": "value"},
+  "distractor_tags": ["string"],
+  "self_check": {
+    "facts_preserved": true,
+    "contains_label_hint": false
+  }
+}

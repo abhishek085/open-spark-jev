@@ -1,0 +1,30 @@
+TASK_FAMILY: harness_retrieval_gate_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate a user request and the currently visible information environment.
+The environment may include current conversation context, local files, local
+index descriptions, or web availability metadata according to WORLD_FACTS.
+
+Requirements:
+- Preserve freshness requirements, source availability, source authority,
+  completeness, and ambiguity exactly.
+- Do not declare whether retrieval is necessary.
+- If a source is stale or conflicting, make that detectable from dates,
+  provenance, or content rather than narrating the intended decision.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "user_request": "string",
+  "current_context": ["string"],
+  "local_artifacts": [{"name": "string", "description": "string", "date": "string|null"}],
+  "source_environment": {},
+  "agent_trace": "string",
+  "distractor_tags": ["string"]
+}
