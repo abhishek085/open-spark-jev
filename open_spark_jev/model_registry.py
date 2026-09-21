@@ -144,22 +144,13 @@ def add_entry(args: argparse.Namespace) -> None:
     render_index()
 
 
+RELEASED = {"v3-4b": "abhishek085/spark-s1-4b-v3", "v3-1.7b": "abhishek085/spark-s1-1.7b-v3"}
+
+
 def render_index(path: str = "docs/MODELS.md") -> None:
     lineage = load_lineage()
-    lines = [
-        "# Model registry",
-        "",
-        "Every trained variant of open-spark-Jev, in one place: what experiment it represents,",
-        "how it compares to Jev, and the fastest way to run it. Generated from",
-        f"`{LINEAGE_PATH}` by `python -m open_spark_jev.model_registry render` -- edit that file",
-        "and regenerate, don't hand-edit this one.",
-        "",
-        CONTRACT,
-        "",
-        "| id | date | mechanism | parent | overall acc | overall ECE | checkpoint dir |",
-        "|---|---|---|---|---|---|---|",
-    ]
-    for entry_id, entry in lineage.items():
+
+    def metrics(entry):
         acc = ece = "-"
         if entry.get("eval") and os.path.exists(entry["eval"]):
             with open(entry["eval"]) as f:
@@ -167,12 +158,37 @@ def render_index(path: str = "docs/MODELS.md") -> None:
             if "overall" in d:
                 acc = f"{d['overall'].get('accuracy', float('nan')):.3f}"
                 ece = f"{d['overall'].get('ece', float('nan')):.3f}"
+        return acc, ece
+
+    lines = [
+        "# Models",
+        "",
+        "Generated from `docs/model_lineage.yaml` by `python -m open_spark_jev.model_registry render`; edit that file, not this one.",
+        "",
+        CONTRACT,
+        "",
+        "## Released models",
+        "",
+        "Details, limits and pinned revisions: [MODEL_CARD.md](../MODEL_CARD.md).",
+        "",
+        "| release id | date | weights | recipe |",
+        "|---|---|---|---|",
+    ]
+    for entry_id, repo in RELEASED.items():
+        e = lineage.get(entry_id)
+        if e:
+            rid = repo.split("/")[-1]
+            lines.append(f"| `{rid}` | {e.get('date', '?')} | [{repo}](https://huggingface.co/{repo}) | {(e.get('mechanism') or '')[:110]}... |")
+    lines += ["", "## Research checkpoints (not released)", "",
+              "Earlier experiments on simulator and teacher-generated data, kept for comparison. Their numbers predate the os-datagen data and are not comparable with the released models; see [BENCHMARKS.md](BENCHMARKS.md) (B6-B8 and later) for how they were measured.",
+              "", "| id | date | mechanism | parent | overall acc | overall ECE | checkpoint dir |", "|---|---|---|---|---|---|---|"]
+    for entry_id, entry in lineage.items():
+        if entry_id in RELEASED:
+            continue
+        acc, ece = metrics(entry)
         mech_short = (entry.get("mechanism") or "")[:60]
-        card_link = f"`{entry['checkpoint']}`"  # checkpoints are not in git; released models have cards on Hugging Face and MODEL_CARD.md
-        lines.append(f"| {entry_id} | {entry.get('date', '?')} | {mech_short} | {entry.get('parent') or '-'} | {acc} | {ece} | {card_link} |")
-    lines += ["", "Full per-domain numbers and the honest before/after on any bug fixes are in "
-                    "[docs/BENCHMARKS.md](BENCHMARKS.md); the architecture side (non-training-mechanism "
-                    "experiments) is tracked separately in [docs/NOVELTY.md](NOVELTY.md)."]
+        lines.append(f"| {entry_id} | {entry.get('date', '?')} | {mech_short} | {entry.get('parent') or '-'} | {acc} | {ece} | `{entry['checkpoint']}` |")
+    lines += ["", "Architecture experiments (A0-A6) are tracked in [NOVELTY.md](NOVELTY.md); the run log is [RUNS.md](RUNS.md)."]
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w") as f:
         f.write("\n".join(lines) + "\n")
