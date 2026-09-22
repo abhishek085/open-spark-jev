@@ -50,7 +50,7 @@ The project currently supports three decision primitives:
 
 Several typed questions can be answered from the same state: the state is encoded once and each question adds only a short extra pass.
 
-> **This is a very early release.** The models are trained on under a thousand examples, they are not at parity with Jev, and they have known failure modes (see [Current Limitations](#current-limitations)). We are generating substantially more data and expanding what the models can decide.
+> **This is still an early-stage project.** The current release (`v5`) trains on 11,792 code/LLM-labelled decision rows across 49 Jev-style task packs — far more than the original ~1,000-row release, but still small next to Jev, and not at parity with it. It has known failure modes (see [Current Limitations](#current-limitations)); per-pack test counts are small for many of the newer packs.
 
 ---
 
@@ -277,12 +277,13 @@ The same 60 tool calls, answered by the **untrained model of the same size writi
 
 ## Current Limitations
 
-This is an early release. The models were trained on a small amount of decision data, and the limits are visible in several task families:
+This is an early release, narrowed on purpose to Jev-style decisions. Known gaps as of v5:
 
-- Agent next-action routing, urgency scoring, retrieval and termination gates, and answer sufficiency
-- Vulnerable-code detection (about 0.56, close to chance)
-- Boolean and Score calibration (only Choice has a fitted temperature)
-- Outcome-based calibration on unseen data (RLCD has not been applied to the released models)
+- General-purpose text classification and vulnerable-code detection are **out of scope for this release** — untested, not merely weak (v3/v4 measured vulnerable-code detection near chance, about 0.56)
+- RLCD (outcome-based calibration) made results **worse**, not better, in two separate attempts (v4 and v5) and is not applied to any released checkpoint
+- NVFP4 quantization costs real accuracy on the 1.7B (9-13 points across external sets, not shipped); the 4B tolerates it much better but has only been accuracy-checked on JevBench so far
+- Per-pack test counts are small for many of the 49 task packs; read per-pack numbers as noisy
+- Sensitive to how options are defined and to option order; recalibrate on your own labelled outcomes before relying on thresholds
 - Commands that weaken security settings, copy credentials out, or hide a cloud copy as a "backup"
 
 The project should not be treated as a production-ready decision engine for high-stakes applications.
@@ -296,13 +297,13 @@ The project should not be treated as a production-ready decision engine for high
 
 The training pipeline is included in the repository.
 
-**Phase 1: supervised fine-tuning** (`open_spark_jev/train/sft.py`). Multi-task decision examples with soft targets, cross-entropy plus a Brier regulariser, and per-type temperature fitting. The pipeline can use simulator-generated data, public datasets, teacher-generated data and the code-labelled `os-datagen` data. **The released v3 models used only the `os-datagen` rows.**
+**Phase 1: supervised fine-tuning** (`open_spark_jev/train/sft.py`). Multi-task decision examples with soft targets, cross-entropy plus a Brier regulariser, and per-type temperature fitting. The pipeline can use simulator-generated data, public datasets, teacher-generated data and the code-labelled `os-datagen` data. **The released v3 and v5 models used only the `os-datagen` rows** (v5 also adds code-only rule packs, where both the label and the surface text come from deterministic rules, no LLM in the loop).
 
-**Phase 2: RLCD experiments** (`open_spark_jev/train/rlcd.py`). TypeSafe refers to its calibration-oriented approach as RLCD, but has not released the mechanism, so this repository implements and evaluates two independent approaches: an academic contrastive approach and a direct calibration objective, using the full menu distribution from a single forward pass rather than PPO/GRPO-style token sampling. The goal is to investigate whether outcome-aware training improves the relationship between confidence and correctness. **It has not been applied to the released v3 models**; our first attempt showed the objective needs training rows the model has not memorised. See [docs/RESEARCH.md](docs/RESEARCH.md), [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) and `configs/train/`.
+**Phase 2: RLCD experiments** (`open_spark_jev/train/rlcd.py`). TypeSafe refers to its calibration-oriented approach as RLCD, but has not released the mechanism, so this repository implements and evaluates two independent approaches: an academic contrastive approach and a direct calibration objective, using the full menu distribution from a single forward pass rather than PPO/GRPO-style token sampling. The goal is to investigate whether outcome-aware training improves the relationship between confidence and correctness. **It has not been applied to any released checkpoint.** Tried twice so far (v4, then v5 on a pool filtered to rows the model got wrong or was unsure on) and made results worse both times, including a further collapse on the same prompt-injection pack it was meant to help. See [CHANGELOG.md](CHANGELOG.md), [docs/RESEARCH.md](docs/RESEARCH.md), [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) and `configs/train/`.
 
 ### Decision data factory
 
-The repository includes **os-datagen** (`datagen-pipeline/`), a code-labelled decision-data factory: policy engines, symbolic solvers, controlled worlds and a sandbox establish the labels, and a language model only writes the surface text, which an independent verifier checks. The released training data is on Hugging Face: [`spark-s1-osdg-v1`](https://huggingface.co/datasets/abhishek085/spark-s1-osdg-v1). The goal is a reusable recipe, not one fixed dataset: [docs/DATA.md](docs/DATA.md), [docs/COOKBOOK.md](docs/COOKBOOK.md).
+The repository includes **os-datagen** (`datagen-pipeline/`), a code-labelled decision-data factory: policy engines, symbolic solvers, controlled worlds and a sandbox establish the labels, and a language model only writes the surface text, which an independent verifier checks. An earlier subset of the training data is on Hugging Face: [`spark-s1-osdg-v1`](https://huggingface.co/datasets/abhishek085/spark-s1-osdg-v1) (967 rows); v5's full 11,792-row mix across 49 packs is not yet packaged as its own dataset release. The goal is a reusable recipe, not one fixed dataset: [docs/DATA.md](docs/DATA.md), [docs/COOKBOOK.md](docs/COOKBOOK.md).
 
 ```text
 Choose a backbone → Define decision tasks → Create domain simulators → Generate decision data
@@ -326,7 +327,7 @@ scripts/download_weights.sh Qwen/Qwen3-4B  # a backbone, to train your own
 scripts/make_data.sh && scripts/train_sft.sh && scripts/train_rlcd_direct.sh   # train
 scripts/eval.sh hf checkpoints/rlcd-direct-qwen3-1.7b                          # evaluate
 deploy/spark/pull_trtllm.sh                                                    # TensorRT-LLM container
-deploy/spark/quantize.sh configs/quant/fp8.yaml checkpoints/rlcd-qwen3-1.7b    # quantize (no engines released yet)
+deploy/spark/quantize.sh configs/quant/fp8.yaml checkpoints/v5-4b             # quantize; see spark-s1-4b-v5-nvfp4 on HF for a released NVFP4 example
 ```
 
 See [docs/DGX_SPARK.md](docs/DGX_SPARK.md) for Spark-specific configuration, containers, kernels, quantization and serving.
@@ -340,6 +341,7 @@ See [docs/DGX_SPARK.md](docs/DGX_SPARK.md) for Spark-specific configuration, con
 | `POST /v1/gate` | Tool-call approval: `spark-s1` distribution plus deterministic rules, returns `allow` / `ask` / `deny` |
 | `POST /v1/decide` | Typed questions over a state, with per-decision probabilities, confidence, margin, entropy and latency |
 | `POST /v1/evaluate` | Jev-style wire format, so existing Jev client patterns can be tried against a local server |
+| `POST /v1/systemone` | Alias of `/v1/evaluate` for clients expecting JevBench's wire format |
 
 ```json
 {
@@ -375,12 +377,11 @@ open-spark-jev/
 
 ## Roadmap
 
-- Larger and more diverse decision datasets, and more task families
-- Better calibration across Choice, Score and Noul
-- Outcome-based calibration training on unseen data
+- Larger and more diverse decision datasets, and more task families (v5 grew this from 15 to 49 packs; still ongoing)
+- Revisit outcome-based calibration: RLCD made results worse in both attempts so far (v4, v5); needs a different approach before trying again
 - Additional decision-head and per-option scoring experiments
 - More extensive external evaluation, and a locked release holdout
-- FP8 / NVFP4 inference and more local deployment configurations
+- NVFP4 for the 1.7B without the current accuracy cost (shipped for the 4B in v5), and more local deployment configurations
 - Domain-specific decision recipes
 
 See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md), and [docs/RUNS.md](docs/RUNS.md).
