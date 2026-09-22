@@ -195,6 +195,7 @@ def decide(body: dict[str, Any] = Body(...)):
     return DecisionResponse(answers=answers, model=getattr(backend, "model_id", getattr(backend, "name", "?")), latency_ms=ms, state_tokens=-1, backend=BACKEND_KIND).model_dump()
 
 
+@app.post("/v1/systemone", include_in_schema=False)  # alias: clients written for the hosted TypeSafe route (e.g. benchmark harnesses) work unchanged
 @app.post("/v1/evaluate")
 def evaluate(req: JevRequest):
     backend = get_backend(req.model)

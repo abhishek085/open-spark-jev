@@ -95,12 +95,21 @@ def main() -> None:
     ap.add_argument("--dir", default="data/benchmarks/external")
     ap.add_argument("--sources", nargs="*")
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--endpoint", help="score a model served over an OpenAI-compatible API (vLLM, trtllm-serve) instead of loading --model in-process")
+    ap.add_argument("--calibration-json", help="calibration.json to use with --endpoint (defaults to <model>/calibration.json)")
     a = ap.parse_args()
 
     from ..experimental.variant_scorer import VariantScorer, is_variant
     from ..model import MenuScorer
 
-    scorer = VariantScorer(a.model) if is_variant(a.model) else MenuScorer(a.model, use_state_cache=False)
+    if a.endpoint:
+        from ..model import Calibration
+        from ..serve.client import OpenAICompletionsBackend
+
+        cj = a.calibration_json or os.path.join(a.model, "calibration.json")
+        scorer = OpenAICompletionsBackend(a.endpoint, calibration=Calibration.load(cj) if os.path.exists(cj) else None)
+    else:
+        scorer = VariantScorer(a.model) if is_variant(a.model) else MenuScorer(a.model, use_state_cache=False)
     files = sorted(glob.glob(os.path.join(a.dir, "*.jsonl")))
     res = {}
     for f in files:

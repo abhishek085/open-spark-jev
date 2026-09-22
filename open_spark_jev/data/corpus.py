@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from typing import Any
@@ -90,10 +91,16 @@ def write_jsonl(path: str, records: Iterable[Record], append: bool = False) -> i
     return n
 
 
+def _base_id(record_id: str) -> str:
+    """Option-permuted copies are written as <id>-p<k>; they must stay on the same side of a split as their source row."""
+    return re.sub(r"-p\d+$", "", record_id)
+
+
 def split_records(records: list[Record], val_frac: float = 0.1, seed: int = 0) -> tuple[list[Record], list[Record]]:
+    """Group-aware split: every row sharing a base id (a row and its option-permuted copies) goes to the same side, so the validation set,
+    and the temperature fitted on it, is never contaminated by shuffled copies of training rows."""
+    bases = sorted({_base_id(r.id) for r in records})
     rng = random.Random(seed)
-    idx = list(range(len(records)))
-    rng.shuffle(idx)
-    n_val = int(len(idx) * val_frac)
-    val = {i for i in idx[:n_val]}
-    return [r for i, r in enumerate(records) if i not in val], [r for i, r in enumerate(records) if i in val]
+    rng.shuffle(bases)
+    val = set(bases[: int(len(bases) * val_frac)])
+    return [r for r in records if _base_id(r.id) not in val], [r for r in records if _base_id(r.id) in val]

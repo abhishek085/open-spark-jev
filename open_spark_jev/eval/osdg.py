@@ -62,8 +62,8 @@ def score_all(scorer, recs, perms):
     return rows
 
 
-def evaluate(scorer, model_label, name, perms=3, limit=0, target_sel=0.95):
-    data = {s: read_jsonl(f)[: limit or None] for s, f in SPLITS.items()}
+def evaluate(scorer, model_label, name, perms=3, limit=0, target_sel=0.95, splits=None):
+    data = {s: read_jsonl(f)[: limit or None] for s, f in (splits or SPLITS).items()}
     rows = {s: score_all(scorer, recs, perms) for s, recs in data.items()}
     out_dir = os.path.join("runs", "osdg", name)
     os.makedirs(out_dir, exist_ok=True)
@@ -137,13 +137,21 @@ def main() -> None:
     ap.add_argument("--perms", type=int, default=3)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--target-selective-acc", type=float, default=0.95)
+    ap.add_argument("--endpoint", help="score a model served over an OpenAI-compatible API instead of loading --model in-process")
+    ap.add_argument("--data-prefix", help="use <prefix>calibration.jsonl / <prefix>test_locked.jsonl / <prefix>challenge.jsonl instead of the osdg v1 splits")
     a = ap.parse_args()
 
     from ..experimental.variant_scorer import VariantScorer, is_variant
     from ..model import MenuScorer
 
-    scorer = VariantScorer(a.model) if is_variant(a.model) else MenuScorer(a.model, use_state_cache=False)
-    evaluate(scorer, a.model, a.name, a.perms, a.limit, a.target_selective_acc)
+    if a.endpoint:
+        from ..serve.client import OpenAICompletionsBackend
+
+        scorer = OpenAICompletionsBackend(a.endpoint)
+    else:
+        scorer = VariantScorer(a.model) if is_variant(a.model) else MenuScorer(a.model, use_state_cache=False)
+    splits = {k: f"{a.data_prefix}{k}.jsonl" for k in SPLITS} if a.data_prefix else None
+    evaluate(scorer, a.model, a.name, a.perms, a.limit, a.target_selective_acc, splits)
 
 
 if __name__ == "__main__":
