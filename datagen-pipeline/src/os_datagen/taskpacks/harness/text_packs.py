@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import random
 import re
+import typing
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -105,7 +106,14 @@ def _make(spec: Spec) -> type[BaseTaskPack]:
             return {**spec.const_state, **{k: surface[k] for k in spec.state_fields}}
 
         def template_surface(self, world: ScenarioWorld) -> dict[str, Any]:
-            return {k: ("sample" if t is str else [] if t is list else {}) for k, t in spec.fields.items()}
+            def default(t: Any) -> Any:
+                if t is str:
+                    return "sample"
+                if t is list or typing.get_origin(t) is list:  # covers plain `list` and generics like `list[str]`
+                    return ["sample"]
+                return {}
+
+            return {k: default(t) for k, t in spec.fields.items()}
 
     P.__name__ = P.__qualname__ = "".join(w.capitalize() for w in spec.name.split("_"))
     return P

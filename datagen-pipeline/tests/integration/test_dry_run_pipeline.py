@@ -155,12 +155,13 @@ def test_variants_change_option_order_not_truth(tmp_path):
     assert any([o["id"] for o in a["decision"]["question"]["options"]] != [o["id"] for o in b["decision"]["question"]["options"]] for a, b in pairs)
 
 
-def test_all_fifteen_packs_run_end_to_end_dry(tmp_path):
+def test_all_packs_run_end_to_end_dry(tmp_path):
     from os_datagen.taskpacks.registry import pack_names
 
+    names = pack_names()
     p = Pipeline(_cfg(), tmp_path, FakeGenerator(), FakeVerifier(), None, dry_run=True)
-    s = p.run(pack_names(), {"train": 16, "calibration": 4, "locked_test": 4, "challenge": 4}, 7)
-    assert len(s["by_pack"]) == 15 and all(b["accepted"] > 0 for b in s["by_pack"].values())
+    s = p.run(names, {"train": 16, "calibration": 4, "locked_test": 4, "challenge": 4}, 7)
+    assert len(s["by_pack"]) == len(names) and all(b["accepted"] > 0 for b in s["by_pack"].values())
     types = {r["decision"]["type"] for f in ("accepted_train.jsonl",) for r in read_jsonl(tmp_path / f)}
     assert types == {"choice", "score", "boolean"}  # all three primitives present
 
