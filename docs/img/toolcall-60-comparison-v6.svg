@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="1000" height="520" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="1000" height="520" fill="#fcfcfb"/>
+<text x="40" y="42" font-size="22" font-weight="600" fill="#0b0b0b">spark-s1-4b-v6 vs Jev on the 60-case tool-call diagnostic set</text>
+<text x="40" y="64" font-size="13" fill="#52514e">Same 60 hand-labelled agent tool calls, three risk postures. Jev is its recorded hosted run; spark-s1 ran locally on one DGX Spark via vLLM (bf16, batch 1).</text>
+<text x="40" y="106" font-size="16" font-weight="600" fill="#0b0b0b">Accuracy</text>
+<line x1="220.0" y1="118" x2="220.0" y2="202" stroke="#e4e3df"/><text x="220.0" y="220" font-size="12" fill="#8a8985" text-anchor="middle">0.00</text>
+<line x1="320.0" y1="118" x2="320.0" y2="202" stroke="#e4e3df"/><text x="320.0" y="220" font-size="12" fill="#8a8985" text-anchor="middle">0.25</text>
+<line x1="420.0" y1="118" x2="420.0" y2="202" stroke="#e4e3df"/><text x="420.0" y="220" font-size="12" fill="#8a8985" text-anchor="middle">0.50</text>
+<line x1="520.0" y1="118" x2="520.0" y2="202" stroke="#e4e3df"/><text x="520.0" y="220" font-size="12" fill="#8a8985" text-anchor="middle">0.75</text>
+<line x1="620.0" y1="118" x2="620.0" y2="202" stroke="#e4e3df"/><text x="620.0" y="220" font-size="12" fill="#8a8985" text-anchor="middle">1.00</text>
+<text x="206" y="147" font-size="14" fill="#0b0b0b" text-anchor="end" >Jev (hosted)</text>
+<rect x="220" y="130" width="366.7" height="24" rx="4" fill="#0b0b0b"><title>Jev (hosted) accuracy 0.917</title></rect>
+<text x="670" y="147" font-size="14" fill="#0b0b0b" text-anchor="end">0.917</text>
+<text x="206" y="187" font-size="14" fill="#0b0b0b" text-anchor="end" font-weight="600">spark-s1-4b-v6</text>
+<rect x="220" y="170" width="360.0" height="24" rx="4" fill="#eb6834"><title>spark-s1-4b-v6 accuracy 0.900</title></rect>
+<text x="670" y="187" font-size="14" fill="#0b0b0b" text-anchor="end">0.900</text>
+<text x="700" y="106" font-size="16" font-weight="600" fill="#0b0b0b">p50 latency (log scale, ms)</text>
+<line x1="760.0" y1="118" x2="760.0" y2="202" stroke="#e4e3df"/><text x="760.0" y="220" font-size="11" fill="#8a8985" text-anchor="middle">10</text>
+<line x1="860.0" y1="118" x2="860.0" y2="202" stroke="#e4e3df"/><text x="860.0" y="220" font-size="11" fill="#8a8985" text-anchor="middle">100</text>
+<line x1="960.0" y1="118" x2="960.0" y2="202" stroke="#e4e3df"/><text x="960.0" y="220" font-size="11" fill="#8a8985" text-anchor="middle">1000</text>
+<circle cx="922.5" cy="142" r="7" fill="#0b0b0b"><title>Jev (hosted) p50 421.6ms</title></circle>
+<text x="936.5" y="147" font-size="12" fill="#52514e">422ms</text>
+<circle cx="847.4" cy="182" r="7" fill="#eb6834"><title>spark-s1-4b-v6 p50 74.9ms</title></circle>
+<text x="861.4" y="187" font-size="12" fill="#52514e">75ms</text>
+<text x="40" y="280" font-size="16" font-weight="600" fill="#0b0b0b">Accuracy by risk posture</text>
+<line x1="220.0" y1="304" x2="220.0" y2="490" stroke="#e4e3df"/>
+<text x="220.0" y="508" font-size="12" fill="#8a8985" text-anchor="middle">0.00</text>
+<line x1="390.0" y1="304" x2="390.0" y2="490" stroke="#e4e3df"/>
+<text x="390.0" y="508" font-size="12" fill="#8a8985" text-anchor="middle">0.25</text>
+<line x1="560.0" y1="304" x2="560.0" y2="490" stroke="#e4e3df"/>
+<text x="560.0" y="508" font-size="12" fill="#8a8985" text-anchor="middle">0.50</text>
+<line x1="730.0" y1="304" x2="730.0" y2="490" stroke="#e4e3df"/>
+<text x="730.0" y="508" font-size="12" fill="#8a8985" text-anchor="middle">0.75</text>
+<line x1="900.0" y1="304" x2="900.0" y2="490" stroke="#e4e3df"/>
+<text x="900.0" y="508" font-size="12" fill="#8a8985" text-anchor="middle">1.00</text>
+<text x="206" y="342" font-size="13" fill="#0b0b0b" text-anchor="end">Clear (low risk)</text>
+<rect x="220" y="314" width="680.0" height="22" rx="3" fill="#0b0b0b"><title>Jev (hosted) Clear (low risk): 1.000</title></rect>
+<text x="908.0" y="329" font-size="12" fill="#0b0b0b">1.000</text>
+<rect x="220" y="340" width="680.0" height="22" rx="3" fill="#eb6834"><title>spark-s1-4b-v6 Clear (low risk): 1.000</title></rect>
+<text x="908.0" y="355" font-size="12" fill="#0b0b0b">1.000</text>
+<text x="206" y="404" font-size="13" fill="#0b0b0b" text-anchor="end">Ambiguous</text>
+<rect x="220" y="376" width="485.7" height="22" rx="3" fill="#0b0b0b"><title>Jev (hosted) Ambiguous: 0.714</title></rect>
+<text x="713.7" y="391" font-size="12" fill="#0b0b0b">0.714</text>
+<rect x="220" y="402" width="388.6" height="22" rx="3" fill="#eb6834"><title>spark-s1-4b-v6 Ambiguous: 0.571</title></rect>
+<text x="616.6" y="417" font-size="12" fill="#0b0b0b">0.571</text>
+<text x="206" y="466" font-size="13" fill="#0b0b0b" text-anchor="end">Adversarial</text>
+<rect x="220" y="438" width="623.4" height="22" rx="3" fill="#0b0b0b"><title>Jev (hosted) Adversarial: 0.917</title></rect>
+<text x="851.4" y="453" font-size="12" fill="#0b0b0b">0.917</text>
+<rect x="220" y="464" width="680.0" height="22" rx="3" fill="#eb6834"><title>spark-s1-4b-v6 Adversarial: 1.000</title></rect>
+<text x="908.0" y="479" font-size="12" fill="#0b0b0b">1.000</text>
+<rect x="300" y="244" width="14" height="14" rx="3" fill="#0b0b0b"/>
+<text x="320" y="256" font-size="12" fill="#52514e">Jev (hosted)</text>
+<rect x="434" y="244" width="14" height="14" rx="3" fill="#eb6834"/>
+<text x="454" y="256" font-size="12" fill="#52514e">spark-s1-4b-v6</text>
+</svg>

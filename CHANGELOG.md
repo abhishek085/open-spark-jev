@@ -2,6 +2,27 @@
 
 Format follows Keep a Changelog. Release ids are `spark-s1-<size>-v<n>`.
 
+## [0.3.0] - 2026-09-22
+
+### Added
+- `spark-s1-4b-v6`: same v5 data, scope and LoRA recipe, backbone swapped from Qwen3-4B to Qwen3.5-4B (hybrid: 24 Gated DeltaNet
+  linear-attention layers + 8 full-attention layers, of 32 total). LoRA target modules extended to cover the linear-attention layers' own
+  projections so all 32 layers are adapted. Own-split accuracy +6.2/+5.0 points over v5-4b, JevBench public-tier Intelligence 74.2 -> 83.1.
+- `spark-s1-4b-v6-nvfp4`: NVFP4 (MLP-only) quantization of v6-4b, same recipe as v5-4b-nvfp4. Unlike v5-4b's ~1.9-point Intelligence cost, v6's
+  quantization cost is not measurable (83.1 -> 83.2). 1.40x faster via vLLM (smaller than v5's 1.66x, since only the MLP is quantized and the
+  hybrid backbone carries relatively more compute in unquantized attention paths).
+- NVFP4 PTQ workflow now runs directly against this repo's own venv with a current `nvidia-modelopt` (0.46.1) instead of the bundled
+  TensorRT-LLM container, whose pinned `nvidia-modelopt` (0.37.0, transformers<4.57) predates Qwen3.5 support.
+
+### Findings (not shipped)
+- Backbone swap is not a clean win: two of five external Jev-style sets regressed slightly (`ext-injection-noctx` -3.6, `ext-toolcall-risk`
+  -1.7) even as own-splits and JevBench improved substantially.
+- `causal_conv1d` and `flash-linear-attention` are not installed, so HF Transformers in-process training and serving fall back to slow
+  reference-kernel implementations for the linear-attention layers (~31-34s/step training vs v5-4b's ~18s/step). vLLM is unaffected — it has
+  its own fast native kernels for this architecture and is the recommended serving path.
+- The state-cache optimization (encode the state once, answer several questions cheaply) falls back to a full forward pass per question on
+  this backbone; results are correct, just without the multi-question speedup.
+
 ## [0.2.0] - 2026-09-22
 
 ### Added

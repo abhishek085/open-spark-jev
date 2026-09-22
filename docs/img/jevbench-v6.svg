@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 420" width="980" height="420" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="980" height="420" fill="#fcfcfb"/>
+<text x="40" y="42" font-size="22" font-weight="600" fill="#0b0b0b">spark-s1-4b-v6: JevBench public-tier accuracy</text>
+<text x="40" y="64" font-size="13" fill="#52514e">Benchmark Heaven's JevBench v1.2, public items only (231 of 534). Same-methodology comparison across our own variants.</text>
+<rect x="40" y="86" width="14" height="14" rx="3" fill="#2a78d6"/>
+<text x="60" y="97" font-size="13" fill="#52514e">spark-s1-4b-v6 (bf16)</text>
+<rect x="239" y="86" width="14" height="14" rx="3" fill="#eb6834"/>
+<text x="259" y="97" font-size="13" fill="#52514e">spark-s1-4b-v6-nvfp4</text>
+<line x1="260.0" y1="120" x2="260.0" y2="398" stroke="#e4e3df"/>
+<text x="260.0" y="414" font-size="12" fill="#8a8985" text-anchor="middle">0.00</text>
+<line x1="400.0" y1="120" x2="400.0" y2="398" stroke="#e4e3df"/>
+<text x="400.0" y="414" font-size="12" fill="#8a8985" text-anchor="middle">0.25</text>
+<line x1="540.0" y1="120" x2="540.0" y2="398" stroke="#e4e3df"/>
+<text x="540.0" y="414" font-size="12" fill="#8a8985" text-anchor="middle">0.50</text>
+<line x1="680.0" y1="120" x2="680.0" y2="398" stroke="#e4e3df"/>
+<text x="680.0" y="414" font-size="12" fill="#8a8985" text-anchor="middle">0.75</text>
+<line x1="820.0" y1="120" x2="820.0" y2="398" stroke="#e4e3df"/>
+<text x="820.0" y="414" font-size="12" fill="#8a8985" text-anchor="middle">1.00</text>
+<text x="244" y="160" font-size="15" font-weight="600" fill="#0b0b0b" text-anchor="end">easy</text>
+<text x="244" y="178" font-size="12" fill="#8a8985" text-anchor="end">n=48</text>
+<rect x="260" y="130" width="560.0" height="26" rx="4" fill="#2a78d6"><title>spark-s1-4b-v6 (bf16) easy: 1.000</title></rect>
+<text x="830.0" y="148.0" font-size="13" fill="#0b0b0b">1.000</text>
+<rect x="260" y="162" width="560.0" height="26" rx="4" fill="#eb6834"><title>spark-s1-4b-v6-nvfp4 easy: 1.000</title></rect>
+<text x="830.0" y="180.0" font-size="13" fill="#0b0b0b">1.000</text>
+<text x="244" y="256" font-size="15" font-weight="600" fill="#0b0b0b" text-anchor="end">standard</text>
+<text x="244" y="274" font-size="12" fill="#8a8985" text-anchor="end">n=72</text>
+<rect x="260" y="226" width="560.0" height="26" rx="4" fill="#2a78d6"><title>spark-s1-4b-v6 (bf16) standard: 1.000</title></rect>
+<text x="830.0" y="244.0" font-size="13" fill="#0b0b0b">1.000</text>
+<rect x="260" y="258" width="544.4" height="26" rx="4" fill="#eb6834"><title>spark-s1-4b-v6-nvfp4 standard: 0.972</title></rect>
+<text x="814.4" y="276.0" font-size="13" fill="#0b0b0b">0.972</text>
+<text x="244" y="352" font-size="15" font-weight="600" fill="#0b0b0b" text-anchor="end">hard</text>
+<text x="244" y="370" font-size="12" fill="#8a8985" text-anchor="end">n=111</text>
+<rect x="260" y="322" width="333.0" height="26" rx="4" fill="#2a78d6"><title>spark-s1-4b-v6 (bf16) hard: 0.595</title></rect>
+<text x="603.0" y="340.0" font-size="13" fill="#0b0b0b">0.595</text>
+<rect x="260" y="354" width="348.1" height="26" rx="4" fill="#eb6834"><title>spark-s1-4b-v6-nvfp4 hard: 0.622</title></rect>
+<text x="618.1" y="372.0" font-size="13" fill="#0b0b0b">0.622</text>
+</svg>

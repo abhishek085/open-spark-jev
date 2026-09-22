@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" width="1100" height="720" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="1100" height="720" fill="#fcfcfb"/>
+<text x="40" y="42" font-size="22" font-weight="600" fill="#0b0b0b">spark-s1-4b-v6 vs Kev vs Jev on Kev's out-of-domain suite</text>
+<text x="40" y="64" font-size="13" fill="#52514e">Kev transfer-v4: 764 items per partition, sources neither Kev nor spark-s1 trained on (Jev unknown). Kev and Jev numbers are Kev's published ones; spark-s1 measured by us.</text>
+<line x1="230.0" y1="100" x2="230.0" y2="322" stroke="#e4e3df"/>
+<text x="230.0" y="340" font-size="12" fill="#8a8985" text-anchor="middle">0.00</text>
+<line x1="387.5" y1="100" x2="387.5" y2="322" stroke="#e4e3df"/>
+<text x="387.5" y="340" font-size="12" fill="#8a8985" text-anchor="middle">0.25</text>
+<line x1="545.0" y1="100" x2="545.0" y2="322" stroke="#e4e3df"/>
+<text x="545.0" y="340" font-size="12" fill="#8a8985" text-anchor="middle">0.50</text>
+<line x1="702.5" y1="100" x2="702.5" y2="322" stroke="#e4e3df"/>
+<text x="702.5" y="340" font-size="12" fill="#8a8985" text-anchor="middle">0.75</text>
+<line x1="860.0" y1="100" x2="860.0" y2="322" stroke="#e4e3df"/>
+<text x="860.0" y="340" font-size="12" fill="#8a8985" text-anchor="middle">1.00</text>
+<text x="216" y="127" font-size="14" fill="#0b0b0b" text-anchor="end" >Jev (hosted)</text>
+<rect x="230" y="110" width="539.9" height="24" rx="4" fill="#0b0b0b"><title>Jev (hosted) development accuracy 0.857</title></rect>
+<text x="905" y="127" font-size="13" fill="#0b0b0b" text-anchor="end">0.857</text>
+<text x="1000" y="127" font-size="13" fill="#52514e" text-anchor="end">-</text>
+<text x="216" y="171" font-size="14" fill="#0b0b0b" text-anchor="end" >Kev-8B</text>
+<rect x="230" y="154" width="501.5" height="24" rx="4" fill="#2a78d6"><title>Kev-8B development accuracy 0.796</title></rect>
+<text x="905" y="171" font-size="13" fill="#0b0b0b" text-anchor="end">0.796</text>
+<text x="1000" y="171" font-size="13" fill="#52514e" text-anchor="end">0.780</text>
+<circle cx="721.4" cy="166.0" r="6" fill="#fcfcfb" stroke="#0b0b0b" stroke-width="2"><title>Kev-8B locked test accuracy 0.780</title></circle>
+<text x="216" y="215" font-size="14" fill="#0b0b0b" text-anchor="end" >Kev-4B</text>
+<rect x="230" y="198" width="497.7" height="24" rx="4" fill="#2a78d6"><title>Kev-4B development accuracy 0.790</title></rect>
+<text x="905" y="215" font-size="13" fill="#0b0b0b" text-anchor="end">0.790</text>
+<text x="1000" y="215" font-size="13" fill="#52514e" text-anchor="end">0.806</text>
+<circle cx="737.8" cy="210.0" r="6" fill="#fcfcfb" stroke="#0b0b0b" stroke-width="2"><title>Kev-4B locked test accuracy 0.806</title></circle>
+<text x="216" y="259" font-size="14" fill="#0b0b0b" text-anchor="end" font-weight="600">spark-s1-4b-v6</text>
+<rect x="230" y="242" width="476.6" height="24" rx="4" fill="#eb6834"><title>spark-s1-4b-v6 development accuracy 0.756</title></rect>
+<text x="905" y="259" font-size="13" fill="#0b0b0b" text-anchor="end">0.756</text>
+<text x="1000" y="259" font-size="13" fill="#52514e" text-anchor="end">0.787</text>
+<circle cx="725.6" cy="254.0" r="6" fill="#fcfcfb" stroke="#0b0b0b" stroke-width="2"><title>spark-s1-4b-v6 locked test accuracy 0.787</title></circle>
+<text x="216" y="303" font-size="14" fill="#0b0b0b" text-anchor="end" >Kev-0.6B</text>
+<rect x="230" y="286" width="390.6" height="24" rx="4" fill="#2a78d6"><title>Kev-0.6B development accuracy 0.620</title></rect>
+<text x="905" y="303" font-size="13" fill="#0b0b0b" text-anchor="end">0.620</text>
+<text x="1000" y="303" font-size="13" fill="#52514e" text-anchor="end">0.642</text>
+<circle cx="634.5" cy="298.0" r="6" fill="#fcfcfb" stroke="#0b0b0b" stroke-width="2"><title>Kev-0.6B locked test accuracy 0.642</title></circle>
+<text x="905" y="90" font-size="12" font-weight="600" fill="#52514e" text-anchor="end">dev</text>
+<text x="1000" y="90" font-size="12" font-weight="600" fill="#52514e" text-anchor="end">locked test</text>
+<text x="40" y="380" font-size="16" font-weight="600" fill="#0b0b0b">spark-s1-4b-v6 accuracy by source, development partition</text>
+<line x1="260.0" y1="404" x2="260.0" y2="628" stroke="#e4e3df"/>
+<text x="260.0" y="646" font-size="12" fill="#8a8985" text-anchor="middle">0.2</text>
+<line x1="445.0" y1="404" x2="445.0" y2="628" stroke="#e4e3df"/>
+<text x="445.0" y="646" font-size="12" fill="#8a8985" text-anchor="middle">0.4</text>
+<line x1="630.0" y1="404" x2="630.0" y2="628" stroke="#e4e3df"/>
+<text x="630.0" y="646" font-size="12" fill="#8a8985" text-anchor="middle">0.6</text>
+<line x1="815.0" y1="404" x2="815.0" y2="628" stroke="#e4e3df"/>
+<text x="815.0" y="646" font-size="12" fill="#8a8985" text-anchor="middle">0.8</text>
+<line x1="1000.0" y1="404" x2="1000.0" y2="628" stroke="#e4e3df"/>
+<text x="1000.0" y="646" font-size="12" fill="#8a8985" text-anchor="middle">1.0</text>
+<text x="246" y="430" font-size="13" fill="#0b0b0b" text-anchor="end">QNLI (entailment)</text>
+<rect x="260" y="414" width="578.1" height="22" rx="3" fill="#eb6834"><title>QNLI (entailment): 0.825</title></rect>
+<text x="846.1" y="429" font-size="12" fill="#0b0b0b">0.825</text>
+<text x="246" y="462" font-size="13" fill="#0b0b0b" text-anchor="end">SciQ (science QA)</text>
+<rect x="260" y="446" width="708.1" height="22" rx="3" fill="#eb6834"><title>SciQ (science QA): 0.966</title></rect>
+<text x="976.1" y="461" font-size="12" fill="#0b0b0b">0.966</text>
+<text x="246" y="494" font-size="13" fill="#0b0b0b" text-anchor="end">TweetEval offensive</text>
+<rect x="260" y="478" width="439.4" height="22" rx="3" fill="#eb6834"><title>TweetEval offensive: 0.675</title></rect>
+<text x="707.4" y="493" font-size="12" fill="#0b0b0b">0.675</text>
+<text x="246" y="526" font-size="13" fill="#0b0b0b" text-anchor="end">PAWS (paraphrase)</text>
+<rect x="260" y="510" width="543.4" height="22" rx="3" fill="#eb6834"><title>PAWS (paraphrase): 0.787</title></rect>
+<text x="811.4" y="525" font-size="12" fill="#0b0b0b">0.787</text>
+<text x="246" y="558" font-size="13" fill="#0b0b0b" text-anchor="end">Emotion (noisy labels)</text>
+<rect x="260" y="542" width="325.3" height="22" rx="3" fill="#eb6834"><title>Emotion (noisy labels): 0.552</title></rect>
+<text x="593.3" y="557" font-size="12" fill="#0b0b0b">0.552</text>
+<text x="246" y="590" font-size="13" fill="#0b0b0b" text-anchor="end">MMLU (knowledge)</text>
+<rect x="260" y="574" width="468.9" height="22" rx="3" fill="#eb6834"><title>MMLU (knowledge): 0.707</title></rect>
+<text x="736.9" y="589" font-size="12" fill="#0b0b0b">0.707</text>
+<text x="246" y="622" font-size="13" fill="#0b0b0b" text-anchor="end">Deadline (date arithmetic)</text>
+<rect x="260" y="606" width="416.2" height="22" rx="3" fill="#eb6834"><title>Deadline (date arithmetic): 0.650</title></rect>
+<text x="684.2" y="621" font-size="12" fill="#0b0b0b">0.650</text>
+</svg>

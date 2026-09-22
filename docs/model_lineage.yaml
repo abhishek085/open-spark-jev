@@ -146,3 +146,22 @@ v5-1.7b:
   notes: 'Recovered the injection-with-context regression an interim v4 candidate introduced (0.819 -> 0.634 on v4; 0.813 on v5, close to v3). RLCD-direct
     tried on a hard-mined subset of unseen rows and made every metric worse, including a further injection-with-context collapse to 0.468; not applied.
     NVFP4 (MLP-only) PTQ cost 9-13 accuracy points across external sets; not shipped.'
+
+v6-4b:
+  date: '2026-09-22'
+  checkpoint: checkpoints/v6-4b
+  parent: v5-4b
+  eval: null
+  mechanism: 'spark-s1-4b-v6. Same data, scope and LoRA recipe as v5-4b (11,792 rows / 19,568 examples, 49 packs, 1 epoch, lr 5e-5); backbone swapped
+    Qwen3-4B -> Qwen3.5-4B, a hybrid architecture (24 Gated DeltaNet linear-attention layers + 8 full-attention layers, of 32 total). LoRA target
+    modules extended to cover the linear-attention layers'' own projections (in_proj_qkv/z/b/a, out_proj) so all 32 layers are adapted. All question
+    types calibrated (choice 2.491, score 1.255, noul 1.608, fitted on the calibration split).'
+  jev_comparison: 'Same contract and readout as v5-4b. Own locked test 0.929 / challenge 0.911 (v5-4b: 0.867/0.861). JevBench public tiers
+    (easy/standard/hard): 1.000/1.000/0.595, public-proxy Intelligence 83.1 (v5-4b: 74.2). NVFP4 (MLP-only) 1.000/0.972/0.622, Intelligence 83.2 --
+    no measurable accuracy cost from quantization, unlike v5-4b''s ~1.9-point cost.'
+  notes: 'Backbone swap is not a clean win: ext-injection-noctx -3.6pts and ext-toolcall-risk -1.7pts vs v5-4b even as own-splits and JevBench improved
+    substantially. causal_conv1d and flash-linear-attention are not installed, so HF Transformers in-process training/serving fall back to slow
+    reference kernels for the linear-attention layers (~31-34s/step training vs v5-4b''s ~18s/step); vLLM has its own fast native kernels for this
+    architecture and is unaffected. The state-cache multi-question optimization falls back to a full forward pass per question on this backbone
+    (LinearAttentionLayer has no batch_repeat_interleave) -- correct, just without the speedup. Latency via vLLM: bf16 74.9ms/13.3 dec-s, NVFP4
+    53.3ms/18.6 dec-s (1.40x, smaller than v5''s 1.66x since only the MLP is quantized). 4B only this release, no v6-1.7b.'
