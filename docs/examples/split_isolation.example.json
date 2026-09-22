@@ -1,0 +1,195 @@
+{
+  "declared_style_families": {
+    "calibration": [
+      "calibration_family_a"
+    ],
+    "challenge": [
+      "challenge_family_a"
+    ],
+    "locked_test": [
+      "locked_test_family_a"
+    ],
+    "train": [
+      "train_family_a",
+      "train_family_b"
+    ]
+  },
+  "entity_pools": {
+    "pool_a": [
+      "train"
+    ],
+    "pool_b": [
+      "calibration"
+    ],
+    "pool_c": [
+      "locked_test"
+    ],
+    "pool_d": [
+      "challenge"
+    ]
+  },
+  "heldout_families": {
+    "foundation_authorization_gate_v1": [
+      "role_permission_match",
+      "owner_approval_given",
+      "temporary_access"
+    ],
+    "foundation_communication_intent_v1": [
+      "status_update",
+      "typo_heavy",
+      "information_request",
+      "cancellation"
+    ],
+    "foundation_communication_urgency_v1": [
+      "broad_outage",
+      "safety_report",
+      "routine_request"
+    ],
+    "foundation_document_relevance_v1": [
+      "wrong_time_period",
+      "multi_document_requirement"
+    ],
+    "foundation_document_type_v1": [
+      "misleading_filename",
+      "report",
+      "meeting_note",
+      "invoice"
+    ],
+    "foundation_extraction_validation_v1": [
+      "dates_times",
+      "swapped_roles",
+      "relations"
+    ],
+    "foundation_rule_application_v1": [
+      "implication_chain",
+      "category_membership"
+    ],
+    "foundation_semantic_entailment_v1": [
+      "direct_fact",
+      "ambiguous_wording"
+    ],
+    "foundation_temporal_reasoning_v1": [
+      "recurring_schedule",
+      "policy_window",
+      "relative_dates"
+    ],
+    "harness_answer_sufficiency_v1": [
+      "missing_fact_in_context",
+      "missing_fact_unavailable",
+      "ambiguous_request"
+    ],
+    "harness_citation_support_v1": [
+      "unsupported_extra"
+    ],
+    "harness_clarify_or_act_v1": [
+      "missing_minor"
+    ],
+    "harness_content_moderation_gate_v1": [
+      "clean_neutral",
+      "scam_mild",
+      "clean_heated"
+    ],
+    "harness_context_pruning_v1": [
+      "needed_now",
+      "irrelevant"
+    ],
+    "harness_delegation_v1": [
+      "bulk_independent",
+      "ambiguous_but_inferable"
+    ],
+    "harness_error_recovery_v1": [
+      "rate_limit_short"
+    ],
+    "harness_memory_write_v1": [
+      "standing_instruction",
+      "durable_fact"
+    ],
+    "harness_message_manipulation_gate_v1": [
+      "benign_full_question",
+      "roleplay_jailbreak",
+      "prompt_reveal"
+    ],
+    "harness_model_routing_message_v1": [
+      "formatting_task",
+      "high_stakes_review",
+      "architecture_decision"
+    ],
+    "harness_next_action_router_v1": [
+      "constraint_conflict",
+      "local_context_answer"
+    ],
+    "harness_output_leak_v1": [
+      "leaks_system_prompt",
+      "safe_normal"
+    ],
+    "harness_passage_ranking_v1": [
+      "second_better"
+    ],
+    "harness_pii_in_prompt_v1": [
+      "phone_present",
+      "no_pii"
+    ],
+    "harness_plan_alignment_v1": [
+      "necessary_prerequisite"
+    ],
+    "harness_prompt_injection_gate_v1": [
+      "external_action_request",
+      "trusted_policy_instruction",
+      "indirect_injection"
+    ],
+    "harness_response_quality_v1": [
+      "good_but_hedged"
+    ],
+    "harness_retrieval_gate_v1": [
+      "answer_in_local_index",
+      "current_public_fact",
+      "stale_local_source"
+    ],
+    "harness_termination_gate_v1": [
+      "test_failure_code_defect",
+      "conflicting_signals"
+    ],
+    "harness_ticket_triage_v1": [
+      "forwarded_thread",
+      "mixed_signal"
+    ],
+    "harness_tool_action_gate_v1": [
+      "missing_required_argument",
+      "unavailable_tool_no_alternative",
+      "retry_unchanged_failure"
+    ],
+    "harness_tool_call_check_v1": [
+      "missing_argument",
+      "correct_but_unusual"
+    ],
+    "harness_trace_review_urgency_v1": [
+      "report_mismatch"
+    ],
+    "harness_trace_state_v1": [
+      "progressing"
+    ],
+    "harness_urgency_flag_v1": [
+      "real_deadline",
+      "loud_but_not_urgent"
+    ]
+  },
+  "ok": true,
+  "template_families": {
+    "calibration_family_a": [
+      "calibration"
+    ],
+    "challenge_family_a": [
+      "challenge"
+    ],
+    "locked_test_family_a": [
+      "locked_test"
+    ],
+    "train_family_a": [
+      "train"
+    ],
+    "train_family_b": [
+      "train"
+    ]
+  },
+  "violations": []
+}
