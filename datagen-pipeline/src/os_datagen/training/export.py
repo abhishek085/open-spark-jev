@@ -58,7 +58,7 @@ def _row_jev(r: dict[str, Any]) -> dict[str, Any]:
     dist = _dist(r, ids)
     return {
         "id": r["record_id"], "domain": r["task_pack"], "source": "os-datagen:synthetic",
-        "state": {"content": r["decision"]["state"], "schema_hint": f"{r['task_pack']} decision state (JSON)", "domain": r["task_pack"]},
+        "state": {"content": (r["decision"]["state"]["text"] if set(r["decision"]["state"]) == {"text"} else r["decision"]["state"]), "schema_hint": f"{r['task_pack']} decision state (JSON)", "domain": r["task_pack"]},
         "question": question,
         "target": {"label": to_label[pref], "dist": {to_label[i]: dist[i] for i in ids}},
         "meta": {"task_pack": r["task_pack"], "namespace": r["meta"].get("namespace"), "scenario_family": r["meta"].get("scenario_family"),

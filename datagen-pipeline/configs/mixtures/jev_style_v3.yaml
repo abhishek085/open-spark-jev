@@ -1,0 +1,14 @@
+# Jev-style only, harness-first. Core = the existing harness/security gates (where v4 is weakest: message-level injection, authorization, router, termination).
+# New = harness-engineering tasks from TypeSafe's use-case map (model routing, tool-call verification, response-quality/citation checks, context pruning,
+# re-ranking, trace monitoring, guardrails on inputs/outputs, delegation, memory, plan alignment, error recovery, urgency, ask-or-act) plus moderation and triage.
+# General-purpose packs (entailment, document type, rule application, temporal, extraction) are left out.
+targets:
+  core_harness: 0.40
+  new_harness: 0.60
+families:
+  core_harness: [harness_next_action_router_v1, harness_tool_action_gate_v1, harness_termination_gate_v1, harness_retrieval_gate_v1, harness_answer_sufficiency_v1,
+                 harness_prompt_injection_gate_v1, foundation_authorization_gate_v1, foundation_communication_urgency_v1, foundation_document_relevance_v1]
+  new_harness: [harness_message_manipulation_gate_v1, harness_model_routing_message_v1, harness_tool_call_check_v1, harness_response_quality_v1, harness_citation_support_v1,
+                harness_context_pruning_v1, harness_passage_ranking_v1, harness_trace_state_v1, harness_trace_review_urgency_v1, harness_pii_in_prompt_v1, harness_output_leak_v1,
+                harness_delegation_v1, harness_memory_write_v1, harness_plan_alignment_v1, harness_error_recovery_v1, harness_urgency_flag_v1, harness_clarify_or_act_v1,
+                harness_content_moderation_gate_v1, harness_ticket_triage_v1]

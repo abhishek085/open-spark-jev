@@ -179,6 +179,24 @@ def generate_mixture(
     _balance_mixture(out, spec["targets"])
 
 
+@app.command("generate-code-pack")
+def generate_code_pack(pack: str = "harness_tool_call_risk_v1", count: int = 9000, seed: int = 42, out: Path = Path("artifacts/toolrisk")) -> None:
+    """Generate a code-only pack (no LLM: grammar + rules establish the label) in the standard run layout."""
+    from .generation.code_packs import emit
+
+    if pack != emit.PACK:
+        raise typer.BadParameter(f"code-only packs: {emit.PACK}")
+    typer.echo(json.dumps(emit.write_run(out, count, seed), indent=1))
+
+
+@app.command("generate-use-case-packs")
+def generate_use_case_packs(count: int = 1500, seed: int = 2027, out: Path = Path("artifacts/jevuse_r1")) -> None:
+    """Code-only packs for Jev's structured use cases (entity resolution, fraud, financial triage, control, lead scoring, row validity, semantic grep). `count` is per pack."""
+    from .generation.code_packs import emit
+
+    typer.echo(json.dumps(emit.write_use_case_runs(out, count, seed), indent=1))
+
+
 @app.command("generate-only")
 def generate_only(
     task_pack: Annotated[list[str] | None, typer.Option("--task-pack", help="repeatable")] = None,

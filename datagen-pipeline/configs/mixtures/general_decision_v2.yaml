@@ -1,0 +1,20 @@
+# v2: weights the task families where spark-s1-v3 was weakest (router, urgency, retrieval, termination, answer sufficiency, temporal, authorization)
+# and keeps the strong ones (entailment, document type, rule application) smaller. Same pack-to-family mapping as v1.
+targets:
+  agent_harness: 0.30
+  search_rag: 0.22
+  general_reasoning: 0.12
+  communication_productivity: 0.10
+  security_policy: 0.10
+  general_semantic: 0.08
+  document_intelligence: 0.08
+  data_code_workflows: 0.0
+families:
+  general_semantic: [foundation_semantic_entailment_v1]
+  document_intelligence: [foundation_document_type_v1, foundation_extraction_validation_v1]
+  agent_harness: [harness_next_action_router_v1, harness_tool_action_gate_v1, harness_termination_gate_v1]
+  search_rag: [foundation_document_relevance_v1, harness_retrieval_gate_v1, harness_answer_sufficiency_v1]
+  general_reasoning: [foundation_rule_application_v1, foundation_temporal_reasoning_v1]
+  communication_productivity: [foundation_communication_intent_v1, foundation_communication_urgency_v1]
+  data_code_workflows: []
+  security_policy: [foundation_authorization_gate_v1, harness_prompt_injection_gate_v1]

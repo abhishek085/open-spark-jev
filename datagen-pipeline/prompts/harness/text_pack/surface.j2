@@ -1,0 +1,19 @@
+TASK_FAMILY: {{ task_family }}
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate one fictional test case for a benchmark of fast decision models used inside AI-agent harnesses.
+
+Requirements:
+- Write exactly the fields listed in OUTPUT_FIELDS, as JSON, following the NOTES.
+- Keep everything harmless and fictional: no real people or brands, no working exploit code, no real credentials.
+- Never state, hint at or comment on the correct answer, the class name, or what should be done.
+- Make the text read like real material a working system would see.
+
+OUTPUT_FIELDS: {{ schema_fields }}
+Return only JSON with those fields.

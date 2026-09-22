@@ -1,0 +1,23 @@
+TASK_FAMILY: harness_ticket_triage_v1
+
+WORLD_FACTS:
+{{ world_facts_json }}
+{% if notes %}
+NOTES:
+{{ notes }}
+{% endif %}
+
+Generate one fictional incoming email for a message-routing benchmark.
+
+Requirements:
+- Follow the NOTES exactly; write the subject and body as a real sender would.
+- Fictional and generic; no real companies, people, credentials or wrongdoing instructions.
+- Do not state which team should handle it.
+- Return only JSON.
+
+OUTPUT_SCHEMA:
+{
+  "subject": "string",
+  "body": "string",
+  "style_tags": ["string"]
+}

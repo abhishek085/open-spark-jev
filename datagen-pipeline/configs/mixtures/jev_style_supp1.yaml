@@ -1,0 +1,7 @@
+# Supplement round 1: message-level manipulation/jailbreak gating (the injection-with-context regression) and the harness packs that yielded fewest rows in harness_r1.
+targets:
+  manipulation: 0.45
+  weak_harness: 0.55
+families:
+  manipulation: [harness_message_manipulation_gate_v1]
+  weak_harness: [harness_trace_review_urgency_v1, harness_clarify_or_act_v1, harness_tool_call_check_v1, harness_context_pruning_v1, harness_citation_support_v1]

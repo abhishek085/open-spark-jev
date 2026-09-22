@@ -1,0 +1,6 @@
+name: harness_message_manipulation_gate_v1
+namespace: harness
+version: 1.0.0
+enabled: true
+generation: {variants_per_world: 1}
+leakage: {extra_deny_patterns: [], allow_patterns: []}

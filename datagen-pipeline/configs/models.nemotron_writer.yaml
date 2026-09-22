@@ -1,0 +1,36 @@
+# Full end-to-end config: the scheduler starts each phase's model (2 parallel instances; judge 1) and unloads the previous role.
+#   os-datagen generate --all --count 50 --models configs/models.smoke.yaml --out artifacts/smoke_e2e
+# Roles run strictly one at a time. The judge server only starts when there are unresolved cases.
+models:
+  generator:
+    base_url: http://127.0.0.1:8000/v1
+    base_urls: [http://127.0.0.1:8000/v1]
+    model: nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4
+    temperature: 0.8
+    top_p: 0.95
+    max_tokens: 1400
+    concurrency: 32
+    start_cmd: OSJ_MODEL=nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4 OSJ_INSTANCES=1 OSJ_GPU_UTIL=0.86 OSJ_MAX_LEN=6144 OSJ_MAX_SEQS=32 scripts/serve.sh start generator
+    stop_cmd: scripts/serve.sh stop generator
+    startup_timeout_s: 2400
+  verifier:
+    base_url: http://127.0.0.1:8100/v1
+    base_urls: [http://127.0.0.1:8100/v1, http://127.0.0.1:8101/v1]
+    model: nvidia/Qwen3.6-35B-A3B-NVFP4
+    temperature: 0.0
+    max_tokens: 900
+    concurrency: 16
+    start_cmd: OSJ_INSTANCES=2 OSJ_GPU_UTIL=0.26 OSJ_MAX_LEN=6144 OSJ_PORT=8100 scripts/serve.sh start verifier
+    stop_cmd: scripts/serve.sh stop verifier
+    startup_timeout_s: 1500
+  semantic_judge:
+    base_url: http://127.0.0.1:8200/v1
+    model: nvidia/Qwen3.6-27B-NVFP4
+    temperature: 0.0
+    max_tokens: 900
+    concurrency: 6
+    start_cmd: OSJ_INSTANCES=1 OSJ_GPU_UTIL=0.32 OSJ_MAX_LEN=6144 OSJ_PORT=8200 scripts/serve.sh start judge
+    stop_cmd: scripts/serve.sh stop judge
+    startup_timeout_s: 1500
+scheduler:
+  fail_if_memory_headroom_gb_below: 16

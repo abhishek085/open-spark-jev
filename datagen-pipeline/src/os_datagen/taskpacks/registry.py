@@ -21,7 +21,17 @@ _PACKS: dict[str, tuple[str, str]] = {
     "harness_termination_gate_v1": ("harness.termination_gate", "TerminationGate"),
     "harness_answer_sufficiency_v1": ("harness.answer_sufficiency", "AnswerSufficiency"),
     "harness_prompt_injection_gate_v1": ("harness.prompt_injection_gate", "PromptInjectionGate"),
+    "harness_message_manipulation_gate_v1": ("harness.message_manipulation_gate", "MessageManipulationGate"),
+    "harness_content_moderation_gate_v1": ("harness.content_moderation_gate", "ContentModerationGate"),
+    "harness_ticket_triage_v1": ("harness.ticket_triage", "TicketTriage"),
 }
+try:  # table-driven harness packs
+    from .harness.text_packs import PACK_CLASSES as _TEXT
+
+    for _n, _c in _TEXT.items():
+        _PACKS[_n] = ("harness.text_packs", _c)
+except Exception:  # noqa: BLE001  a broken table must not break the CLI
+    pass
 _CACHE: dict[str, BaseTaskPack] = {}
 
 
