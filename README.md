@@ -20,8 +20,8 @@
 </p>
 
 <p align="center">
-  <a href="https://huggingface.co/abhishek085/spark-s1-4b-v3"><img src="https://img.shields.io/badge/spark--s1--4b--v3-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f2328" alt="spark-s1-4b-v3 on Hugging Face" /></a>
-  <a href="https://huggingface.co/abhishek085/spark-s1-1.7b-v3"><img src="https://img.shields.io/badge/spark--s1--1.7b--v3-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f2328" alt="spark-s1-1.7b-v3 on Hugging Face" /></a>
+  <a href="https://huggingface.co/abhishek085/spark-s1-4b-v5"><img src="https://img.shields.io/badge/spark--s1--4b--v5-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f2328" alt="spark-s1-4b-v5 on Hugging Face" /></a>
+  <a href="https://huggingface.co/abhishek085/spark-s1-1.7b-v5"><img src="https://img.shields.io/badge/spark--s1--1.7b--v5-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f2328" alt="spark-s1-1.7b-v5 on Hugging Face" /></a>
 </p>
 
 ---
@@ -60,10 +60,10 @@ Two model sizes are currently available:
 
 | Model | Backbone | 60-row tool-call set | p50 latency | Focus |
 |---|---|---:|---:|---|
-| [`spark-s1-4b-v3`](https://huggingface.co/abhishek085/spark-s1-4b-v3) | Qwen3-4B + LoRA | **0.850** | **66 ms** | Accuracy |
-| [`spark-s1-1.7b-v3`](https://huggingface.co/abhishek085/spark-s1-1.7b-v3) | Qwen3-1.7B + LoRA | **0.783** | **30 ms** | Speed |
+| [`spark-s1-4b-v5`](https://huggingface.co/abhishek085/spark-s1-4b-v5) | Qwen3-4B + LoRA | **0.917** | **66 ms** | Accuracy |
+| [`spark-s1-1.7b-v5`](https://huggingface.co/abhishek085/spark-s1-1.7b-v5) | Qwen3-1.7B + LoRA | **0.900** | **30 ms** | Speed |
 
-The 4B model performed best of our models on 5 of the 7 external evaluation suites used in the current release. The models are fine-tuned from public Qwen3 backbones using LoRA and merged for inference. Current training data consists of **967 code-labelled decision rows** from the project's decision-data factory (`os-datagen`), reshuffled into approximately **4.3k training examples** with randomized option ordering. The models use a restricted first-token readout rather than generating a text response.
+v5 narrows scope on purpose to **Jev-style decisions only** (agent-harness control, tool-call/guardrail gating, moderation and routing, retrieval gating, and structured records decisions); general-purpose text classification is no longer a training goal. The models are fine-tuned from public Qwen3 backbones using LoRA and merged for inference. Training data grew to **11,792 code/LLM-labelled decision rows** across **49 task packs** from the project's decision-data factory (`os-datagen`), reshuffled into **19,568 training examples** with randomized option ordering. The models use a restricted first-token readout rather than generating a text response.
 
 > These are early release candidates. Performance varies substantially across task families, and the project is under active development. Model details, limitations and pinned revisions: [MODEL_CARD.md](MODEL_CARD.md).
 
@@ -77,7 +77,7 @@ Download a model and run it as a local API in one command:
 git clone https://github.com/abhishek085/open-spark-jev.git && cd open-spark-jev
 python3 -m venv .venv && . .venv/bin/activate
 pip install torch -e ".[infer]"
-osj serve --pull spark-s1-4b-v3        # downloads from Hugging Face once (about 8 GB), then serves http://127.0.0.1:8400
+osj serve --pull spark-s1-4b-v5        # downloads from Hugging Face once, then serves http://127.0.0.1:8400
 ```
 
 In another terminal, ask it about a tool call (nothing is ever executed; the command is just text):
@@ -100,14 +100,14 @@ curl -s localhost:8400/v1/gate -H 'content-type: application/json' \
 }
 ```
 
-*(Example output from a real run of `spark-s1-4b-v3`, trimmed.)* `policy_action` is what your agent should do. The default threshold is strict: `allow` needs 99.5% confidence, otherwise the agent asks a human. Lower it per request with `"policy": {"auto_allow_threshold": 0.9}`.
+*(Example output from a real run of `spark-s1-4b-v5`, trimmed.)* `policy_action` is what your agent should do. The default threshold is strict: `allow` needs 99.5% confidence, otherwise the agent asks a human. Lower it per request with `"policy": {"auto_allow_threshold": 0.9}`.
 
-Use `spark-s1-1.7b-v3` for a smaller (3.4 GB) and faster model. From Python, without a server:
+Use `spark-s1-1.7b-v5` for a smaller and faster model. From Python, without a server:
 
 ```python
 from open_spark_jev import classify_tool_call
 
-r = classify_tool_call(tool="bash", command="kubectl get pods -n production", model="checkpoints/spark-s1-4b-v3")
+r = classify_tool_call(tool="bash", command="kubectl get pods -n production", model="checkpoints/spark-s1-4b-v5")
 print(r.policy_action, r.probabilities)
 ```
 
@@ -121,7 +121,7 @@ The general interface takes a state and any mix of Choice, Score and Noul questi
 from open_spark_jev.model import MenuScorer
 from open_spark_jev.schema import Choice, Noul, Score, State
 
-model = MenuScorer("checkpoints/spark-s1-4b-v3")
+model = MenuScorer("checkpoints/spark-s1-4b-v5")
 
 state = State(
     content={"ticket": "Charged twice for my Pro plan, invoice PDF missing."},
@@ -222,6 +222,21 @@ The project evaluates the models using internal benchmarks and external decision
 **Internal:** accuracy, macro-F1, Brier score, negative log-likelihood, expected calibration error (ECE), option-order sensitivity, prompt-injection flip rate, latency and throughput.
 
 **External:** seven suites (Jev Directory, agent tool-call risk, prompt injection with and without deployment context, vulnerable code, Kev decision-v1 and Kev transfer-v4), each with provenance covering its upstream source, commit, license, labels and caveats. See `data/external/`, [docs/BENCHMARKS.md](docs/BENCHMARKS.md), [docs/RUNS.md](docs/RUNS.md) and the evaluation protocol in [docs/EVALUATION.md](docs/EVALUATION.md).
+
+### JevBench (public tiers)
+
+[Benchmark Heaven's JevBench](https://github.com/fstandhartinger/jevbench) is a third-party benchmark for Jev-class decision models (state + a
+bounded rubric in, a typed answer out), scored across easy/standard/judge/hard tiers. Only 231 of its 534 v1.2 items are public (the judge tier —
+28% of the official score — is entirely private, and part of every other tier is held out), so what's below is accuracy on the public items only,
+not the official JevBench Score, which also needs the private item set plus Calibration, Speed and Cost axes measured under JevBench's own
+protocol. It is a same-methodology comparison point across our own releases, not a leaderboard placement.
+
+<p align="center"><img src="docs/img/jevbench-public-score.png" alt="spark-s1: JevBench public-tier accuracy across releases" width="900" /></p>
+
+| Model | easy (48) | standard (72) | hard (111) |
+|---|---:|---:|---:|
+| `spark-s1-4b-v5` | 1.000 | 0.847 | 0.523 |
+| `spark-s1-1.7b-v5` | 0.979 | 0.778 | 0.378 |
 
 ### Independent evaluation: Kev's out-of-domain suite
 
@@ -402,4 +417,4 @@ Performance numbers attributed to Jev in this repository come from third-party r
 
 If you find the idea, implementation or experiments useful, consider giving the repository a ⭐. It helps more people discover the project and build a community around open, local decision models.
 
-GitHub: https://github.com/abhishek085/open-spark-jev · Models: [spark-s1-1.7b-v3](https://huggingface.co/abhishek085/spark-s1-1.7b-v3) · [spark-s1-4b-v3](https://huggingface.co/abhishek085/spark-s1-4b-v3)
+GitHub: https://github.com/abhishek085/open-spark-jev · Models: [spark-s1-1.7b-v5](https://huggingface.co/abhishek085/spark-s1-1.7b-v5) · [spark-s1-4b-v5](https://huggingface.co/abhishek085/spark-s1-4b-v5)

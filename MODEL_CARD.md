@@ -1,16 +1,35 @@
 # Model Card
 
-**spark-s1**, release v3 (`spark-s1-4b-v3`, `spark-s1-1.7b-v3`), 2026-09-20. Part of Open Spark Jev, an open-source project of the Nokast AI community. This is a very early release; expect it to change quickly.
+**spark-s1**, release v5 (`spark-s1-4b-v5`, `spark-s1-1.7b-v5`), 2026-09-22. Part of Open Spark Jev, an open-source project of the Nokast AI
+community. This is a very early release; expect it to change quickly.
 
 ## Overview
 
-`spark-s1` is a System-1 decision model: given a state (text or JSON) and a typed question with options defined at request time, it returns a probability for every option and a confidence from one forward pass, without generating text. Each release is a public Qwen3 backbone fine-tuned with LoRA (r=16, merged into the weights). There is no extra head: the answer is the softmax of the first-token logits restricted to the option letters, divided by a temperature.
+`spark-s1` is a System-1 decision model: given a state (text or JSON) and a typed question with options defined at request time, it returns a
+probability for every option and a confidence from one forward pass, without generating text. Each release is a public Qwen3 backbone fine-tuned
+with LoRA (r=16, merged into the weights). There is no extra head: the answer is the softmax of the first-token logits restricted to the option
+letters, divided by a temperature.
 
-It is not Jev and not affiliated with TypeSafe AI. It follows the same contract and readout idea; its training is a supervised fine-tune, not TypeSafe's undisclosed method.
+It is not Jev and not affiliated with TypeSafe AI. It follows the same contract and readout idea; its training is a supervised fine-tune, not
+TypeSafe's undisclosed method.
+
+## What changed in v5
+
+v5 narrows scope on purpose: training and evaluation are now **Jev-style decisions only** (agent-harness control, tool-call/guardrail gating,
+moderation and routing, retrieval gating, and structured records decisions such as entity resolution, fraud/risk and invoice/claims routing).
+General-purpose text classification is no longer a training goal. Two earlier release candidates were tried and rejected on the way here:
+
+* **v4** (lower LR, one epoch, more data, still general-purpose) improved on v3 in-domain but regressed on prompt-injection-with-context
+  (0.819 -> 0.634) because that pack was under-represented in its mix.
+* **RLCD-direct**, tried on both v4's and v5's 1.7B checkpoint on a held-out pool (later filtered to the rows the model actually got wrong or
+  was unsure on), made results **worse** across the board both times, including a further collapse on the same injection pack (0.813 -> 0.468 on
+  v5). It was not applied to any shipped checkpoint.
 
 ## Intended use
 
-* Bounded, repeated control decisions inside an agent harness: approve, escalate or refuse a proposed tool call, route a request, choose among fixed options, decide whether to hand off to a stronger model or a person.
+* Bounded, repeated control decisions inside an agent harness: approve, escalate or refuse a proposed tool call, route a request, choose among
+  fixed options, decide whether to hand off to a stronger model or a person, moderate content, check a tool call or a draft answer before it is
+  used.
 * Behind deterministic policy checks, least privilege and human approval (see below), with a conservative auto-allow threshold.
 * Local, low-latency use where a generative model plus JSON parsing is too slow or too brittle.
 
@@ -19,96 +38,101 @@ It is not Jev and not affiliated with TypeSafe AI. It follows the same contract 
 * As the only authorization control for tool execution, or for any high-impact action without a human in the loop.
 * Open-ended conversation, coding, general reasoning, summarisation or any task that needs generated text.
 * Decisions with more than 26 options, multi-select, ranking, or non-English input (not evaluated).
-* Vulnerability detection in code (near chance, see limitations) and any domain not listed below.
+* General-purpose text classification (topic, sentiment, NLI, etc.) — out of scope for this release, not trained or evaluated.
+* Vulnerability detection in code — not part of this release's data or evaluation (v3/v4 measured near-chance accuracy on it).
 
 ## Supported decision tasks
 
-Question types: Choice (up to 26 options), Score (ordered levels), Boolean. Status by task, on the os-datagen locked test (`spark-s1-4b-v3`; most packs have only 2-12 test rows, so treat these as noisy):
-
-| Task pack | Locked-test result (4B) | Status |
-|---|---|---|
-| Tool-call risk posture (readonly / destructive / privileged / exfiltration) | 51/60 on the diagnostic set | Benchmarked, diagnostic only |
-| Tool-action gate (allow / deny / confirm / repair) | 4/5 | Trained, small test |
-| Semantic entailment | 30/32 | Trained |
-| Document type, relevance | 12/12, 9/9 | Trained |
-| Rule application (Boolean) | 6/6 | Trained |
-| Extraction validation | 8/10 | Trained |
-| Communication intent | 5/5 | Trained, small test |
-| Prompt-injection gate | 2/2 | Trained, very small test |
-| Temporal reasoning | 3/5 | Weak |
-| Authorization gate | 2/4 | Weak |
-| Retrieval gate | 3/6 | Weak |
-| Answer sufficiency | 3/6 | Weak |
-| Termination gate | 7/12 | Weak |
-| Next-action router | 1/4 | Weak |
-| Communication urgency (Score) | 0/3 | Weak |
-| Vulnerable-code detection (external suite) | 0.56 accuracy | Not supported |
-
-The Decision Lab's `allow` / `ask` / `deny` output is a mapping of the benchmarked four-way risk-posture question (readonly to `allow`, destructive and privileged to `ask`, exfiltration to `deny`). That mapping is ours and has not been benchmarked as its own task; asking `allow`/`ask`/`deny` directly ("direct" mode) gave unreliable answers on the ten fixtures and is not recommended.
+Question types: Choice (up to 26 options), Score (ordered levels), Boolean. v5 trains on **49 task packs** (up from v3's 15), spanning agent
+guardrails and harness engineering (tool-call verification, context pruning, response-quality and citation checks, delegation, error recovery,
+plan alignment, trace monitoring), security policy (prompt-injection and message-manipulation gating, PII/output-leak checks, authorization),
+moderation and routing (content moderation, ticket triage, model routing), and structured records (entity resolution, fraud/risk scoring,
+invoice/insurance/SOC-alert routing, financial triage, semantic linting, row validation, semantic grep). Per-pack test counts are small for many
+of the new packs (some under 20 rows); read the aggregate numbers below as the more reliable signal.
 
 ## Available variants
 
 | Release id | Backbone | Weights | Notes |
 |---|---|---|---|
-| `spark-s1-4b-v3` | Qwen3-4B | [`abhishek085/spark-s1-4b-v3`](https://huggingface.co/abhishek085/spark-s1-4b-v3) (8.0 GB) | Accuracy pick |
-| `spark-s1-1.7b-v3` | Qwen3-1.7B | [`abhishek085/spark-s1-1.7b-v3`](https://huggingface.co/abhishek085/spark-s1-1.7b-v3) (3.4 GB) | Speed pick; uneven transfer |
+| `spark-s1-4b-v5` | Qwen3-4B | [`abhishek085/spark-s1-4b-v5`](https://huggingface.co/abhishek085/spark-s1-4b-v5) | Accuracy pick |
+| `spark-s1-1.7b-v5` | Qwen3-1.7B | [`abhishek085/spark-s1-1.7b-v5`](https://huggingface.co/abhishek085/spark-s1-1.7b-v5) | Speed pick |
+| `spark-s1-4b-v5-nvfp4` | Qwen3-4B | [`abhishek085/spark-s1-4b-v5-nvfp4`](https://huggingface.co/abhishek085/spark-s1-4b-v5-nvfp4) (4.0 GB) | NVFP4 (MLP-only), 1.66x faster via vLLM on Blackwell hardware; needs a GB10/B200-class GPU |
 
-Earlier research checkpoints (simulator-era `sft-v2`, RLCD variants, architecture variants A0-A4) are described in [docs/MODELS.md](docs/MODELS.md) and are not part of this release.
+Earlier releases (`v3`, `v4`, simulator-era `sft-v2`, RLCD variants, architecture variants A0-A4) are described in
+[docs/MODELS.md](docs/MODELS.md) and are not part of this release. The NVFP4 quantization (1.66x faster on the DGX Spark's Blackwell tensor
+cores via vLLM, no loss on JevBench's easy/standard tiers, -4.6 points on the hard tier) is the only accuracy check run on it so far; reproduce
+it with `scripts/quant/ptq_nvfp4.py`. The same recipe on the 1.7B cost 9-13 accuracy points across external sets and was not published.
 
 ## Training/data summary
 
-* **Data:** 967 training rows from `os-datagen` ([`datagen-pipeline/`](datagen-pipeline/), [dataset](https://huggingface.co/datasets/abhishek085/spark-s1-osdg-v1)): 15 task packs, labels established by code (policy engines, symbolic solvers, controlled worlds, a sandbox), text written by an LLM and checked by an independent verifier model. Each choice row is also shown in 4 random option orders (4,277 training examples). Splits: 132 calibration, 121 locked test and 124 challenge rows, from scenario families never seen in training.
-* **Recipe:** LoRA r=16 (alpha 32) on all attention and MLP projections, 3 epochs, lr 2e-4, cross-entropy plus a Brier regulariser. One seed.
-* **Not used:** no real public text, no tool-call-risk data, no data from the diagnostic set, no outcome-based (RLCD) training.
-* Generator and verifier models: Gemma-4-26B-A4B, Qwen3.6-35B-A3B, Qwen3.6-27B (see [NOTICE](NOTICE)).
+* **Data:** 11,792 training rows (19,568 examples with option-order augmentation) across the 49 packs above, drawn from `os-datagen`
+  ([`datagen-pipeline/`](datagen-pipeline/)): LLM-written scenarios (labels established by code, text written by an LLM and checked by an
+  independent verifier model) plus new code-only rule packs where both the label and the surface text come from deterministic rules, no LLM in
+  the loop. Splits: calibration/locked-test/challenge rows are drawn from scenario families never seen in training.
+* **Recipe:** LoRA r=16 (alpha 32) on all attention and MLP projections, **1 epoch**, lr **5e-5** (lower and shorter than v3's 3 epochs / 2e-4,
+  following the same-style advice that a lower learning rate preserves more base-model capability), cross-entropy plus a Brier regulariser. One
+  seed.
+* **Not used:** no real public text, no vulnerable-code data, no outcome-based (RLCD) training on the shipped checkpoints.
+* Generator and verifier models: Gemma-4-26B-A4B, Qwen3.6-35B-A3B, Qwen3.6-27B, and NVIDIA-Nemotron-3-Super-120B-A12B for a subset of the
+  harness packs (see [NOTICE](NOTICE)).
 
 ## Evaluation summary
 
 | Measure | 4B | 1.7B | Notes |
-|---|---|---|---|
-| os-datagen locked test / challenge accuracy | 0.785 / 0.790 | 0.603 / 0.694 | n=121 / 124 |
-| 60-case tool-call diagnostic set | 0.850 | 0.783 | Jev (recorded): 0.917. Diagnostic, not a locked holdout |
-| Kev transfer-v4, development / locked test | 0.706 / 0.749 | 0.598 / 0.635 | Kev-4B 0.790 / 0.806; Kev-8B 0.796 / 0.780; Jev (dev) 0.857 |
-| Jev-directory (70 questions) | 0.771 | 0.557 | |
-| Vulnerable code (400) | 0.560 | 0.520 | Near chance |
+|---|---:|---:|---|
+| Own locked test / challenge accuracy | 0.867 / 0.861 | 0.695 / 0.671 | Scenario families held out of training |
+| 60-case tool-call diagnostic set | 0.917 | 0.900 | Diagnostic, not a locked holdout |
+| Prompt injection, with / without deployment context | 0.894 / 0.903 | 0.813 / 0.837 | External, no training overlap |
+| Jev-directory (70 questions) | 0.800 | 0.643 | External |
+| Kev decision-v1 (external classification) | 0.755 | 0.693 | External, out-of-domain |
+| JevBench public tiers (easy / standard / hard) | 1.000 / 0.847 / 0.523 | 0.979 / 0.778 / 0.378 | [Benchmark Heaven's JevBench](https://github.com/fstandhartinger/jevbench) v1.2, public items only (231 of 534); not the official JevBench Score |
 
-Details, per-source tables and the run log: [docs/BENCHMARKS.md](docs/BENCHMARKS.md) (B27, B29-B32), [docs/RUNS.md](docs/RUNS.md). Charts: `docs/img/`.
+Details and the run log: [docs/BENCHMARKS.md](docs/BENCHMARKS.md), [docs/RUNS.md](docs/RUNS.md). Charts: `docs/img/`.
 
 ## Calibration
 
-Post-hoc temperature scaling, fitted on the os-datagen calibration split only. Temperatures are **per question type, global across task packs**: Choice 3.17 (4B) and 4.37 (1.7B). Boolean and Score temperatures are **1.0 (not fitted)** because the calibration split has too few such rows. Choice ECE after calibration: 0.087 on the os-datagen locked test, 0.086 on the 60-case set, 0.076 on Kev's locked transfer test; binary external sources (injection) are worse (ECE about 0.18) because of the unfitted Boolean head. Calibration does not transfer reliably across domains: refit on your own labelled outcomes before relying on thresholds. The shipped `calibration.json` carries these values.
+Post-hoc temperature scaling, fitted on the calibration split only, **for every question type this release** (v3 left Boolean/Score at an
+unfitted 1.0). Temperatures — 4B: choice 2.026, score 1.149, noul 1.318; 1.7B: choice 1.792, score 1.112, noul 1.608. Calibrated ECE on the
+locked test: 4B 0.019, 1.7B 0.033. Calibration does not transfer reliably across domains: refit on your own labelled outcomes before relying on
+thresholds. The shipped `calibration.json` carries these values.
 
 ## Latency methodology
 
-Batch size 1, idle GPU, one NVIDIA DGX Spark (GB10), bf16, Hugging Face Transformers, no state-cache reuse, median over the 60 diagnostic rows (4B 65.9 ms p50 and 15.1 decisions/s; 1.7B 29.6 ms and 33.8/s). Prompts on the os-datagen rows are longer (4B about 82 ms), and requests with several questions on one state reuse the cached prefix. The recorded hosted Jev reference (421.6 ms p50, 2.3 decisions/s) comes from a third party's committed run, includes a network round trip and service overhead, and is **not** a like-for-like model comparison. Same-backbone comparison (B33): the untrained Qwen3-4B prompted for JSON took 833 ms (0.833 accuracy, 0 malformed) and the untrained Qwen3-1.7B 390 ms (0.433, 14 of 60 malformed); with thinking on, 16.4 s and 7.6 s.
+Batch size 1, idle GPU, one NVIDIA DGX Spark (GB10). Hugging Face Transformers in-process, bf16, median over the 60 diagnostic rows (4B 65.9 ms
+p50 / 15.1 decisions/s; 1.7B 29.6 ms / 33.8/s — carried over unchanged from v3: same backbone and prompt set, and LoRA-merged weights don't
+change inference cost). Also measured fresh on the 4B via vLLM: bf16 61.6 ms p50 / 16.2/s; NVFP4 (MLP-only) 37.1 ms p50 / 27.1/s — a real 1.66x
+speedup from quantization on this hardware.
 
 ## Known limitations
 
-* Current known errors include **security-weakening configuration changes** (for example `helm upgrade --set auth.enabled=false`, editing an auth configmap), **sensitive-data and credential exfiltration** commands (`curl -d @/etc/shadow ...`, `scp ~/.aws/credentials ...` were mislabelled by some models), and **cloud synchronisation framed as ordinary backup** activity.
-* The 60-case set is small (about ±5 points) and was inspected during development, so it cannot establish broad generalisation or production safety.
-* Trained on under a thousand rows: weak on router, urgency, retrieval, termination and answer-sufficiency tasks; results per pack rest on 2-12 test rows.
-* Sensitive to how options are defined; option order changes the answer for about 15% of the 60-set rows on the 4B model (5% on os-datagen).
-* Boolean and Score heads are uncalibrated and can be confidently wrong.
-* Behind Kev-4B/8B and Jev on Kev's out-of-domain suite; the 1.7B transfers unevenly.
+* **Scope narrowed on purpose**: this release is Jev-style decisions only. It is untested on general text classification and vulnerable-code
+  detection; treat those as unsupported, not merely weak.
+* **RLCD made results worse**, not better, in two separate attempts (see "What changed in v5" above); no outcome-based training is in this
+  release.
+* **NVFP4 quantization costs real accuracy on the 1.7B** (9-13 points across external sets) and was not shipped; the 4B tolerates it much
+  better but has only been accuracy-checked on JevBench so far, not the full own-splits/external battery.
+* Per-pack test counts are small for many of the 49 packs; read per-pack numbers in `docs/BENCHMARKS.md` as noisy.
+* Sensitive to how options are defined and to option order; recalibrate and re-test on your own labelled outcomes before relying on thresholds.
 * English only; not evaluated adversarially beyond the small adversarial slice.
 
 ## Safety and deployment requirements
 
-Do not use a model decision as the only authorization control. Deploy with deterministic policy guardrails ([`open_spark_jev/policy.py`](open_spark_jev/policy.py) is a heuristic starting point, not a security engine), a conservative auto-allow threshold (default 0.995), logging, least-privilege credentials, sandboxing and egress controls, human approval or escalation for sensitive actions, and a kill switch. Unsupported input, parsing errors, an unavailable evaluator, low confidence, or a rule conflict must resolve to `ask` or `deny`, never automatic execution; the bundled gate does this. See [SECURITY.md](SECURITY.md).
+Do not use a model decision as the only authorization control. Deploy with deterministic policy guardrails
+([`open_spark_jev/policy.py`](open_spark_jev/policy.py) is a heuristic starting point, not a security engine), a conservative auto-allow
+threshold (default 0.995), logging, least-privilege credentials, sandboxing and egress controls, human approval or escalation for sensitive
+actions, and a kill switch. Unsupported input, parsing errors, an unavailable evaluator, low confidence, or a rule conflict must resolve to
+`ask` or `deny`, never automatic execution; the bundled gate does this. See [SECURITY.md](SECURITY.md).
 
 ## Reproducibility
 
-* Code: this repository; training `scripts/run_v3.sh` (`configs/train/sft.yaml` overrides), evaluation `python -m open_spark_jev.eval.osdg`, diagnostic set `scripts/analysis/final60.py`, Kev comparison `scripts/analysis/plot_kev_comparison.py`.
-* Data: [`abhishek085/spark-s1-osdg-v1`](https://huggingface.co/datasets/abhishek085/spark-s1-osdg-v1) revision `11b3bc74545c`; diagnostic set: `data/external/ext-toolcall-risk` (source [themsquared/jev-benchmark](https://github.com/themsquared/jev-benchmark) @ `daf02b3b59b2`, converted file sha256 prefix `247742d4c7f20d27`).
+* Code: this repository; training `scripts/run_v5_4b.sh` / `scripts/run_v5_17b.sh` (`configs/train/sft_v5.yaml` overrides), evaluation
+  `python -m open_spark_jev.eval.osdg`, `python -m open_spark_jev.eval.external`, JevBench `scripts/run_jevbench.sh`.
+* Data: assembled by `scripts/build_v5_data.py` from `os-datagen` runs plus the code-only packs in `datagen-pipeline/`; not yet packaged as a
+  single versioned HF dataset release (unlike v1's `abhishek085/spark-s1-osdg-v1`, which is a subset, not the full v5 mix).
 * Seeds: single seed per configuration; no confidence intervals reported yet.
 * Hardware: one NVIDIA DGX Spark (GB10).
 
 ## Versioning and lineage
 
-Release ids are `spark-s1-<size>-v<n>`. Lineage and parents: [docs/model_lineage.yaml](docs/model_lineage.yaml); changes: [CHANGELOG.md](CHANGELOG.md). Pinned revisions for this release:
-
-| Artifact | Revision |
-|---|---|
-| `abhishek085/spark-s1-4b-v3` | `292e54892675`; `model.safetensors` sha256 `031ff071b56d02de1d5cb3b97d9293d7d526807bc874f7e838d9b894ef6182d7` |
-| `abhishek085/spark-s1-1.7b-v3` | `344230a48384`; `model.safetensors` sha256 `d9c3a38a95c4745c0566d09c03720d70e7864e3e88ac44eac9b34761776c12e8` |
-| Backbones | `Qwen/Qwen3-4B`, `Qwen/Qwen3-1.7B` (Apache-2.0) |
+Release ids are `spark-s1-<size>-v<n>`. Lineage and parents: [docs/model_lineage.yaml](docs/model_lineage.yaml); changes:
+[CHANGELOG.md](CHANGELOG.md). Backbones: `Qwen/Qwen3-4B`, `Qwen/Qwen3-1.7B` (Apache-2.0).

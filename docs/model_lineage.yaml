@@ -121,3 +121,28 @@ v3-1.7b:
   jev_comparison: 'Same contract and readout as v3-4b; the speed pick. 60-row tool-call set 0.783 vs Jev 0.917, p50 29.6 ms vs 421.6 ms hosted (14x).'
   notes: 'os-datagen locked test 0.603 / challenge 0.694 (B27), tying the 0.6B model, so size only pays off at 4B for this data. Inconsistent transfer: Jev-directory 0.557, injection-with-context 0.819.'
 
+v5-4b:
+  date: '2026-09-22'
+  checkpoint: checkpoints/v5-4b
+  parent: v3-4b
+  eval: null
+  mechanism: 'spark-s1-4b-v5. Qwen3-4B, LoRA r16 (merged) trained 1 epoch, lr 5e-5, cross-entropy plus a Brier regulariser on 11,792 rows / 19,568 examples
+    across 49 Jev-style-only task packs (os-datagen LLM-written + independently verified, plus new code-only rule packs with no LLM in the loop). All question
+    types calibrated this release (choice 2.026, score 1.149, noul 1.318, fitted on the calibration split).'
+  jev_comparison: 'Same contract and readout as v3-4b. Own locked test 0.867 (v3: 0.785 on the smaller v3 splits, not directly comparable -- different data).
+    JevBench public tiers (easy/standard/hard): 1.000/0.847/0.523, public-proxy Intelligence 74.2 (v3: 69.5).'
+  notes: 'Narrowed scope on purpose: Jev-style decisions only, general text classification and vulnerable-code detection out of scope and untested.
+    NVFP4 (MLP-only) PTQ evaluated: 1.66x faster via vLLM on this hardware, no loss on JevBench easy/standard, -4.6pts on hard; not published as a
+    separate weights repo. RLCD-direct tried on the 1.7B sibling checkpoint and made results worse, not applied here.'
+v5-1.7b:
+  date: '2026-09-22'
+  checkpoint: checkpoints/v5-1.7b
+  parent: v3-1.7b
+  eval: null
+  mechanism: 'spark-s1-1.7b-v5. Same recipe and data as v5-4b on a Qwen3-1.7B backbone. Choice temperature 1.792, score 1.112, noul 1.608, fitted on the
+    calibration split.'
+  jev_comparison: 'Same contract and readout as v3-1.7b; the speed pick. Own locked test 0.695. JevBench public tiers: 0.979/0.778/0.378, public-proxy
+    Intelligence 65.1 (v3: 63.4).'
+  notes: 'Recovered the injection-with-context regression an interim v4 candidate introduced (0.819 -> 0.634 on v4; 0.813 on v5, close to v3). RLCD-direct
+    tried on a hard-mined subset of unseen rows and made every metric worse, including a further injection-with-context collapse to 0.468; not applied.
+    NVFP4 (MLP-only) PTQ cost 9-13 accuracy points across external sets; not shipped.'
