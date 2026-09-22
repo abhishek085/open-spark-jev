@@ -15,7 +15,7 @@ In this repository: the os-datagen splits (`train`, `calibration`, `test_locked`
 
 ## Group-aware splits
 
-Reshuffled option orders, paraphrases and semantic siblings of one scenario must stay on one side of a split. os-datagen assigns the split at scenario generation time (own entity pools, template families, wording and seeds; calibration and test use held-out scenario families) and ships `split_isolation.json` as proof. Two lessons from our own history: simulator corpora once leaked 97-99% of test states into training, and the training script's validation split contained shuffled copies of training rows, which produced a badly fitted temperature (0.065). Any new data must be split by scenario group, never by row.
+Reshuffled option orders, paraphrases and semantic siblings of one scenario must stay on one side of a split. os-datagen assigns the split at scenario generation time (own entity pools, template families, wording and seeds; calibration and test use held-out scenario families) and every run — including `--dry-run` — writes `reports/split_isolation.json` as proof; it is a generated run artifact (`datagen-pipeline/artifacts/`, gitignored), not a file checked into this repository. Run the pipeline to produce your own copy. Two lessons from our own history: simulator corpora once leaked 97-99% of test states into training, and the training script's validation split contained shuffled copies of training rows, which produced a badly fitted temperature (0.065). Any new data must be split by scenario group, never by row.
 
 ## What a future locked release holdout should contain
 
