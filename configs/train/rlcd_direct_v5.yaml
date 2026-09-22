@@ -1,0 +1,19 @@
+# RLCD-direct (Brier-only exact policy gradient) on v5-1.7b, restricted to rows it gets wrong or is under 70% confident
+# on (data/synthetic/v5_rl_pool_hard.jsonl, scripts/filter_rl_pool_hard.py). On v4 the unfiltered held-out pool was
+# already ~99% fit by the SFT model (reward ~0.99 at step 0), so RLCD moved almost nothing; filtering to hard rows
+# gives the policy gradient rows it can still improve on.
+seed: 0
+data:
+  - data/synthetic/v5_rl_pool_hard.jsonl
+policy_init: checkpoints/v5-1.7b
+rm_path: null
+output_dir: checkpoints/v5-1.7b-rlcd
+epochs: 2
+batch_size: 4
+grad_accum: 4
+lr: 5.0e-6
+kl_beta: 0.05
+max_len: 2048
+gradient_checkpointing: true
+reward_weights: {brier: 1.0, abstain: 0.0, conservative: 0.0, injection: 0.0, rm: 0.0, correctness: 0.0}
+log_every: 10

@@ -1,0 +1,21 @@
+# spark-s1 v4 SFT: the v3 recipe with the two changes suggested by Kev and Nimble (lower LoRA learning rate, one epoch) on the larger,
+# more diverse data (v1 os-datagen + new mixture run + code-only tool-call-risk rows). Model and output are overridden per run:
+#   python -m open_spark_jev.train.sft --config configs/train/sft_v4.yaml --set model=models/Qwen3-1.7B output_dir=checkpoints/v4-1.7b
+model: models/Qwen3-1.7B
+output_dir: checkpoints/v4-1.7b
+data:
+  - data/synthetic/v4_train.jsonl
+seed: 0
+val_frac: 0.05
+max_len: 2048
+epochs: 1
+batch_size: 8
+grad_accum: 4
+lr: 5.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0
+lambda_brier: 0.5
+gradient_checkpointing: true
+aux_head: false
+lora: {r: 16, alpha: 32}
+log_every: 10

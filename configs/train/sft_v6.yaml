@@ -1,0 +1,26 @@
+# spark-s1 v6 SFT: same recipe and data as v5 (Jev-style only, lower-LR, 1 epoch), on the Qwen3.5-4B base instead of
+# Qwen3-4B. Qwen3.5-4B is architecturally different from Qwen3, not just a version bump: it's a multimodal checkpoint
+# whose text backbone (AutoModelForCausalLM correctly resolves to Qwen3_5ForCausalLM, no vision weights loaded) is a
+# hybrid of 24 linear-attention (Gated DeltaNet) layers and 8 ordinary full-attention layers, not uniform attention
+# like Qwen3. The default LoRA target list only touches full-attention q/k/v/o_proj (8/32 layers) plus every layer's
+# MLP; target_modules below adds the linear-attention layers' own Linear projections (in_proj_qkv, in_proj_z,
+# in_proj_b, in_proj_a, out_proj) so all 32 layers get adapted. conv1d inside linear_attn is a Conv1d, not a Linear,
+# so standard LoRA can't wrap it and it stays frozen.
+model: models/Qwen3.5-4B
+output_dir: checkpoints/v6-4b
+data:
+  - data/synthetic/v5_train.jsonl
+seed: 0
+val_frac: 0.05
+max_len: 2048
+epochs: 1
+batch_size: 8
+grad_accum: 4
+lr: 5.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0
+lambda_brier: 0.5
+gradient_checkpointing: true
+aux_head: false
+lora: {r: 16, alpha: 32, target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj, in_proj_qkv, in_proj_z, in_proj_b, in_proj_a, out_proj]}
+log_every: 10

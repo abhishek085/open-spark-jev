@@ -1,0 +1,16 @@
+# RLCD-direct (Brier-only exact policy gradient) on rows the SFT model never trained on (data/synthetic/v4_rl_pool.jsonl).
+seed: 0
+data:
+  - data/synthetic/v4_rl_pool.jsonl
+policy_init: checkpoints/v4-1.7b
+rm_path: null
+output_dir: checkpoints/v4-1.7b-rlcd
+epochs: 1
+batch_size: 4
+grad_accum: 4
+lr: 5.0e-6
+kl_beta: 0.05
+max_len: 2048
+gradient_checkpointing: true
+reward_weights: {brier: 1.0, abstain: 0.0, conservative: 0.0, injection: 0.0, rm: 0.0, correctness: 0.0}
+log_every: 10
