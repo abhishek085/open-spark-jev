@@ -29,6 +29,7 @@ phrasing, matching the taskpack convention (train 0-1, calibration 2, test_locke
 from __future__ import annotations
 
 import random
+import re
 from datetime import date, timedelta
 from fractions import Fraction
 from itertools import combinations
@@ -96,6 +97,26 @@ _TN_PROMPTS = [
     "Read the applicable schedule and select the sublimit that applies.",
     "Which sublimit amount is in force for this incident, given the revision history?",
 ]
+# v7.2 regressed on JevBench hard (0.595->0.559) despite in-distribution TVD dropping 0.387->0.078:
+# every temporal_numeric row shared this exact header/intro/standing-note text, giving a 4B model a
+# stable fingerprint to key a table-parsing shortcut off instead of a general precedence rule. The
+# Rev-line syntax itself stays fixed (the verifier text-parses it), everything else now varies per row.
+_TN_HEADERS = ["{org} — SCHEDULE OF SUBLIMITS ({site})", "{org} — SUBLIMIT SCHEDULE, {site}",
+               "{org} — REVISION HISTORY: PROPERTY SUBLIMITS ({site})", "{org} ({site}) — SUBLIMIT REVISION LOG"]
+_TN_INTROS = ["Revision history (each revision supersedes the previous one on its effective date):",
+              "Each revision below supersedes the one before it, effective on the date shown:",
+              "Sublimits have changed over time; each entry replaces the prior one from its effective date:",
+              "The schedule has been revised more than once. Later revisions supersede earlier ones from their effective date:"]
+_TN_STANDING = [
+    "Standing note: the schedule in force on the DATE OF LOSS governs a claim, "
+    "regardless of when the claim is filed or adjusted.",
+    "Rule: cover is always assessed against the revision that was in force on the date the loss "
+    "actually occurred -- the date the claim happens to be filed or processed is not relevant to that.",
+    "Note for adjusters: do not apply the revision current at filing. The governing sublimit is "
+    "whichever revision was effective on the date of loss itself.",
+    "Reminder: filing or processing delays do not change which revision applies. Look only at the "
+    "date of loss against the effective dates above.",
+]
 
 
 def gen_temporal_numeric(split: str, i: int) -> dict:
@@ -124,16 +145,16 @@ def gen_temporal_numeric(split: str, i: int) -> dict:
 
     opts = sorted({gold_amt, trap_amt, *rng.sample([a for a in amounts if a not in (gold_amt, trap_amt)] or [gold_amt], k=min(2, max(0, n_rev - 2)))})
     options = [f"{a:,}" for a in opts]
-    lines = [f"{org} — SCHEDULE OF SUBLIMITS ({site})", "",
-             "Revision history (each revision supersedes the previous one on its effective date):"]
-    for r in revs:
+    order = list(revs) if rng.random() < 0.5 else list(reversed(revs))
+    lines = [_variant(rng, split, _TN_HEADERS).format(org=org, site=site), "",
+             _variant(rng, split, _TN_INTROS)]
+    for r in order:
         lines.append(f"  Rev {r['revision']}  effective {r['effective'].isoformat()}  property sublimit {r['sublimit']:,} USD")
     lines += ["", f"Claim file prepared by {who}, {rng.choice(DEPTS)}.",
               f"  Date of loss (incident occurred): {incident.isoformat()}",
               f"  Date claim was filed with us:     {filed.isoformat()}",
               f"  Damaged item: {rng.choice(PRODUCTS)}", "",
-              "Standing note: the schedule in force on the DATE OF LOSS governs a claim, "
-              "regardless of when the claim is filed or adjusted."]
+              _variant(rng, split, _TN_STANDING)]
     return _record("temporal_numeric", split, i, state="\n".join(lines),
                    prompt=_variant(rng, split, _TN_PROMPTS), qtype="choice", options=options,
                    label=f"{gold_amt:,}", dist={f"{gold_amt:,}": 1.0},
@@ -222,6 +243,27 @@ _LP_SCHEDULE_NOISE = [
 ]
 
 
+# The four operative clauses were copied verbatim into every long_policy row -- exactly the fixed
+# n-gram fingerprint that let v7.2 fit this family almost perfectly in-distribution (TVD 0.387->0.078)
+# while regressing on JevBench hard. Vacancy/Property sublimit/Deductible must keep the exact phrase
+# the verifier text-parses ("vacant for more than N consecutive", "payable up to N USD", "deductible of
+# N USD"); Seepage's wording is never re-parsed, so it is fully free.
+_LP_VACANCY = ["No cover for loss occurring while the premises have been vacant for more than {n} consecutive days.",
+               "Where the premises have stood vacant for more than {n} consecutive days immediately before a loss, no cover applies.",
+               "Cover does not extend to a loss occurring during a period of vacancy exceeding, in total, more than {n} consecutive days."]
+_LP_SEEPAGE = ["No cover for loss caused by water that has seeped or leaked continuously or repeatedly over two weeks or more.",
+               "Loss caused by the gradual or repeated escape of water over a period of two weeks or longer is excluded.",
+               "This policy excludes any loss arising from water seepage that persisted, continuously or intermittently, for two weeks or more."]
+_LP_SUBLIMIT = ["Loss to property at an unattended location is payable up to {n} USD.",
+                "Where the location is unattended at the time of loss, the insurer's liability is limited to payable up to {n} USD.",
+                "Property loss at a location with no attendant present is subject to a limit: payable up to {n} USD."]
+_LP_DEDUCTIBLE = ["Each and every loss is subject to a deductible of {n} USD.",
+                  "A deductible of {n} USD applies to each and every loss separately.",
+                  "The insured bears the first amount of each loss: a deductible of {n} USD."]
+_LP_HEADERS = ["{org} — PROPERTY WORDING (extract), {site}", "{org} ({site}) — PROPERTY POLICY WORDING, EXTRACT",
+               "{org} — EXTRACT FROM PROPERTY WORDING ({site})"]
+
+
 def gen_long_policy(split: str, i: int) -> dict:
     rng = _rng("long_policy", split, i)
     org, site = rng.choice(ORGS), rng.choice(SITES)
@@ -243,10 +285,10 @@ def gen_long_policy(split: str, i: int) -> dict:
         gold, why = "pay_full_estimate_less_deductible", f"net {estimate - deductible:,} within sublimit {sublimit:,}"
     options = ["deny_vacancy_exclusion", "deny_repeated_seepage", "pay_subject_to_sublimit", "pay_full_estimate_less_deductible"]
 
-    clauses = [("Vacancy", f"No cover for loss occurring while the premises have been vacant for more than {vacancy_limit} consecutive days."),
-               ("Seepage", "No cover for loss caused by water that has seeped or leaked continuously or repeatedly over two weeks or more."),
-               ("Property sublimit", f"Loss to property at an unattended location is payable up to {sublimit:,} USD."),
-               ("Deductible", f"Each and every loss is subject to a deductible of {deductible:,} USD.")]
+    clauses = [("Vacancy", rng.choice(_LP_VACANCY).format(n=vacancy_limit)),
+               ("Seepage", rng.choice(_LP_SEEPAGE)),
+               ("Property sublimit", rng.choice(_LP_SUBLIMIT).format(n=f"{sublimit:,}")),
+               ("Deductible", rng.choice(_LP_DEDUCTIBLE).format(n=f"{deductible:,}"))]
     # JevBench's long_policy items run past 2,000 tokens; the difficulty is partly that the four
     # operative clauses are buried. Keep most of _LP_FILLER in, not a token handful.
     fill = rng.sample(_LP_FILLER, k=rng.randrange(14, 18) if split != "challenge" else len(_LP_FILLER))
@@ -254,7 +296,7 @@ def gen_long_policy(split: str, i: int) -> dict:
     rng.shuffle(body)
     sched = rng.sample(_LP_SCHEDULE_NOISE, k=4)
     issued = date(2025, 1, 1) + timedelta(days=rng.randrange(0, 400))
-    lines = [f"{org} — PROPERTY WORDING (extract), {site}", "", "SCHEDULE", ""]
+    lines = [_variant(rng, split, _LP_HEADERS).format(org=org, site=site), "", "SCHEDULE", ""]
     lines += ["  " + s.format(d=issued.isoformat(), p=rng.randrange(4, 40) * 1000, org=rng.choice(ORGS)) for s in sched]
     lines += ["", "OPERATIVE CLAUSES", ""]
     for n, (h, t) in enumerate(body, 1):
@@ -280,7 +322,10 @@ def _verify_long_policy(r: dict) -> bool:
     est = int(g("Repair estimate").replace(" USD", "").replace(",", ""))
     ded = int(next(l for l in t.splitlines() if "deductible of" in l).split("deductible of")[1].split("USD")[0].replace(",", "").strip())
     sub = int(next(l for l in t.splitlines() if "payable up to" in l).split("payable up to")[1].split("USD")[0].replace(",", "").strip())
-    lim = int(next(l for l in t.splitlines() if "vacant for more than" in l).split("more than")[1].split("consecutive")[0].strip())
+    # regex, not a fixed substring: the Vacancy clause has several paraphrases and only "more than
+    # N consecutive days" in a line mentioning vacancy is common to all of them.
+    vac_line = next(l for l in t.splitlines() if "vacan" in l.lower() and "consecutive" in l)
+    lim = int(re.search(r"more than\s+([\d,]+)\s+consecutive", vac_line).group(1).replace(",", ""))
     dur = g("Duration over which water")
     weeks = 0 if "not applicable" in dur else int(dur.split()[0])
     if vacant > lim:

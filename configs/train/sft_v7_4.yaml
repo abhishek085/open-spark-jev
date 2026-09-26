@@ -1,0 +1,37 @@
+# spark-s1 v7.4 SFT: v7.2's recipe and data, with prog_v1 regenerated to fix the transfer regression.
+#
+# v7.2 improved in-distribution soft-target fidelity a lot (mean TVD on prog_v1 test_locked: 0.387 ->
+# 0.078) but REGRESSED on JevBench hard (accuracy 0.595 -> 0.559, ECE 0.265 -> 0.344). Root cause:
+# temporal_numeric's "Standing note" sentence and long_policy's clause paragraphs were copied verbatim
+# into every row of their family, a stable fingerprint a 4B model can key a template-specific parsing
+# shortcut off instead of learning the general precedence/priority skill. That 23% of the combined
+# training mass (6,000/25,568 rows across 5 fixed document skeletons) plausibly pulled calibration
+# behaviour toward what's optimal for the easy, memorizable proxy rather than genuinely-hard prose.
+#
+# What changes vs v7.2 (configs/train/sft_v7_2.yaml): nothing but the data. prog_v1 was regenerated
+# with paraphrase pools for temporal_numeric's header/intro/standing-note and long_policy's four
+# operative clauses + header, so the decision-relevant text varies row to row while the
+# verifier-checked structure (Rev-line syntax, the substrings the verifier text-parses) stays intact.
+# Same lambda_brier as v7.2 (0.5) so this run isolates the diversification effect alone.
+#
+# No JevBench item is used: prog_v1 is generated from our own pools and gated by
+# scripts/tools/benchmark_overlap.py (0 of 10,500 rows flagged, re-checked after regeneration).
+model: models/Qwen3.5-4B
+output_dir: checkpoints/v7.4-4b
+data:
+  - data/synthetic/v5_train.jsonl
+  - data/synthetic/prog_v1/train.jsonl
+seed: 0
+val_frac: 0.05
+max_len: 2048
+epochs: 1
+batch_size: 8
+grad_accum: 4
+lr: 5.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0
+lambda_brier: 0.5
+gradient_checkpointing: true
+aux_head: false
+lora: {r: 16, alpha: 32, target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj, in_proj_qkv, in_proj_z, in_proj_b, in_proj_a, out_proj]}
+log_every: 10
