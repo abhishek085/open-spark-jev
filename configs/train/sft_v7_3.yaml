@@ -1,0 +1,27 @@
+# spark-s1 v7.3 SFT: identical to v7.2 (same data, same backbone, same LoRA) except the Brier
+# regulariser weight, lambda_brier 0.5 -> 3.0.
+#
+# The point is to separate two hypotheses for v6's overconfidence on hard items: that it never saw a
+# soft target (v7.2 tests that, by adding the data), or that cross-entropy alone under-penalises a
+# confidently wrong answer however good the data is (v7.3 tests that, by weighting the proper scoring
+# rule up on the same data). Run both or neither -- either alone is uninterpretable.
+
+model: models/Qwen3.5-4B
+output_dir: checkpoints/v7.3-4b
+data:
+  - data/synthetic/v5_train.jsonl
+  - data/synthetic/prog_v1/train.jsonl
+seed: 0
+val_frac: 0.05
+max_len: 2048
+epochs: 1
+batch_size: 8
+grad_accum: 4
+lr: 5.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0
+lambda_brier: 3.0
+gradient_checkpointing: true
+aux_head: false
+lora: {r: 16, alpha: 32, target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj, in_proj_qkv, in_proj_z, in_proj_b, in_proj_a, out_proj]}
+log_every: 10

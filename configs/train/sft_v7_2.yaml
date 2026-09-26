@@ -1,0 +1,30 @@
+# spark-s1 v7.2 SFT: v6's recipe and backbone, with the programmatic families added to v5's data.
+#
+# What changes vs v6 (configs/train/sft_v6.yaml): the data only. v5_train is Jev-style but trivially
+# fittable -- v6's loss reached 1e-4 by the end of its single epoch -- and every one of its rows has a
+# one-hot target. prog_v1/train adds 6,000 code-verified rows across five families v6 is measurably
+# weakest at (JevBench hard: temporal_numeric 0.07, long_policy 0.37, ambiguous 0.43, tradeoff 0.50),
+# of which ~2,500 carry a genuinely spread gold distribution. sft.py already trains KL against
+# target.dist, so soft targets need no code change; this is the first data that exercises that path.
+#
+# No JevBench item is used: prog_v1 is generated from our own pools and gated by
+# scripts/tools/benchmark_overlap.py (0 of 10,500 rows flagged).
+model: models/Qwen3.5-4B
+output_dir: checkpoints/v7.2-4b
+data:
+  - data/synthetic/v5_train.jsonl
+  - data/synthetic/prog_v1/train.jsonl
+seed: 0
+val_frac: 0.05
+max_len: 2048
+epochs: 1
+batch_size: 8
+grad_accum: 4
+lr: 5.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0
+lambda_brier: 0.5
+gradient_checkpointing: true
+aux_head: false
+lora: {r: 16, alpha: 32, target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj, in_proj_qkv, in_proj_z, in_proj_b, in_proj_a, out_proj]}
+log_every: 10

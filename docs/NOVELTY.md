@@ -53,6 +53,13 @@ This is what every number in `docs/BENCHMARKS.md` so far measures.
 | A3 | A dedicated **slot-query decision head** - learned query embeddings that cross-attend to the full state+question hidden sequence, one query per pending question, answered in parallel - captures information a single last-token readout can miss and is a literal implementation of reading 3 above | new small module: K learned query vectors, one cross-attention layer over the backbone's hidden states, output projected to each question's label logits; backbone frozen or lightly fine-tuned, head trained fresh | medium-high - new trainable component, needs its own training loop variant | proposed - **this is our candidate "own novel architecture," see below** |
 | A4 | Discretizing Score/Noul into softmax bins throws away the fact that they're naturally continuous/probabilistic; a parametric head (Beta for Noul, Dirichlet for Choice/Score) trained against a continuous proper scoring rule could calibrate better, especially for Score | replace the restricted-softmax readout for Score/Noul with a small MLP outputting Beta/Dirichlet concentration parameters from the last hidden state, loss = negative log-likelihood or CRPS instead of cross-entropy | low-medium - self-contained head swap, Choice can stay as-is (no natural continuous relaxation) | proposed |
 | A5 | A single dense backbone spreads capacity evenly across domains; a handful of small per-domain expert adapters behind a lightweight router could specialize without the latency cost of a full MoE | LoRA-style per-domain adapters + a tiny router (predicted from the state's pooled hidden state) selecting which adapter(s) fire; base backbone shared and frozen | medium - training loop change (router + adapter switching), connects to RESEARCH.md R5 | proposed |
+| A7 | The top of the stack does no decision work: option-letter logits read through the tied `norm`+`lm_head` stop changing several layers before the top, so those layers are pure latency | delete the top layers and keep the truncated stack as the model (`experimental/truncate.py`); optionally re-adapt the new final layer with a short LoRA pass | **low** - one probe pass measures it, truncation is a checkpoint edit, no retraining needed to test | **measured**, see A7 below |
+| A8 | Depth is a free ensemble: every layer's distribution is already computed in one forward pass, so averaging the last K, or using their disagreement, buys calibration at zero extra compute (unlike permutation ensembling, which costs N passes) | average the last-K layers' restricted softmaxes; separately, feed "how often did the argmax flip across late layers" into the confidence model | **low** - falls out of the same probe | **measured**, mixed - see A8 below |
+| A9 | v6's 24 linear-attention layers carry a fixed-size recurrent state that *is* a learned summary of the whole state document; reading the decision off that state (and reusing it across questions) is closer to a "parallel sampler" than copying a KV cache, and would restore the multi-question optimisation that this backbone currently falls back from | read/branch the Gated-DeltaNet recurrent state instead of the KV cache; fix the `batch_repeat_interleave` gap that makes `use_state_cache` fall back today | medium - needs to touch the hybrid cache internals | proposed |
+| A10 | Reading logits at option *letters* is an arbitrary binding the model must learn, it breaks past 26 options (Jev supports 255), and it is the direct cause of our option-order sensitivity; scoring each option by the similarity between the decision position's hidden state and an encoding of the option's own text is permutation-invariant **by construction** | replace the letter readout with a bi-encoder score over option text, initialised from `lm_head`/embedding weights of the option tokens so it starts at the pretrained solution rather than from scratch | medium - new readout + training variant, but the init is what A3 lacked | proposed - highest-value of the untried readout changes |
+| A11 | Non-autoregressive does not have to mean fixed compute: route easy states to an early exit (A7's truncation) and only hard ones to full depth, so mean latency falls without capping hard accuracy | a tiny gate on the early-exit layer's distribution decides whether to continue; the remaining layers run only when it abstains | low-medium - composes A7 with a threshold fitted on calibration | proposed |
+| A12 | A single forward pass cannot do multi-step arithmetic, which is exactly where we are weakest (`temporal_numeric` 0.07 on JevBench hard); looping a block of layers k times adds serial computation *without* generating text, so it keeps the latency advantage that generating a chain of thought would destroy | re-enter a middle block of layers k times (universal-transformer / latent-recurrence style) with k fitted per difficulty; cost is k x that block only | high - training-loop change and the only idea here that changes compute shape | proposed - the one route to beating Jev on hard reasoning at one pass |
+| A13 | Weight-space averaging of checkpoints trained on the same backbone ("model soup") usually improves calibration for free and costs nothing at inference, unlike output ensembling | average the merged weights (or the LoRA deltas) of two or more sibling checkpoints, e.g. v7.2 and v7.3 | **low** - no training, no inference cost | proposed |
 | A6 | Menu answers within one state may be correlated (e.g. `urgency=critical` should shift `queue` probabilities) - independent per-question softmax can't express that; a joint/energy-based scoring over the *combination* of answers might calibrate better on multi-question states | score compatible answer combinations jointly (small joint energy head over pairs of question outputs) instead of treating each question as independent | high - biggest departure from the current mechanism, no cheap prototype | proposed, low priority (speculative, expensive to validate) |
 
 ## A1 in detail (implemented, not yet measured)
@@ -141,5 +148,42 @@ main SFT/RLCD/GRPO pipeline's correctness or reproducibility.
 | A5 | domain-routed adapter mixture | implemented, run deferred | pending | 2026-09-19 | 4 adapters + linear router written; deferred behind M17 |
 | A6 | joint/energy-based multi-question scoring | implemented, run deferred | pending | 2026-09-19 | two-question correlated simulator built (0.060 oracle joint-vs-product headroom); deferred behind M17 |
 
+| A7 | depth truncation (drop top layers) | **measured** | layer 24 of 32: own splits -0.7 pt (0.8450 vs 0.8517), JevBench hard **+1.8 pt** (0.6216 vs 0.6036) | 2026-09-26 | **8 of 32 layers (25%) are free.** Probe `runs/v7/depth_probe_v6_*.json`; truncation in `experimental/truncate.py`. Note the decision "crystallises" at layer 24, a full-attention layer: accuracy jumps 0.597 -> 0.845 there. |
+| A8 | depth as a free ensemble / uncertainty signal | **measured** | own splits ECE 0.1337 -> 0.1022 (last 8 layers, accuracy unchanged); **JevBench hard: no gain** (0.3125 -> 0.3001) | 2026-09-26 | PARTIAL. The disagreement signal itself is real and sharp on both (own: 0.882 / 0.551 / 0.000 accuracy at 0, 1, >=2 late-layer argmax flips; hard: 0.635 / 0.462 / 0.000) but fires on only 15 of 111 hard items, so it cannot fix hard-tier overconfidence: 96 of 111 items have zero flips and are still 63.5% correct at 94.8% confidence. |
+| A9 | linear-attention recurrent-state readout | proposed | - | 2026-09-26 | would also restore `use_state_cache` on the hybrid backbone |
+| A10 | option-text bi-encoder readout | proposed | - | 2026-09-26 | permutation-invariant by construction; scales past 26 options |
+| A11 | adaptive-depth cascade | proposed | - | 2026-09-26 | composes A7 with a confidence gate |
+| A12 | latent recurrence (looped block) | proposed | - | 2026-09-26 | targets `temporal_numeric` 0.07 |
+| A13 | weight-space model soup | proposed | - | 2026-09-26 | cheapest untried calibration idea |
+
 Update this table, not just prose above it, whenever an experiment's status changes - it's the
 part meant to be skimmable at a glance.
+
+## A7/A8 in detail (measured 2026-09-26)
+
+One forward pass already computes every layer's hidden state, so applying the tied output norm and
+`lm_head` to each layer's last position gives a per-layer answer distribution for nothing. That single
+probe (`experimental/depth_probe.py`) answers both questions at once.
+
+**A7.** Accuracy as a function of depth is flat from layer 24 upward, on both distributions:
+
+| | layer 23 | layer 24 | layer 28 | layer 32 (full) |
+|---|---:|---:|---:|---:|
+| own splits, 600 rows | 0.5967 | 0.8450 | 0.8400 | 0.8517 |
+| JevBench hard, 111 items | 0.4955 | **0.6216** | 0.5856 | 0.6036 |
+
+The jump at layer 24 is large and it is a `full_attention` layer, which is suggestive: the hybrid
+backbone appears to settle the decision at a full-attention layer and then spend eight more layers
+not changing it. Truncating there is a 25% depth cut that *helps* hard-tier accuracy, and because it
+removes layers rather than precision it should compound with NVFP4 instead of competing with it.
+
+**A8.** Averaging the last K layers helps calibration on our own splits (ECE 0.1337 -> 0.1022 at K=8,
+accuracy unchanged) and does essentially nothing on JevBench hard. The *disagreement* signal is much
+more interesting than the ensemble: bucketing items by how many times the argmax flips across the last
+eight layers separates accuracy cleanly (own splits 0.882 / 0.551 / 0.000; hard 0.635 / 0.462 / 0.000).
+It is a genuine, free difficulty signal -- and it is not enough, because it only fires on 15 of 111 hard
+items. The remaining 96 are confidently, stably wrong. **That is the finding that matters most for v7:
+hard-tier overconfidence has a low post-hoc ceiling, so the lever is training data, not a better
+temperature.** `scripts/analysis/calib_v7_study.py` says the same thing from the other side: v6's
+shipped per-type temperature is already near-optimal on our own splits (ECE 0.0073 on test_locked,
+against 0.0403 raw), and no reweighting of those fits transfers to hard items.
