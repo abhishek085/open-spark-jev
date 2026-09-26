@@ -70,7 +70,7 @@ def _record(family: str, split: str, i: int, *, state: Any, prompt: str, qtype: 
     q: dict[str, Any] = {"type": qtype, "prompt": prompt}
     if qtype == "choice":
         q["options"] = options
-    labels = options if qtype == "choice" else ["true", "false"]
+    labels = options if qtype == "choice" else ["yes", "no"]   # schema.Noul renders yes/no
     norm = _dist(labels, dist)   # normalise first: the soft-target flag must reflect the stored target
     return {
         "id": f"osj-prog-{family}-{split[:3]}-{i:05d}",
@@ -321,7 +321,7 @@ def gen_probability_exact(split: str, i: int) -> dict:
 
     p_none = Fraction(comb(lot - defective, draws), comb(lot, draws)) if lot - defective >= draws else Fraction(0)
     p_yes = 1 - p_none
-    gold = "true" if p_yes > Fraction(1, 2) else "false"
+    gold = "yes" if p_yes > Fraction(1, 2) else "no"
     lines = [f"{org} — INCOMING INSPECTION, lot of {lot} {prod}s", "",
              f"Independent teardown found exactly {defective} of the {lot} units defective; "
              f"the defective units are indistinguishable from the rest without teardown.", "",
@@ -334,7 +334,7 @@ def gen_probability_exact(split: str, i: int) -> dict:
               f"{superseded} unit(s), so I'd expect rejection to be a coin flip at best.\""]
     return _record("probability_exact", split, i, state="\n".join(lines),
                    prompt=_variant(rng, split, _PR_PROMPTS), qtype="noul", options=None,
-                   label=gold, dist={"true": float(p_yes), "false": float(p_none)},
+                   label=gold, dist={"yes": float(p_yes), "no": float(p_none)},
                    difficulty="hard",
                    rationale=f"1 - C({lot - defective},{draws})/C({lot},{draws}) = {float(p_yes):.4f}; superseded plan drew {superseded}",
                    extra={"exact_p_true": float(p_yes), "lot": lot, "defective": defective, "draws": draws})
@@ -347,7 +347,7 @@ def _verify_probability_exact(r: dict) -> bool:
     units = [True] * d + [False] * (lot - d)
     subs = list(combinations(range(lot), k))
     p = sum(any(units[j] for j in s) for s in subs) / len(subs)
-    return abs(p - m["exact_p_true"]) < 1e-9 and (r["target"]["label"] == "true") == (p > 0.5)
+    return abs(p - m["exact_p_true"]) < 1e-9 and (r["target"]["label"] == "yes") == (p > 0.5)
 
 
 # --------------------------------------------------------------------------------------
