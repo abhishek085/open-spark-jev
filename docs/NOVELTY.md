@@ -155,9 +155,38 @@ main SFT/RLCD/GRPO pipeline's correctness or reproducibility.
 | A11 | adaptive-depth cascade | proposed | - | 2026-09-26 | composes A7 with a confidence gate |
 | A12 | latent recurrence (looped block) | proposed | - | 2026-09-26 | targets `temporal_numeric` 0.07 |
 | A13 | weight-space model soup | proposed | - | 2026-09-26 | cheapest untried calibration idea |
+| A14 | v7.4: diversify prog_v1's fixed boilerplate (paraphrase pools) | **measured, regression not fixed** | JevBench hard 0.559 (v7.2) -> see v7.4 log; own-splits/prog TVD tbd | 2026-09-26 | fixes the template-fingerprint mechanism but v7.3 (different lambda_brier, same templated data) regressed too, so template-fingerprinting is A cause, not necessarily the only one |
+| A15 | v7.5: KL-to-frozen-v6 replay rows, borrowed from decider-4b's v2->v2.1 fix | queued behind A14 | - | 2026-09-26 | `experimental/replay_kl.py`; trains a sample of v6's own training rows toward v6's own T=1 distribution instead of hard labels, so new data can't sharpen the model away from behaviour that was already well-calibrated |
 
 Update this table, not just prose above it, whenever an experiment's status changes - it's the
 part meant to be skimmable at a glance.
+
+## What decider-4b (Mapika/decider-4b) actually does, and what we borrowed
+
+Read the full model card (`huggingface.co/Mapika/decider-4b`, 2026-09-26) after v7.2 regressed on
+JevBench hard. Same base (Qwen3.5-4B-Base), same single-pass letter-logit readout, no RL stage -- so
+whatever it's doing better than us is data and training-recipe, not architecture or RLHF/RLCD:
+
+* **Scale is the real gap.** Stage 1: 1,892,408 rows / 742M tokens / 26,729 steps, training
+  cross-entropy floors at **0.35**, not near-zero -- at that scale the model cannot memorize, so it is
+  forced to generalize. Our v6/v7.2 floor at ~1e-4 on 20-25k rows. Ten programmatic families (we have
+  five), each with **a held-out template variant kept out of training** for model selection.
+* **They hit our exact bug and fixed it differently than we are.** v2's stage-2 replay rows (6,676
+  rows resampled from stage-1 data) were trained on hard labels, sharpened logits everywhere, and blew
+  the fitted temperature out to 1.935 (flattening every served answer) -- a calibration regression from
+  adding data, same shape as our v7.2 story. Their fix, v2.1: train those replay rows toward the
+  **frozen v1 checkpoint's own distribution** via KL(p_v1 || p_model) instead of hard labels. Mean KL
+  to v1 dropped 0.112 -> 0.021 nats, temperature came back to 1.099. This is A15 above.
+* **Even they don't solve hard-tier calibration.** JevBench public hard: decider-4b v2.1 accuracy
+  0.649, ECE 0.184 (per-type map) / 0.210 (global T). Beats our v6 (0.595/0.265) on accuracy, but the
+  ECE gap is real and not dramatic -- JevBench's composite "Calibration" axis score exaggerates it.
+  Their own card: "On those items, do not read a confidence of 0.8 as an 80% chance of being right."
+* Self-consistency-filtered teacher data (write once, independently re-answer twice with shuffled
+  options in a fresh context, keep only if all three agree -- 89-91% kept) is their non-programmatic
+  diversity source, complementary to code-verified families. Not yet built here; candidate for a v7.6.
+* AdamW directly on bf16 params (no FP32 master copy) beat FP32-master AdamW by 3.3 points / 0.072
+  nats in their own controlled ablation -- but that was full-parameter tuning; we train LoRA adapters,
+  which are already small and close to bf16 resolution, so this is lower-priority for us.
 
 ## A7/A8 in detail (measured 2026-09-26)
 
