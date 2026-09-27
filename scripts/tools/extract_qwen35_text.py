@@ -30,6 +30,10 @@ def main() -> None:
     text_cfg = dict(cfg["text_config"])
     text_cfg["architectures"] = ["Qwen3_5ForCausalLM"]
     text_cfg.setdefault("model_type", "qwen3_5_text")
+    # we drop mtp.* below (the speculative-decoding head, unused by our menu readout); a converter
+    # that still sees mtp_num_hidden_layers > 0 (llama.cpp's GGUF export in particular) expects an
+    # extra trailing layer's tensors and fails with "tensor 'blk.N.attn_norm.weight' not found".
+    text_cfg["mtp_num_hidden_layers"] = 0
     os.makedirs(a.out, exist_ok=True)
     json.dump(text_cfg, open(os.path.join(a.out, "config.json"), "w"), indent=2)
 
