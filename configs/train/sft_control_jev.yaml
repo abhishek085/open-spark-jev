@@ -1,0 +1,31 @@
+# control-jev: a purpose-built decision model for JevControl's actual task shape (short state, 2-5
+# options, a decision site embedded in an agent harness), not JevBench's adversarial hard tier.
+#
+# Backbone: Qwen3.5-0.8B, the same hybrid linear-attention/full-attention architecture as v6/v7.x's
+# 4B, extracted to a pure text decoder from Qwen's VL-only release
+# (scripts/tools/extract_qwen35_text.py; Qwen only ships this size as a vision-language checkpoint).
+# Same menu-readout scorer, same gateway, same /v1/systemone wire format as spark-s1 -- control-jev is
+# a smaller sibling, not a different serving stack.
+#
+# Data: os_datagen.control's ten families (data/synthetic/control_v1), one per pattern JevControl's own
+# Guide lists as where a decision model fits. No JevBench-style long/adversarial families -- that's not
+# this model's job. Full fine-tune, not LoRA: 0.8B is small enough and the target distribution narrow
+# enough that a full-parameter tune is cheap and should reach higher accuracy on this exact task than
+# a rank-16 adapter would.
+model: models/Qwen3.5-0.8B-Base
+output_dir: checkpoints/control-jev
+data:
+  - data/synthetic/control_v1/train.jsonl
+seed: 0
+val_frac: 0.1
+max_len: 640
+epochs: 3
+batch_size: 16
+grad_accum: 2
+lr: 3.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0
+lambda_brier: 0.5
+gradient_checkpointing: true
+aux_head: false
+log_every: 10

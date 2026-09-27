@@ -141,6 +141,7 @@ def main() -> None:
     ap.add_argument("--data-prefix", help="use <prefix>calibration.jsonl / <prefix>test_locked.jsonl / <prefix>challenge.jsonl instead of the osdg v1 splits")
     a = ap.parse_args()
 
+    from ..experimental.control_es import ControlESScorer, is_control_es
     from ..experimental.variant_scorer import VariantScorer, is_variant
     from ..model import MenuScorer
 
@@ -149,7 +150,12 @@ def main() -> None:
 
         scorer = OpenAICompletionsBackend(a.endpoint)
     else:
-        scorer = VariantScorer(a.model) if is_variant(a.model) else MenuScorer(a.model, use_state_cache=False)
+        if is_variant(a.model):
+            scorer = VariantScorer(a.model)
+        elif is_control_es(a.model):
+            scorer = ControlESScorer(a.model)
+        else:
+            scorer = MenuScorer(a.model, use_state_cache=False)
     splits = {k: f"{a.data_prefix}{k}.jsonl" for k in SPLITS} if a.data_prefix else None
     evaluate(scorer, a.model, a.name, a.perms, a.limit, a.target_selective_acc, splits)
 

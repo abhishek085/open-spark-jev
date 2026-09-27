@@ -106,9 +106,16 @@ def get_backend(model: str | None):
 
             gc.collect()
             torch.cuda.empty_cache()
+        from ..experimental.control_es import ControlESScorer, is_control_es
         from ..experimental.variant_scorer import VariantScorer, is_variant
 
-        _LOADED[mid] = VariantScorer(avail[mid]["path"]) if is_variant(avail[mid]["path"]) else MenuScorer(avail[mid]["path"])
+        path = avail[mid]["path"]
+        if is_variant(path):
+            _LOADED[mid] = VariantScorer(path)
+        elif is_control_es(path):
+            _LOADED[mid] = ControlESScorer(path)
+        else:
+            _LOADED[mid] = MenuScorer(path)
         _LOADED[mid].model_id = mid
         _LOADED[mid].release_id = avail[mid].get("name", mid)
         return _LOADED[mid]

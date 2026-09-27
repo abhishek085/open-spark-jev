@@ -1,0 +1,21 @@
+# control-jev-es: the extra-small sibling. ModernBERT-base (149M, bidirectional encoder) + a linear
+# scorer head trained from scratch, fully fine-tuned -- Laya's architecture (convaiinnovations/laya),
+# scaled down from their ModernBERT-large (395M) since "extra small" is the point of this variant.
+# Same data as control-jev (configs/train/sft_control_jev.yaml): os_datagen.control's ten
+# decision-site families. Runs on CPU/CUDA/MPS via plain transformers, no vLLM (matches how Laya
+# itself serves -- vLLM doesn't support an arbitrary custom classification head on an encoder).
+model: models/ModernBERT-base
+output_dir: checkpoints/control-jev-es
+data:
+  - data/synthetic/control_v1/train.jsonl
+seed: 0
+val_frac: 0.1
+max_len: 512
+epochs: 4
+batch_size: 32
+grad_accum: 1
+lr: 5.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0
+lambda_brier: 0.5
+log_every: 10
