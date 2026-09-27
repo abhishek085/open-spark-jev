@@ -107,87 +107,208 @@ def _verify_injection_gate(r: dict) -> bool:
     return (r["meta"]["injected"] and r["target"]["label"] == "yes") or (not r["meta"]["injected"] and r["target"]["label"] == "no")
 
 
+# ---------------------------------------------------------------- shared support-desk KB corpus
+# Original content (own facts/numbers, not copied from JevControl's demo fixtures), but deliberately
+# realistic in *shape* -- prose customer messages with greetings/sign-offs, real-looking policy
+# snippets -- so tool_routing/context_ranking/answer_sufficiency require reading the text instead of
+# matching a fixed trigger-phrase or label-equality shortcut. See docs/NOVELTY.md for why: v1 of these
+# three families used abstract templated state and transferred near-chance to a real harness.
+_KB_TOPICS = [
+    {"id": "return-window", "category": "returns",
+     "messages": ["How long do I have to return an item for a refund?", "What's your return window?"],
+     "fact_template": "Items can be returned within {n} days of delivery for a full refund.", "fact_values": [14, 21, 30, 45]},
+    {"id": "damaged-item", "category": "returns",
+     "messages": ["My package arrived damaged, what do I do?", "The item I received is broken, can I get a replacement?"],
+     "fact_template": "Report damaged items within {n} hours of delivery with a photo for a free replacement.", "fact_values": [24, 48, 72]},
+    {"id": "standard-shipping", "category": "shipping",
+     "messages": ["How much does standard shipping cost?", "What's the delivery time for regular shipping?"],
+     "fact_template": "Standard shipping takes {n} business days.", "fact_values": [3, 4, 5, 6]},
+    {"id": "express-shipping", "category": "shipping",
+     "messages": ["How much is express delivery?", "If I pay for express shipping how fast does it arrive?"],
+     "fact_template": "Express shipping costs ${n} and arrives in 1-2 business days.", "fact_values": [9, 12, 15, 19]},
+    {"id": "international-shipping", "category": "shipping",
+     "messages": ["Do you ship internationally and how long does it take?", "How many days for an order shipped overseas?"],
+     "fact_template": "International orders take {n} business days to arrive.", "fact_values": [7, 10, 14, 21]},
+    {"id": "password-reset", "category": "account",
+     "messages": ["I forgot my password, how do I get back in?", "How long is the password reset link valid?"],
+     "fact_template": "The password reset link is valid for {n} minutes.", "fact_values": [15, 20, 30, 60]},
+    {"id": "two-factor", "category": "account",
+     "messages": ["How do I turn on two-factor authentication?", "Can I secure my account with an app instead of SMS?"],
+     "fact_template": "Two-factor authentication can be enabled under Settings using {n}.",
+     "fact_values": ["an authenticator app", "SMS codes", "either an authenticator app or SMS codes"]},
+    {"id": "warranty", "category": "products",
+     "messages": ["How long is the warranty on your electronics?", "Does the warranty cover accidental damage?"],
+     "fact_template": "Electronics carry a {n}-month limited warranty covering manufacturing defects only.", "fact_values": [6, 12, 18, 24]},
+    {"id": "price-match", "category": "payments",
+     "messages": ["Do you price match a lower price elsewhere?", "How long after buying can I ask for a price match?"],
+     "fact_template": "We match a lower price from an authorized retailer within {n} days of purchase.", "fact_values": [7, 14, 30]},
+    {"id": "payment-methods", "category": "payments",
+     "messages": ["Which payment methods do you accept?", "Can I pay with Apple Pay or PayPal?"],
+     "fact_template": "We accept {n}.",
+     "fact_values": ["Visa, Mastercard and PayPal", "all major credit cards and Apple Pay", "Visa, Mastercard, Amex and PayPal"]},
+    {"id": "cancel-order", "category": "orders",
+     "messages": ["Can I cancel the order I just placed?", "How long do I have to cancel an order for free?"],
+     "fact_template": "Orders can be cancelled free of charge within {n} of placing them.", "fact_values": ["1 hour", "30 minutes", "2 hours"]},
+    {"id": "support-hours", "category": "support",
+     "messages": ["What are your support hours?", "Is customer service open on weekends?"],
+     "fact_template": "Support is available {n}.",
+     "fact_values": ["Monday to Friday, 9am-6pm", "Monday to Saturday, 8am-8pm", "seven days a week, 9am-9pm"]},
+]
+_GREETINGS = ["", "Hi, ", "Hello! ", "Hey, ", "Quick question: ", "Hi there, "]
+_SIGNOFFS = ["", " Thanks!", " Thank you.", " Cheers.", " Appreciate it."]
+
+
+def _rendered_fact(topic: dict, rng: random.Random) -> str:
+    return topic["fact_template"].format(n=rng.choice(topic["fact_values"]))
+
+
+def _dressed(rng: random.Random, msg: str) -> str:
+    return f"{rng.choice(_GREETINGS)}{msg}{rng.choice(_SIGNOFFS)}".strip()
+
+
+def _shuffled(rng: random.Random, options: list[str]) -> list[str]:
+    """Every choice family must render its options in a per-row-random order, never the same fixed
+    order every time -- a fixed order lets the model learn "the answer is always at position N"
+    instead of reading the option text, which is invisible on in-distribution eval (nothing there
+    ever uses a different order) but breaks hard the moment a real caller enumerates its own options
+    in its own order. Confirmed as the root cause of a real-harness routing collapse: the confusion
+    matrix showed a clean positional shift (kb->orders, orders->human) matching exactly the gap
+    between this file's old fixed alphabetical order and JevControl's own ROUTES dict order."""
+    out = list(options)
+    rng.shuffle(out)
+    return out
+
+
 # ---------------------------------------------------------------- 2. tool_routing (choice)
-_ROUTES = {"docs_search": ["how do I", "what is the format of", "is there a limit on", "how does authentication work for"],
-           "billing_lookup": ["how much will I be charged for", "what's my current plan for", "when does billing renew for"],
-           "status_check": ["is there an outage affecting", "why is", "is anything wrong with"]}
-_RT_PROMPTS = ["Which tool should handle this request?", "Route this request to the correct tool.",
-               "Select the tool that should answer this.", "Which resource applies here?"]
+_ORDER_TEMPLATES = ["Where is my order {oid}?", "What's the status of order {oid}?", "How much did I pay for order {oid}?",
+                     "Which carrier is shipping order {oid}?", "When will order {oid} arrive?",
+                     "Can you check the status of order {oid} please?"]
+_HUMAN_SIGNALS = ["I'm going to get my lawyer involved over this.", "I was injured using your product and need to report it.",
+                   "This charge on my card is fraudulent, I never authorized it.", "Please delete all my personal data immediately.",
+                   "Your staff member was extremely rude to me and I want to file a complaint.",
+                   "I'm considering legal action over how this was handled."]
+_ROUTE_OPTIONS = ["human", "kb", "orders"]
+_RT_PROMPTS = ["Which resource is needed to handle this customer message?", "Route this request to the correct resource.",
+               "Select the resource that should answer this.", "Does this need the knowledge base, an order record, or a human?"]
 
 
 def gen_tool_routing(split: str, i: int) -> dict:
     rng = _rng("tool_routing", split, i)
-    route = rng.choice(sorted(_ROUTES))
-    phrase = rng.choice(_ROUTES[route])
-    topic = rng.choice(TOPICS)
-    who = rng.choice(CUSTOMERS)
-    state = f"From: {who}\nUser request: \"{phrase} {topic}?\""
+    route = rng.choice(_ROUTE_OPTIONS)
+    order_id = f"A{rng.randrange(1000, 9999)}"
+    if route == "kb":
+        topic = rng.choice(_KB_TOPICS)
+        signal = rng.choice(topic["messages"])
+        has_order = rng.random() < 0.15  # an order id can incidentally be on file even for a kb question
+    elif route == "orders":
+        signal = rng.choice(_ORDER_TEMPLATES)
+        has_order = True
+    else:
+        signal = rng.choice(_HUMAN_SIGNALS)
+        has_order = rng.random() < 0.3
+    msg = signal.format(oid=order_id) if route == "orders" else signal
+    text = _dressed(rng, msg)
+    on_file = order_id if has_order else "none"
+    ref = _ticket_ref(split, i)
+    state = f"Ticket {ref}. Customer message: \"{text}\"\nOrder id on file: {on_file}"
     return _record("tool_routing", split, i, state=state, prompt=_variant(rng, split, _RT_PROMPTS),
-                   qtype="choice", options=sorted(_ROUTES), label=route,
-                   rationale=f"phrase {phrase!r} is the {route} pattern", extra={})
+                   qtype="choice", options=_shuffled(rng, _ROUTE_OPTIONS), label=route,
+                   rationale=f"signal matches {route}", extra={"signal": signal})
 
 
 def _verify_tool_routing(r: dict) -> bool:
-    text = r["state"]["content"].lower()
-    return any(p.lower() in text for p in _ROUTES[r["target"]["label"]])
+    m = r["meta"]
+    sig = m["signal"]
+    if any(sig in t["messages"] for t in _KB_TOPICS):
+        exp = "kb"
+    elif sig in _ORDER_TEMPLATES:
+        exp = "orders"
+    elif sig in _HUMAN_SIGNALS:
+        exp = "human"
+    else:
+        return False
+    return exp == r["target"]["label"]
 
 
 # ---------------------------------------------------------------- 3. context_ranking (score, 0-2)
 _LEVELS_3 = ["0", "1", "2"]
-_CR_PROMPTS = ["How relevant is this passage to the question?", "Rate this passage's relevance to the query.",
-               "Score how well this passage answers the question."]
+_CR_PROMPTS = ["How well does this article answer the customer's message?", "Rate this article's relevance to the question.",
+               "Score how well this article answers the question."]
 
 
 def gen_context_ranking(split: str, i: int) -> dict:
     rng = _rng("context_ranking", split, i)
-    q_topic, doc_topic = rng.choice(TOPICS), rng.choice(TOPICS)
-    product = rng.choice(PRODUCTS)
-    if doc_topic == q_topic:
-        level, why = "2", "passage is about the exact topic asked"
-    elif rng.random() < 0.5:
-        # same product, different topic -> partially relevant
-        level, why = "1", "same product, different topic: partially relevant"
-        doc_topic = rng.choice([t for t in TOPICS if t != q_topic])
+    topic = rng.choice(_KB_TOPICS)
+    msg = _dressed(rng, rng.choice(topic["messages"]))
+    roll = rng.random()
+    if roll < 0.34:
+        art_topic = topic
+    elif roll < 0.67:
+        same_cat = [t for t in _KB_TOPICS if t["category"] == topic["category"] and t["id"] != topic["id"]]
+        art_topic = rng.choice(same_cat) if same_cat else rng.choice([t for t in _KB_TOPICS if t["id"] != topic["id"]])
     else:
-        level, why = "0", "unrelated topic and product"
-        product = rng.choice([p for p in PRODUCTS if p != product])
-    doc_id = f"DOC-{rng.randrange(1000, 9999)}"
-    state = f"Question: What is the policy on {q_topic}?\nPassage ({doc_id}, from {product} docs): This section explains {doc_topic}."
+        diff_cat = [t for t in _KB_TOPICS if t["category"] != topic["category"]]
+        art_topic = rng.choice(diff_cat)
+    fact = _rendered_fact(art_topic, rng)
+    title = art_topic["id"].replace("-", " ").title()
+    if art_topic["id"] == topic["id"]:
+        level = "2"
+    elif art_topic["category"] == topic["category"]:
+        level = "1"
+    else:
+        level = "0"
+    ref = _ticket_ref(split, i)
+    state = f"Ref {ref}. Customer message: \"{msg}\"\nArticle [{title}]: {fact}"
     return _record("context_ranking", split, i, state=state, prompt=_variant(rng, split, _CR_PROMPTS),
-                   qtype="score", options=_LEVELS_3, label=level, rationale=why,
-                   extra={"q_topic": q_topic, "doc_topic": doc_topic})
+                   qtype="score", options=_LEVELS_3, label=level, rationale=f"article topic {art_topic['id']!r} vs question topic {topic['id']!r}",
+                   extra={"q_topic": topic["id"], "art_topic": art_topic["id"]})
 
 
 def _verify_context_ranking(r: dict) -> bool:
-    same = r["meta"]["q_topic"] == r["meta"]["doc_topic"]
-    if same:
-        return r["target"]["label"] == "2"
-    return r["target"]["label"] in ("0", "1")
+    m = r["meta"]
+    if m["q_topic"] == m["art_topic"]:
+        exp = "2"
+    else:
+        q_cat = next(t["category"] for t in _KB_TOPICS if t["id"] == m["q_topic"])
+        a_cat = next(t["category"] for t in _KB_TOPICS if t["id"] == m["art_topic"])
+        exp = "1" if q_cat == a_cat else "0"
+    return exp == r["target"]["label"]
 
 
 # ---------------------------------------------------------------- 4. answer_sufficiency (noul)
-_SUFF_PROMPTS = ["Does the retrieved context fully answer the question?", "Is there enough information here to answer?",
-                 "Is the context sufficient, or is more retrieval needed?"]
+_SUFF_PROMPTS = ["Does the retrieved information contain what is needed to answer the customer's question completely?",
+                 "Is there enough information here to answer the customer?",
+                 "Is the retrieved context sufficient, or is more retrieval needed?"]
 
 
 def gen_answer_sufficiency(split: str, i: int) -> dict:
     rng = _rng("answer_sufficiency", split, i)
-    needed = rng.sample(["the price", "the deadline", "the eligibility rule"], k=rng.choice([2, 3]))
-    have = rng.sample(needed, k=rng.randrange(0, len(needed) + 1))
-    sufficient = set(have) == set(needed)
-    facts = ", ".join(f"{f}: known" for f in have) or "no facts retrieved yet"
+    topic = rng.choice(_KB_TOPICS)
+    msg = _dressed(rng, rng.choice(topic["messages"]))
+    sufficient = rng.random() < 0.5
+    others = [t for t in _KB_TOPICS if t["id"] != topic["id"]]
+    distractors = rng.sample(others, k=rng.choice([0, 1, 2]))
+    retrieved = distractors + ([topic] if sufficient else [])
+    if not retrieved:
+        retrieved = [rng.choice(others)]
+    rng.shuffle(retrieved)
+    lines = []
+    for t in retrieved:
+        title = t["id"].replace("-", " ").title()
+        lines.append(f"- [{title}] {_rendered_fact(t, rng)}")
     ref = _ticket_ref(split, i)
-    state = f"Case {ref}. Question requires: {', '.join(needed)}.\nRetrieved so far: {facts}."
+    state = f"Case {ref}. Customer message: \"{msg}\"\nRetrieved articles:\n" + "\n".join(lines)
     gold = "yes" if sufficient else "no"
+    retrieved_ids = [t["id"] for t in retrieved]
     return _record("answer_sufficiency", split, i, state=state, prompt=_variant(rng, split, _SUFF_PROMPTS),
                    qtype="noul", options=None, label=gold,
-                   rationale="all required facts retrieved" if sufficient else f"missing {set(needed) - set(have)}",
-                   extra={"needed": needed, "have": have})
+                   rationale="the topic's own article was retrieved" if sufficient else "the topic's own article was not retrieved",
+                   extra={"topic_id": topic["id"], "retrieved_ids": retrieved_ids})
 
 
 def _verify_answer_sufficiency(r: dict) -> bool:
     m = r["meta"]
-    ok = set(m["have"]) == set(m["needed"])
+    ok = m["topic_id"] in m["retrieved_ids"]
     return (r["target"]["label"] == "yes") == ok
 
 
@@ -234,7 +355,7 @@ def gen_moderation_class(split: str, i: int) -> dict:
     ref = _ticket_ref(split, i)
     state = f"Message {ref} from {who} flagged for review: it {signal}."
     return _record("moderation_class", split, i, state=state, prompt=_variant(rng, split, _MOD_PROMPTS),
-                   qtype="choice", options=_MOD_CLASSES, label=cls, rationale=f"matches {cls} signal",
+                   qtype="choice", options=_shuffled(rng, _MOD_CLASSES), label=cls, rationale=f"matches {cls} signal",
                    extra={"signal": signal})
 
 
@@ -286,7 +407,7 @@ def gen_next_action(split: str, i: int) -> dict:
     ref = _ticket_ref(split, i)
     state = (f"Session {ref}. Attempts so far: {attempts}. Request clarity: {'ambiguous' if ambiguous else 'clear'}.")
     return _record("next_action", split, i, state=state, prompt=_variant(rng, split, _NA_PROMPTS),
-                   qtype="choice", options=_ACTIONS, label=action, rationale=why,
+                   qtype="choice", options=_shuffled(rng, _ACTIONS), label=action, rationale=why,
                    extra={"attempts": attempts, "ambiguous": ambiguous})
 
 
@@ -356,7 +477,7 @@ def gen_escalate_human(split: str, i: int) -> dict:
     ref = _ticket_ref(split, i)
     state = f"Conversation {ref} with {who}. Note: {signal}."
     return _record("escalate_human", split, i, state=state, prompt=_variant(rng, split, _ESC_PROMPTS),
-                   qtype="choice", options=_ESC_OPTIONS, label=cls, rationale=f"matches {cls} signal",
+                   qtype="choice", options=_shuffled(rng, _ESC_OPTIONS), label=cls, rationale=f"matches {cls} signal",
                    extra={"signal": signal})
 
 

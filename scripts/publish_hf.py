@@ -23,7 +23,8 @@ api.create_repo(a.repo, repo_type="model", private=a.private, exist_ok=True)
 # template. Internal training artifacts (val_epoch*.json) are excluded on purpose.
 KEEP = {"config.json", "tokenizer.json", "tokenizer_config.json", "vocab.json", "merges.txt", "added_tokens.json",
         "special_tokens_map.json", "model.safetensors", "calibration.json", "generation_config.json", "chat_template.jinja",
-        "hf_quant_config.json"}
+        "hf_quant_config.json",
+        "control_es.json", "score_head.pt"}  # control-jev-es (experimental/control_es.py)
 allow = [f for f in os.listdir(a.checkpoint) if f in KEEP]
 print("uploading:", sorted(allow))
 api.upload_folder(folder_path=a.checkpoint, repo_id=a.repo, repo_type="model", allow_patterns=allow)
