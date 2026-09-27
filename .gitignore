@@ -18,6 +18,8 @@ engines/
 *.safetensors
 *.bin
 *.pt
+gguf_out/
+*.gguf
 *.log
 .env
 models/

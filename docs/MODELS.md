@@ -12,6 +12,8 @@ Details, limits and pinned revisions: [MODEL_CARD.md](../MODEL_CARD.md).
 |---|---|---|---|
 | `spark-s1-4b-v3` | 2026-09-20 | [abhishek085/spark-s1-4b-v3](https://huggingface.co/abhishek085/spark-s1-4b-v3) | spark-s1-4b-v3. Qwen3-4B, LoRA r16 (merged) trained 3 epochs with cross-entropy plus a Brier regulariser on th... |
 | `spark-s1-1.7b-v3` | 2026-09-20 | [abhishek085/spark-s1-1.7b-v3](https://huggingface.co/abhishek085/spark-s1-1.7b-v3) | spark-s1-1.7b-v3. Same recipe and data as v3-4b on a Qwen3-1.7B backbone (58 min training). Choice temperature... |
+| `jev-control-core` | 2026-09-27 | [abhishek085/jev-control-core](https://huggingface.co/abhishek085/jev-control-core) | Full-parameter fine-tune of Qwen3.5-0.8B-Base (extracted text-only decoder), 3 epochs on 20,000 rows (2,000/fa... |
+| `jev-control-es` | 2026-09-27 | [abhishek085/jev-control-es](https://huggingface.co/abhishek085/jev-control-es) | Full-parameter fine-tune of ModernBERT-base (149M), Laya-style per-option [MASK] scoring with a single linear ... |
 
 ## Research checkpoints (not released)
 
@@ -24,5 +26,8 @@ Earlier experiments on simulator and teacher-generated data, kept for comparison
 | rlcd-direct-qwen3-1.7b-BUGGY-archived | 2026-09-18 | Same intent as rlcd-direct-qwen3-1.7b (direct calibration ob | sft-qwen3-1.7b | 0.810 | 0.036 | `runs/archive_buggy_rlcd_direct_20260918/checkpoint` |
 | rlcd-contrastive-qwen3-1.7b | 2026-09-19 | Phase 2, mechanism 1 (academic RLCD, Yang et al. 2023): 499  | sft-qwen3-1.7b | 0.812 | 0.021 | `checkpoints/rlcd-contrastive-qwen3-1.7b` |
 | grpo-qwen3-1.7b | 2026-09-19 | Ablation baseline: sampled single-token GRPO (TRL), reward = | sft-qwen3-1.7b | 0.746 | 0.158 | `checkpoints/grpo-qwen3-1.7b` |
+| v5-4b | 2026-09-22 | spark-s1-4b-v5. Qwen3-4B, LoRA r16 (merged) trained 1 epoch, | v3-4b | - | - | `checkpoints/v5-4b` |
+| v5-1.7b | 2026-09-22 | spark-s1-1.7b-v5. Same recipe and data as v5-4b on a Qwen3-1 | v3-1.7b | - | - | `checkpoints/v5-1.7b` |
+| v6-4b | 2026-09-22 | spark-s1-4b-v6. Same data, scope and LoRA recipe as v5-4b (1 | v5-4b | - | - | `checkpoints/v6-4b` |
 
 Architecture experiments (A0-A6) are tracked in [NOVELTY.md](NOVELTY.md); the run log is [RUNS.md](RUNS.md).

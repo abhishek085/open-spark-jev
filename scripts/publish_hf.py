@@ -13,6 +13,7 @@ ap.add_argument("--checkpoint", required=True, help="local checkpoint dir (confi
 ap.add_argument("--repo", required=True, help="e.g. abhishek085/spark-s1-4b-v5")
 ap.add_argument("--card", required=True, help="README.md to upload as the repo's model card")
 ap.add_argument("--private", action="store_true")
+ap.add_argument("--gguf", help="optional GGUF file to upload alongside the checkpoint (e.g. gguf_out/jev-control-core-f16.gguf)")
 a = ap.parse_args()
 
 token = os.environ["HF_TOKEN"]
@@ -29,5 +30,8 @@ allow = [f for f in os.listdir(a.checkpoint) if f in KEEP]
 print("uploading:", sorted(allow))
 api.upload_folder(folder_path=a.checkpoint, repo_id=a.repo, repo_type="model", allow_patterns=allow)
 api.upload_file(path_or_fileobj=a.card, path_in_repo="README.md", repo_id=a.repo, repo_type="model")
+if a.gguf:
+    api.upload_file(path_or_fileobj=a.gguf, path_in_repo=os.path.basename(a.gguf), repo_id=a.repo, repo_type="model")
+    print("uploaded gguf:", os.path.basename(a.gguf))
 info = api.repo_info(a.repo, repo_type="model")
 print(f"done: https://huggingface.co/{a.repo}  (private={info.private})")

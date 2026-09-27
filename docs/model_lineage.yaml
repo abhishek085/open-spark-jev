@@ -104,64 +104,119 @@ v3-4b:
   checkpoint: checkpoints/v3-4b
   parent: null
   eval: null
-  mechanism: 'spark-s1-4b-v3. Qwen3-4B, LoRA r16 (merged) trained 3 epochs with cross-entropy plus a Brier regulariser on the 967-row os-datagen train split
-    (code-derived labels), each choice row also shown in 4 random option orders (4,277 examples). Choice temperature fitted on the os-datagen calibration split
-    (3.17); boolean and score temperatures left at 1.0. Single forward pass, letter-token readout, no generation.'
-  jev_comparison: 'Same contract as Jev (typed Choice / Boolean / Score questions over runtime-defined options, a full probability distribution and a confidence, no generated text)
-    and the same single-forward-pass readout idea. Not Jev: Jev is trained from scratch or otherwise by TypeSafe with an undisclosed method; this is a public backbone fine-tuned
-    with supervised loss. On the 60-row tool-call set 0.850 vs Jev 0.917 (recorded), p50 65.9 ms vs 421.6 ms hosted.'
-  notes: 'os-datagen locked test 0.785 / challenge 0.790 (B27). External: best of our models on 5 of 7 suites, Kev 0.773 / 0.749 with no overlap (B31). Weak: router, urgency, retrieval,
-    termination packs; vulnerable-code detection (0.56). Binary-question calibration not fitted. RLCD not applied (v7 blocked, no unseen rows).'
+  mechanism: spark-s1-4b-v3. Qwen3-4B, LoRA r16 (merged) trained 3 epochs with cross-entropy plus a Brier
+    regulariser on the 967-row os-datagen train split (code-derived labels), each choice row also shown
+    in 4 random option orders (4,277 examples). Choice temperature fitted on the os-datagen calibration
+    split (3.17); boolean and score temperatures left at 1.0. Single forward pass, letter-token readout,
+    no generation.
+  jev_comparison: 'Same contract as Jev (typed Choice / Boolean / Score questions over runtime-defined
+    options, a full probability distribution and a confidence, no generated text) and the same single-forward-pass
+    readout idea. Not Jev: Jev is trained from scratch or otherwise by TypeSafe with an undisclosed method;
+    this is a public backbone fine-tuned with supervised loss. On the 60-row tool-call set 0.850 vs Jev
+    0.917 (recorded), p50 65.9 ms vs 421.6 ms hosted.'
+  notes: 'os-datagen locked test 0.785 / challenge 0.790 (B27). External: best of our models on 5 of 7
+    suites, Kev 0.773 / 0.749 with no overlap (B31). Weak: router, urgency, retrieval, termination packs;
+    vulnerable-code detection (0.56). Binary-question calibration not fitted. RLCD not applied (v7 blocked,
+    no unseen rows).'
 v3-1.7b:
   date: '2026-09-20'
   checkpoint: checkpoints/v3-1.7b
   parent: null
   eval: null
-  mechanism: 'spark-s1-1.7b-v3. Same recipe and data as v3-4b on a Qwen3-1.7B backbone (58 min training). Choice temperature 4.37 fitted on the os-datagen calibration split.'
-  jev_comparison: 'Same contract and readout as v3-4b; the speed pick. 60-row tool-call set 0.783 vs Jev 0.917, p50 29.6 ms vs 421.6 ms hosted (14x).'
-  notes: 'os-datagen locked test 0.603 / challenge 0.694 (B27), tying the 0.6B model, so size only pays off at 4B for this data. Inconsistent transfer: Jev-directory 0.557, injection-with-context 0.819.'
-
+  mechanism: spark-s1-1.7b-v3. Same recipe and data as v3-4b on a Qwen3-1.7B backbone (58 min training).
+    Choice temperature 4.37 fitted on the os-datagen calibration split.
+  jev_comparison: Same contract and readout as v3-4b; the speed pick. 60-row tool-call set 0.783 vs Jev
+    0.917, p50 29.6 ms vs 421.6 ms hosted (14x).
+  notes: 'os-datagen locked test 0.603 / challenge 0.694 (B27), tying the 0.6B model, so size only pays
+    off at 4B for this data. Inconsistent transfer: Jev-directory 0.557, injection-with-context 0.819.'
 v5-4b:
   date: '2026-09-22'
   checkpoint: checkpoints/v5-4b
   parent: v3-4b
   eval: null
-  mechanism: 'spark-s1-4b-v5. Qwen3-4B, LoRA r16 (merged) trained 1 epoch, lr 5e-5, cross-entropy plus a Brier regulariser on 11,792 rows / 19,568 examples
-    across 49 Jev-style-only task packs (os-datagen LLM-written + independently verified, plus new code-only rule packs with no LLM in the loop). All question
-    types calibrated this release (choice 2.026, score 1.149, noul 1.318, fitted on the calibration split).'
-  jev_comparison: 'Same contract and readout as v3-4b. Own locked test 0.867 (v3: 0.785 on the smaller v3 splits, not directly comparable -- different data).
-    JevBench public tiers (easy/standard/hard): 1.000/0.847/0.523, public-proxy Intelligence 74.2 (v3: 69.5).'
-  notes: 'Narrowed scope on purpose: Jev-style decisions only, general text classification and vulnerable-code detection out of scope and untested.
-    NVFP4 (MLP-only) PTQ evaluated: 1.66x faster via vLLM on this hardware, no loss on JevBench easy/standard, -4.6pts on hard; not published as a
-    separate weights repo. RLCD-direct tried on the 1.7B sibling checkpoint and made results worse, not applied here.'
+  mechanism: spark-s1-4b-v5. Qwen3-4B, LoRA r16 (merged) trained 1 epoch, lr 5e-5, cross-entropy plus
+    a Brier regulariser on 11,792 rows / 19,568 examples across 49 Jev-style-only task packs (os-datagen
+    LLM-written + independently verified, plus new code-only rule packs with no LLM in the loop). All
+    question types calibrated this release (choice 2.026, score 1.149, noul 1.318, fitted on the calibration
+    split).
+  jev_comparison: 'Same contract and readout as v3-4b. Own locked test 0.867 (v3: 0.785 on the smaller
+    v3 splits, not directly comparable -- different data). JevBench public tiers (easy/standard/hard):
+    1.000/0.847/0.523, public-proxy Intelligence 74.2 (v3: 69.5).'
+  notes: 'Narrowed scope on purpose: Jev-style decisions only, general text classification and vulnerable-code
+    detection out of scope and untested. NVFP4 (MLP-only) PTQ evaluated: 1.66x faster via vLLM on this
+    hardware, no loss on JevBench easy/standard, -4.6pts on hard; not published as a separate weights
+    repo. RLCD-direct tried on the 1.7B sibling checkpoint and made results worse, not applied here.'
 v5-1.7b:
   date: '2026-09-22'
   checkpoint: checkpoints/v5-1.7b
   parent: v3-1.7b
   eval: null
-  mechanism: 'spark-s1-1.7b-v5. Same recipe and data as v5-4b on a Qwen3-1.7B backbone. Choice temperature 1.792, score 1.112, noul 1.608, fitted on the
-    calibration split.'
-  jev_comparison: 'Same contract and readout as v3-1.7b; the speed pick. Own locked test 0.695. JevBench public tiers: 0.979/0.778/0.378, public-proxy
-    Intelligence 65.1 (v3: 63.4).'
-  notes: 'Recovered the injection-with-context regression an interim v4 candidate introduced (0.819 -> 0.634 on v4; 0.813 on v5, close to v3). RLCD-direct
-    tried on a hard-mined subset of unseen rows and made every metric worse, including a further injection-with-context collapse to 0.468; not applied.
-    NVFP4 (MLP-only) PTQ cost 9-13 accuracy points across external sets; not shipped.'
-
+  mechanism: spark-s1-1.7b-v5. Same recipe and data as v5-4b on a Qwen3-1.7B backbone. Choice temperature
+    1.792, score 1.112, noul 1.608, fitted on the calibration split.
+  jev_comparison: 'Same contract and readout as v3-1.7b; the speed pick. Own locked test 0.695. JevBench
+    public tiers: 0.979/0.778/0.378, public-proxy Intelligence 65.1 (v3: 63.4).'
+  notes: Recovered the injection-with-context regression an interim v4 candidate introduced (0.819 ->
+    0.634 on v4; 0.813 on v5, close to v3). RLCD-direct tried on a hard-mined subset of unseen rows and
+    made every metric worse, including a further injection-with-context collapse to 0.468; not applied.
+    NVFP4 (MLP-only) PTQ cost 9-13 accuracy points across external sets; not shipped.
 v6-4b:
   date: '2026-09-22'
   checkpoint: checkpoints/v6-4b
   parent: v5-4b
   eval: null
-  mechanism: 'spark-s1-4b-v6. Same data, scope and LoRA recipe as v5-4b (11,792 rows / 19,568 examples, 49 packs, 1 epoch, lr 5e-5); backbone swapped
-    Qwen3-4B -> Qwen3.5-4B, a hybrid architecture (24 Gated DeltaNet linear-attention layers + 8 full-attention layers, of 32 total). LoRA target
-    modules extended to cover the linear-attention layers'' own projections (in_proj_qkv/z/b/a, out_proj) so all 32 layers are adapted. All question
-    types calibrated (choice 2.491, score 1.255, noul 1.608, fitted on the calibration split).'
-  jev_comparison: 'Same contract and readout as v5-4b. Own locked test 0.929 / challenge 0.911 (v5-4b: 0.867/0.861). JevBench public tiers
-    (easy/standard/hard): 1.000/1.000/0.595, public-proxy Intelligence 83.1 (v5-4b: 74.2). NVFP4 (MLP-only) 1.000/0.972/0.622, Intelligence 83.2 --
-    no measurable accuracy cost from quantization, unlike v5-4b''s ~1.9-point cost.'
-  notes: 'Backbone swap is not a clean win: ext-injection-noctx -3.6pts and ext-toolcall-risk -1.7pts vs v5-4b even as own-splits and JevBench improved
-    substantially. causal_conv1d and flash-linear-attention are not installed, so HF Transformers in-process training/serving fall back to slow
-    reference kernels for the linear-attention layers (~31-34s/step training vs v5-4b''s ~18s/step); vLLM has its own fast native kernels for this
-    architecture and is unaffected. The state-cache multi-question optimization falls back to a full forward pass per question on this backbone
-    (LinearAttentionLayer has no batch_repeat_interleave) -- correct, just without the speedup. Latency via vLLM: bf16 74.9ms/13.3 dec-s, NVFP4
-    53.3ms/18.6 dec-s (1.40x, smaller than v5''s 1.66x since only the MLP is quantized). 4B only this release, no v6-1.7b.'
+  mechanism: spark-s1-4b-v6. Same data, scope and LoRA recipe as v5-4b (11,792 rows / 19,568 examples,
+    49 packs, 1 epoch, lr 5e-5); backbone swapped Qwen3-4B -> Qwen3.5-4B, a hybrid architecture (24 Gated
+    DeltaNet linear-attention layers + 8 full-attention layers, of 32 total). LoRA target modules extended
+    to cover the linear-attention layers' own projections (in_proj_qkv/z/b/a, out_proj) so all 32 layers
+    are adapted. All question types calibrated (choice 2.491, score 1.255, noul 1.608, fitted on the calibration
+    split).
+  jev_comparison: 'Same contract and readout as v5-4b. Own locked test 0.929 / challenge 0.911 (v5-4b:
+    0.867/0.861). JevBench public tiers (easy/standard/hard): 1.000/1.000/0.595, public-proxy Intelligence
+    83.1 (v5-4b: 74.2). NVFP4 (MLP-only) 1.000/0.972/0.622, Intelligence 83.2 -- no measurable accuracy
+    cost from quantization, unlike v5-4b''s ~1.9-point cost.'
+  notes: 'Backbone swap is not a clean win: ext-injection-noctx -3.6pts and ext-toolcall-risk -1.7pts
+    vs v5-4b even as own-splits and JevBench improved substantially. causal_conv1d and flash-linear-attention
+    are not installed, so HF Transformers in-process training/serving fall back to slow reference kernels
+    for the linear-attention layers (~31-34s/step training vs v5-4b''s ~18s/step); vLLM has its own fast
+    native kernels for this architecture and is unaffected. The state-cache multi-question optimization
+    falls back to a full forward pass per question on this backbone (LinearAttentionLayer has no batch_repeat_interleave)
+    -- correct, just without the speedup. Latency via vLLM: bf16 74.9ms/13.3 dec-s, NVFP4 53.3ms/18.6
+    dec-s (1.40x, smaller than v5''s 1.66x since only the MLP is quantized). 4B only this release, no
+    v6-1.7b.'
+jev-control-core:
+  date: '2026-09-27'
+  checkpoint: checkpoints/control-jev
+  parent: null
+  eval: null
+  mechanism: Full-parameter fine-tune of Qwen3.5-0.8B-Base (extracted text-only decoder), 3 epochs on
+    20,000 rows (2,000/family) from os_datagen.control's ten JevControl decision-site families. Same restricted-option-letter
+    readout and KL+Brier loss as spark-s1. Options shuffled per row; wide per-family template pools (fixed
+    after diagnosing two real overfitting bugs).
+  jev_comparison: Purpose-built for JevControl's own Guide-listed decision sites (not JevBench's adversarial
+    hard tier). Real-harness (support_desk, 203 tasks) accuracy 0.837 vs a Gemma-4-E4B prompted baseline's
+    0.892 (Delta -0.054), at roughly a quarter the LLM calls per task.
+  notes: 'Real-harness per-site: injection 0.911, route 0.988, sufficiency 0.915, relevance 0.770. Own-split
+    (in-distribution) accuracy ~1.0/0.000 ECE on test_locked and challenge. Moved from 0.438 to 0.837
+    across three diagnosed fixes: templated/abstract synthetic state (route/sufficient/relevance), fixed
+    option order (four choice families), and narrow per-family templates causing instant loss collapse
+    -- see the HF model card for the full history. Published to abhishek085/jev-control-core with a GGUF
+    f16 build for llama.cpp/Metal; MLX not supported (mlx-lm has no Qwen3.5 hybrid-architecture model
+    class).'
+jev-control-es:
+  date: '2026-09-27'
+  checkpoint: checkpoints/control-jev-es
+  parent: null
+  eval: null
+  mechanism: Full-parameter fine-tune of ModernBERT-base (149M), Laya-style per-option [MASK] scoring
+    with a single linear scorer head, 4 epochs on 5,000 rows (500/family) from os_datagen.control (commit
+    92d92c9). Same KL+Brier loss as jev-control-core, reused unchanged.
+  jev_comparison: 'The ''extra small'' sibling of jev-control-core: 5x faster (7.7ms vs 18.5ms per decision,
+    isolated) at less than a fifth the parameters, but real-harness accuracy trails further behind Gemma-4
+    (0.695 vs 0.892, Delta -0.197).'
+  notes: 'Real-harness per-site: injection 0.872, route 0.824, sufficiency 0.770, relevance 0.188 (relevance
+    is a known weak point: strong bias toward over-scoring; two attempted fixes -- Laya''s extra transformer
+    scorer layers, and 4x more/wider training data -- both made results worse on this architecture and
+    were reverted; see the HF model card''s History section). injection accuracy has varied 0.13-0.89
+    across different retrains despite ~1.0 own-split accuracy every time; the shipped checkpoint is one
+    specific, reproducible run (seed 0, commit 92d92c9, 500 rows/family), not a stable property of the
+    recipe. Published to abhishek085/jev-control-es.'

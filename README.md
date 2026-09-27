@@ -22,6 +22,8 @@
 <p align="center">
   <a href="https://huggingface.co/abhishek085/spark-s1-4b-v6"><img src="https://img.shields.io/badge/spark--s1--4b--v6-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f2328" alt="spark-s1-4b-v6 on Hugging Face" /></a>
   <a href="https://huggingface.co/abhishek085/spark-s1-4b-v6-nvfp4"><img src="https://img.shields.io/badge/spark--s1--4b--v6--nvfp4-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f2328" alt="spark-s1-4b-v6-nvfp4 on Hugging Face" /></a>
+  <a href="https://huggingface.co/abhishek085/jev-control-core"><img src="https://img.shields.io/badge/jev--control--core-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f2328" alt="jev-control-core on Hugging Face" /></a>
+  <a href="https://huggingface.co/abhishek085/jev-control-es"><img src="https://img.shields.io/badge/jev--control--es-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f2328" alt="jev-control-es on Hugging Face" /></a>
 </p>
 
 ---
@@ -72,6 +74,22 @@ release this round. Training data: **11,792 code/LLM-labelled decision rows** ac
 rather than generating a text response.
 
 > This is an early release candidate. Performance varies substantially across task families, and the project is under active development. Model details, limitations and pinned revisions: [MODEL_CARD.md](MODEL_CARD.md).
+
+---
+
+## JevControl decision models
+
+Two smaller, purpose-built siblings for the decision sites inside a real agent harness (guardrail/injection
+gates, tool routing, context ranking, answer sufficiency, triage, moderation, and more — see
+[JevControl](https://github.com/abhishek085/JevControl)'s own Guide), evaluated on JevControl's `support_desk`
+demo (203 tasks) against a Gemma-4-E4B prompted baseline:
+
+| Model | Backbone | Real-harness accuracy | Latency (isolated, per decision) | Notes |
+|---|---|---:|---:|---|
+| [`jev-control-core`](https://huggingface.co/abhishek085/jev-control-core) | Qwen3.5-0.8B (dense decoder) | 0.837 (vs Gemma 4's 0.892) | 18.5 ms | Full-parameter fine-tune; GGUF f16 build included for llama.cpp/Metal |
+| [`jev-control-es`](https://huggingface.co/abhishek085/jev-control-es) | ModernBERT-base (149M, Laya-style) | 0.695 (vs Gemma 4's 0.892) | 7.7 ms | Non-autoregressive, per-option `[MASK]` scoring; `relevance` is a known weak site, see its model card |
+
+Full lineage, mechanism and per-site breakdowns: [docs/MODELS.md](docs/MODELS.md) and each model's own HF card.
 
 ---
 
@@ -414,4 +432,4 @@ Performance numbers attributed to Jev in this repository come from third-party r
 
 If you find the idea, implementation or experiments useful, consider giving the repository a ⭐. It helps more people discover the project and build a community around open, local decision models.
 
-GitHub: https://github.com/abhishek085/open-spark-jev · Models: [spark-s1-4b-v6](https://huggingface.co/abhishek085/spark-s1-4b-v6) · [spark-s1-4b-v6-nvfp4](https://huggingface.co/abhishek085/spark-s1-4b-v6-nvfp4)
+GitHub: https://github.com/abhishek085/open-spark-jev · Models: [spark-s1-4b-v6](https://huggingface.co/abhishek085/spark-s1-4b-v6) · [spark-s1-4b-v6-nvfp4](https://huggingface.co/abhishek085/spark-s1-4b-v6-nvfp4) · [jev-control-core](https://huggingface.co/abhishek085/jev-control-core) · [jev-control-es](https://huggingface.co/abhishek085/jev-control-es)

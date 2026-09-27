@@ -144,7 +144,12 @@ def add_entry(args: argparse.Namespace) -> None:
     render_index()
 
 
-RELEASED = {"v3-4b": "abhishek085/spark-s1-4b-v3", "v3-1.7b": "abhishek085/spark-s1-1.7b-v3"}
+RELEASED = {
+    "v3-4b": "abhishek085/spark-s1-4b-v3",
+    "v3-1.7b": "abhishek085/spark-s1-1.7b-v3",
+    "jev-control-core": "abhishek085/jev-control-core",
+    "jev-control-es": "abhishek085/jev-control-es",
+}
 
 
 def render_index(path: str = "docs/MODELS.md") -> None:
