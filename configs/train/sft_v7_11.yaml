@@ -1,0 +1,19 @@
+# spark-s1 v7.11 SFT from base: v5 (8k) + prog_v2_full (8k) + Hermes-style synthetic (6k) + public agent slice (~7.8k, reported separately) + v6 KL replay (2.5k). Calibration-first: lambda_brier 1.0.
+model: models/Qwen3.5-4B
+output_dir: checkpoints/v7.11-4b
+data:
+  - data/mixes/v7_11_train.jsonl
+seed: 0
+val_frac: 0.05
+max_len: 2048
+epochs: 1
+batch_size: 8
+grad_accum: 4
+lr: 5.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0
+lambda_brier: 1.0
+gradient_checkpointing: true
+aux_head: false
+lora: {r: 16, alpha: 32, target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj, in_proj_qkv, in_proj_z, in_proj_b, in_proj_a, out_proj]}
+log_every: 10
