@@ -1,3 +1,20 @@
+---
+license: apache-2.0
+base_model: Qwen/Qwen3.5-4B
+library_name: transformers
+pipeline_tag: text-classification
+tags:
+  - decision-model
+  - agent
+  - nvfp4
+  - spark-s1
+datasets:
+  - nvidia/When2Call
+  - MadeAgents/xlam-irrelevance-7.5k
+  - Team-ACE/ToolACE
+  - Lakera/gandalf_ignore_instructions
+---
+
 # Model Card
 
 **spark-s1**, release v8 (`spark-s1-4b-v8-nvfp4`, NVFP4-quantised; the only published build), 2026-10-02. Part of Open Spark Jev, an open-source project of the Nokast AI community. This is a
@@ -70,11 +87,11 @@ Question types: Choice (up to 26 options), Score (ordered levels), Boolean. v8 k
 | `spark-s1-4b-v8-nvfp4` | Qwen3.5-4B | `abhishek085/spark-s1-4b-v8-nvfp4` | NVFP4 (MLP-only), 4.9 GB, needs a GB10/B200-class GPU; published build |
 
 A bf16 build of v8 was evaluated internally and is **not published** for this release; the weights it was quantised from are reproducible from the recipe
-in Reproducibility. Earlier releases (`v3`, `v4`, `v5`, `v6`) are described in [docs/MODELS.md](docs/MODELS.md) and the CHANGELOG.
+in Reproducibility. Earlier releases (`v3`, `v4`, `v5`, `v6`) are described in [docs/MODELS.md](https://github.com/abhishek085/open-spark-jev/blob/main/docs/MODELS.md) and the CHANGELOG.
 
 ## Training/data summary
 
-* **v6 component:** unchanged: 11,792 rows over 49 packs ([`datagen-pipeline/`](datagen-pipeline/)), LoRA r=16 (merged), one epoch, lr 5e-5.
+* **v6 component:** unchanged: 11,792 rows over 49 packs ([`datagen-pipeline/`](https://github.com/abhishek085/open-spark-jev/blob/main/datagen-pipeline/)), LoRA r=16 (merged), one epoch, lr 5e-5.
 * **New component** (trained from the Qwen3.5-4B base, same LoRA recipe, one epoch, cross-entropy plus Brier regulariser with weight 1.0; 32,500 rows):
   8,000 rows sampled from the v5 mix; 8,000 rows from the five programmatic families above (code-computed labels, verified by independent
   re-derivation, about 35% soft-target rows); 6,000 synthetic Hermes-style agent-decision rows (code-computed labels, held-out phrasing
@@ -82,11 +99,11 @@ in Reproducibility. Earlier releases (`v3`, `v4`, `v5`, `v6`) are described in [
   predicted distributions (KL regularisation toward v6).
 * **Public data (minority share, reported separately in evaluation):** `nvidia/When2Call` (CC-BY-4.0), `MadeAgents/xlam-irrelevance-7.5k`
   (CC-BY-4.0), `Team-ACE/ToolACE` (Apache-2.0), `Lakera/gandalf_ignore_instructions` (MIT). Converted into typed decision rows by
-  `scripts/data/build_agent_public.py`. Attribution and caveats: [NOTICE](NOTICE). The When2Call test split is evaluation-only.
+  `scripts/data/build_agent_public.py`. Attribution and caveats: [NOTICE](https://github.com/abhishek085/open-spark-jev/blob/main/NOTICE). The When2Call test split is evaluation-only.
 * **Guards:** every training file was checked against fingerprints of the JevBench public items and of all our external evaluation sets
   (`scripts/tools/benchmark_overlap.py`): zero matches.
 * **Not used:** no outcome-based (RLCD) training, no data from JevBench, no private user traces.
-* Generator and verifier models for the LLM-written packs: see [NOTICE](NOTICE).
+* Generator and verifier models for the LLM-written packs: see [NOTICE](https://github.com/abhishek085/open-spark-jev/blob/main/NOTICE).
 
 ## Evaluation summary
 
@@ -130,7 +147,7 @@ vs v6 0.756 / 0.787 (0.409 / 0.363): development up, locked test 1.2 points lowe
 | JevBench hard wrong at >=0.9 | 10 | 11 |
 Per-set differences are in the table above (bf16 vs NVFP4 columns): about one point or less except Jev-directory (0.914 to 0.886).
 
-Details and the run log: [docs/BENCHMARKS.md](docs/BENCHMARKS.md), [docs/RUNS.md](docs/RUNS.md).
+Details and the run log: [docs/BENCHMARKS.md](https://github.com/abhishek085/open-spark-jev/blob/main/docs/BENCHMARKS.md), [docs/RUNS.md](https://github.com/abhishek085/open-spark-jev/blob/main/docs/RUNS.md).
 
 ## Calibration
 
@@ -167,10 +184,10 @@ Not re-measured for v8. v8 has the same architecture and parameter count as v6, 
 ## Safety and deployment requirements
 
 Do not use a model decision as the only authorization control. Deploy with deterministic policy guardrails
-([`open_spark_jev/policy.py`](open_spark_jev/policy.py) is a heuristic starting point, not a security engine), a conservative auto-allow
+([`open_spark_jev/policy.py`](https://github.com/abhishek085/open-spark-jev/blob/main/open_spark_jev/policy.py) is a heuristic starting point, not a security engine), a conservative auto-allow
 threshold (default 0.995), logging, least-privilege credentials, sandboxing and egress controls, human approval or escalation for sensitive
 actions, and a kill switch. Unsupported input, parsing errors, an unavailable evaluator, low confidence, or a rule conflict must resolve to
-`ask` or `deny`, never automatic execution; the bundled gate does this. See [SECURITY.md](SECURITY.md).
+`ask` or `deny`, never automatic execution; the bundled gate does this. See [SECURITY.md](https://github.com/abhishek085/open-spark-jev/blob/main/SECURITY.md).
 
 ## Reproducibility
 
@@ -185,6 +202,6 @@ actions, and a kill switch. Unsupported input, parsing errors, an unavailable ev
 
 ## Versioning and lineage
 
-Release ids are `spark-s1-<size>-v<n>`. Lineage and parents: [docs/model_lineage.yaml](docs/model_lineage.yaml); changes:
-[CHANGELOG.md](CHANGELOG.md). Backbone: `Qwen/Qwen3.5-4B` (Apache-2.0). Parents: `spark-s1-4b-v6` (averaged) and an unreleased SFT run on the
+Release ids are `spark-s1-<size>-v<n>`. Lineage and parents: [docs/model_lineage.yaml](https://github.com/abhishek085/open-spark-jev/blob/main/docs/model_lineage.yaml); changes:
+[CHANGELOG.md](https://github.com/abhishek085/open-spark-jev/blob/main/CHANGELOG.md). Backbone: `Qwen/Qwen3.5-4B` (Apache-2.0). Parents: `spark-s1-4b-v6` (averaged) and an unreleased SFT run on the
 v7.11 mix.

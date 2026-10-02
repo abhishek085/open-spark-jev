@@ -74,6 +74,30 @@ They are not vendored into this repository; each keeps its own license and terms
   lmsys/toxic-chat, google/boolq, Yelp/yelp_review_full
 
 --------------------------------------------------------------------------------
+3b. Public datasets used as a minority share of spark-s1-4b-v8 training data
+--------------------------------------------------------------------------------
+
+About 8,000 of the 32,500 rows in the SFT run that v8's weights are averaged with came from the public
+datasets below, converted by scripts/data/build_agent_public.py into typed decision rows (call a tool /
+ask the user / cannot do; which tool; is a tool output an injection). Raw files are not redistributed
+here; the converted rows are derived data. Each row was checked against the JevBench and external-eval
+fingerprints (scripts/tools/benchmark_overlap.py) with zero matches. The When2Call test split is used
+only for evaluation, never training.
+
+nvidia/When2Call -- CC-BY-4.0 -- NVIDIA
+  https://huggingface.co/datasets/nvidia/When2Call   (training split: tool call vs ask vs cannot answer)
+MadeAgents/xlam-irrelevance-7.5k -- CC-BY-4.0 -- MadeAgents (derived from Salesforce/xlam-function-calling-60k, CC-BY-4.0)
+  https://huggingface.co/datasets/MadeAgents/xlam-irrelevance-7.5k   (requests no listed tool can serve)
+Team-ACE/ToolACE -- Apache-2.0 -- Team-ACE
+  https://huggingface.co/datasets/Team-ACE/ToolACE   (tool selection; evaluation uses held-out tool sets)
+Lakera/gandalf_ignore_instructions -- MIT -- Lakera
+  https://huggingface.co/datasets/Lakera/gandalf_ignore_instructions   (injection text spliced into tool outputs)
+
+Several of these are themselves LLM-generated; check each upstream dataset card, and the terms of the
+models that produced them, before commercial use. glaive-function-calling-v2 and
+NousResearch/hermes-function-calling-v1 were downloaded but are not part of this release's training data.
+
+--------------------------------------------------------------------------------
 4. Trademarks and unaffiliated projects
 --------------------------------------------------------------------------------
 

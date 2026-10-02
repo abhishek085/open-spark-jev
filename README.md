@@ -58,12 +58,15 @@ Several typed questions can be answered from the same state: the state is encode
 
 ## Current Model
 
-One model is currently available, in two forms:
+Two releases are available: v6 (best general accuracy) and v8-nvfp4 (extra agent-decision coverage, better calibration):
 
 | Model | Backbone | Own held-out accuracy | JevBench Intelligence | p50 latency (vLLM) | Notes |
 |---|---|---:|---:|---:|---|
 | [`spark-s1-4b-v6`](https://huggingface.co/abhishek085/spark-s1-4b-v6) | Qwen3.5-4B + LoRA | **0.929** | **83.1** | **74.9 ms** (bf16) | Current best accuracy |
 | [`spark-s1-4b-v6-nvfp4`](https://huggingface.co/abhishek085/spark-s1-4b-v6-nvfp4) | Qwen3.5-4B + LoRA | 0.929* | 83.2 | **53.3 ms** (NVFP4) | 1.40x faster, no measurable accuracy cost |
+| [`spark-s1-4b-v8-nvfp4`](https://huggingface.co/abhishek085/spark-s1-4b-v8-nvfp4) | Qwen3.5-4B + LoRA (v6 + new SFT run, averaged) | 0.928 / 0.902† | 82.2 | not re-measured | Adds agent-harness decisions (tool choice, `finish`, command risk, tool-output screening); far fewer confident wrong answers; JevBench hard 0.586 vs v6-nvfp4's 0.622 |
+
+<sub>†v8 own locked test / challenge on the bf16 build (v6: 0.929 / 0.910). v8 is not a drop-in upgrade: choose it for agent-harness decisions and calibration, v6 for JevBench-style hard reasoning. Details: [MODEL_CARD.md](MODEL_CARD.md).</sub>
 
 <sub>*NVFP4 own-splits accuracy is not independently re-measured; JevBench shows no measurable cost from quantization, so this is a reasonable prior, not a direct measurement — see [MODEL_CARD.md](MODEL_CARD.md).</sub>
 

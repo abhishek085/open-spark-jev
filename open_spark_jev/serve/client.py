@@ -38,7 +38,7 @@ class OpenAICompletionsBackend:
         model: str | None = None,
         calibration: Calibration | None = None,
         top_logprobs: int = 20,
-        timeout: float = 60.0,
+        timeout: float = 900.0,
         api_key: str = "EMPTY",
         floor_logprob: float = -30.0,
         mode: str = "chat",

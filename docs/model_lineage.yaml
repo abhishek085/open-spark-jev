@@ -183,6 +183,21 @@ v6-4b:
     -- correct, just without the speedup. Latency via vLLM: bf16 74.9ms/13.3 dec-s, NVFP4 53.3ms/18.6
     dec-s (1.40x, smaller than v5''s 1.66x since only the MLP is quantized). 4B only this release, no
     v6-1.7b.'
+v8-4b:
+  date: '2026-10-02'
+  checkpoint: checkpoints/v8-4b
+  parent: v6-4b
+  eval: null
+  mechanism: spark-s1-4b-v8. Uniform 50/50 weight average of v6-4b and v7.11-4b (SFT from the Qwen3.5-4B base, 32,500 rows, LoRA r16 merged, 1 epoch,
+    lr 5e-5, lambda_brier 1.0, max_len 2048), then scalar temperatures choice 2.5 / score 1.192 / noul 1.495. v7.11 mix = 8,000 v5 rows + 8,000
+    prog_v2 rows + 6,000 synthetic Hermes-style rows + 8,000 public-dataset rows + 2,500 KL-replay rows (targets = v6's own predictions). NVFP4
+    (MLP-only) build via scripts/quant/ptq_nvfp4.py with calibration prompts runs/quant/calib_prompts_v8.jsonl; only the NVFP4 build is published.
+  jev_comparison: 'JevBench public tiers (easy/standard/hard): bf16 1.000/1.000/0.595 (= v6), NVFP4 1.000/0.986/0.586 vs v6-nvfp4 1.000/0.972/0.622;
+    Intelligence 82.2 vs 83.2. Hard confident-wrong at >=0.9: 11 vs 21. Held-out agent sets: Hermes-style 0.940 vs v6 bf16 0.760, public agent
+    evals 0.791 vs 0.764, confident-wrong at >=0.9 from ~15% to <=1.6%.'
+  notes: 'Not a clean win. Rejected alternatives: v7.11 alone (JevBench hard 0.532), three-way soup v7.12b (0.559), v7.13 with 4,500 long-document rows
+    (0.523, learned its own generators but did not transfer), calibration-only refit of v6 (removes most confident-wrong on JevBench hard but
+    changes nothing else). Quantisation cost 0.9 Intelligence points. Latency not re-measured (same architecture as v6).'
 jev-control-core:
   date: '2026-09-27'
   checkpoint: checkpoints/control-jev

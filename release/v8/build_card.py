@@ -1,17 +1,24 @@
-# Model Card
+"""Builds MODEL_CARD.md for spark-s1-4b-v8 from the v6 card (unchanged sections) + new text. Fill @@KEY@@ tokens from release/v8/facts.json."""
+
+import json
+import re
+import sys
+
+old = open("docs/model_cards/MODEL_CARD_v6.md").read()
+secs = {m.group(1): m.group(2) for m in re.finditer(r"^## (.+?)\n(.*?)(?=^## |\Z)", old, re.S | re.M)}
+F = json.load(open("release/v8/facts.json")) if len(sys.argv) < 2 else json.load(open(sys.argv[1]))
+
+card = (
+    """# Model Card
 
 **spark-s1**, release v8 (`spark-s1-4b-v8-nvfp4`, NVFP4-quantised; the only published build), 2026-10-02. Part of Open Spark Jev, an open-source project of the Nokast AI community. This is a
 very early release; expect it to change quickly.
 
 ## Overview
 
-`spark-s1` is a System-1 decision model: given a state (text or JSON) and a typed question with options defined at request time, it returns a
-probability for every option and a confidence from one forward pass, without generating text. Each release is a public Qwen backbone fine-tuned
-with LoRA (r=16, merged into the weights). There is no extra head: the answer is the softmax of the first-token logits restricted to the option
-letters, divided by a temperature.
-
-It is not Jev and not affiliated with TypeSafe AI. It follows the same contract and readout idea; its training is a supervised fine-tune, not
-TypeSafe's undisclosed method.
+"""
+    + secs["Overview"].strip()
+    + """
 
 ## What changed in v8
 
@@ -35,19 +42,15 @@ more than a few points of hard-tier accuracy. Prefer `spark-s1-4b-v6-nvfp4` if y
 
 ## Intended use
 
-* Bounded, repeated control decisions inside an agent harness: approve, escalate or refuse a proposed tool call, route a request, choose among
-  fixed options, decide whether to hand off to a stronger model or a person, moderate content, check a tool call or a draft answer before it is
-  used.
-* Behind deterministic policy checks, least privilege and human approval (see below), with a conservative auto-allow threshold.
-* Local, low-latency use where a generative model plus JSON parsing is too slow or too brittle.
+"""
+    + secs["Intended use"].strip()
+    + """
 
 ## Out-of-scope use
 
-* As the only authorization control for tool execution, or for any high-impact action without a human in the loop.
-* Open-ended conversation, coding, general reasoning, summarisation or any task that needs generated text.
-* Decisions with more than 26 options, multi-select, ranking, or non-English input (not evaluated).
-* General-purpose text classification (topic, sentiment, NLI, etc.) — out of scope for this release, not trained or evaluated.
-* Vulnerability detection in code — not part of this release's data or evaluation (v3/v4 measured near-chance accuracy on it).
+"""
+    + secs["Out-of-scope use"].strip()
+    + """
 * Documents longer than about 2,000 tokens were not part of the new training data (rows over the training length limit were dropped), so v8 is not
   validated for long-document reasoning; JevBench's long-policy and multi-hop hard families did not improve over v6.
 
@@ -67,7 +70,7 @@ Question types: Choice (up to 26 options), Score (ordered levels), Boolean. v8 k
 
 | Release id | Backbone | Weights | Notes |
 |---|---|---|---|
-| `spark-s1-4b-v8-nvfp4` | Qwen3.5-4B | `abhishek085/spark-s1-4b-v8-nvfp4` | NVFP4 (MLP-only), 4.9 GB, needs a GB10/B200-class GPU; published build |
+| `spark-s1-4b-v8-nvfp4` | Qwen3.5-4B | `abhishek085/spark-s1-4b-v8-nvfp4` | NVFP4 (MLP-only), 4.9 GB, needs a GB10/B200-class GPU; @@NVFP4_NOTE@@ |
 
 A bf16 build of v8 was evaluated internally and is **not published** for this release; the weights it was quantised from are reproducible from the recipe
 in Reproducibility. Earlier releases (`v3`, `v4`, `v5`, `v6`) are described in [docs/MODELS.md](docs/MODELS.md) and the CHANGELOG.
@@ -94,25 +97,11 @@ All numbers are from this repository's own runs: single seed, **v8-nvfp4 vs v6-n
 both served with vLLM under the same harness**, each at its own shipped calibration. JevBench public-test items are used for internal comparison
 only; this is not the official JevBench Score.
 
-| Measure | v6-nvfp4 (published) | v8-nvfp4 | Notes |
-|---|---:|---:|---|
-| JevBench public tiers (easy / standard / hard) | 1.000 / 0.972 / 0.622 | 1.000 / 0.986 / 0.586 | JevBench v1.2 public items only (231 of 534). **Hard accuracy is lower than v6-nvfp4's.** |
-| JevBench public-proxy Intelligence | 83.2 | 82.2 | `composite_v12.intelligence()`, judge tier dropped |
-| JevBench hard: Brier / ECE | 0.617 / 0.280 | 0.623 / 0.194 | Shipped temperatures |
-| JevBench hard: wrong at >=0.8 / >=0.9 confidence | 26 / 21 | 20 / 11 | Of 111 items |
+@@TABLE_HEADLINE@@
 
 External and held-out sets at each model's shipped temperature (v6 1.481, v8 2.5). External rows use the standard external harness; the Hermes-style, public-agent and programmatic rows are choice questions scored from option logits. None of these sets is part of v6's training data:
 
-| Measure | v6 bf16 | v8 bf16 (not published) | v8-nvfp4 (published) |
-|---|---:|---:|---:|
-| Prompt injection, with context: accuracy / Brier / ECE | 0.924 / 0.124 / 0.055 | 0.937 / 0.113 / 0.044 | 0.935 / 0.108 / 0.041 |
-| Prompt injection, no context: accuracy / Brier / ECE | 0.867 / 0.242 / 0.116 | 0.890 / 0.193 / 0.090 | 0.884 / 0.204 / 0.097 |
-| Jev-directory (70): accuracy / Brier / ECE | 0.871 / 0.212 / 0.116 | 0.914 / 0.178 / 0.070 | 0.886 / 0.205 / 0.064 |
-| Kev decision-v1: accuracy / Brier / ECE | 0.800 / 0.344 / 0.149 | 0.802 / 0.316 / 0.109 | 0.795 / 0.324 / 0.112 |
-| 60-case tool-call diagnostic: accuracy / Brier / ECE | 0.900 / 0.143 / 0.074 | 0.900 / 0.122 / 0.059 | 0.900 / 0.140 / 0.053 |
-| Hermes-style agent decisions (our generator, held-out phrasing): accuracy / Brier / wrong at >=0.9 | 0.760 / 0.416 / 14.8% | 0.953 / 0.073 / 0.2% | 0.940 / 0.094 / 0.2% |
-| Public agent evals (When2Call test, held-out ToolACE tools, Gandalf): accuracy / Brier / wrong at >=0.9 | 0.764 / 0.401 / 14.6% | 0.797 / 0.282 / 0.9% | 0.791 / 0.299 / 1.6% |
-| Programmatic families (bf16 only; not run on NVFP4): accuracy / Brier / wrong at >=0.9 | 0.745 / 0.408 / 7.7% | 0.851 / 0.228 / 0.3% | not run |
+@@TABLE_HELDOUT@@
 
 The Hermes-style and programmatic sets come from the same generators as v8's new training data (held-out phrasing, skins and templates), so
 they measure how well the new families were learned, not general ability. The public agent evals use data v8 never trained on (When2Call test is
@@ -123,12 +112,7 @@ vs v6 0.756 / 0.787 (0.409 / 0.363): development up, locked test 1.2 points lowe
 
 ### What quantisation cost (v8 NVFP4 vs the bf16 build it came from)
 
-| Measure | v8 bf16 | v8 NVFP4 |
-|---|---:|---:|
-| JevBench easy / standard / hard | 1.000 / 1.000 / 0.595 | 1.000 / 0.986 / 0.586 |
-| JevBench Intelligence | 83.1 | 82.2 |
-| JevBench hard wrong at >=0.9 | 10 | 11 |
-Per-set differences are in the table above (bf16 vs NVFP4 columns): about one point or less except Jev-directory (0.914 to 0.886).
+@@NVFP4_TABLE@@
 
 Details and the run log: [docs/BENCHMARKS.md](docs/BENCHMARKS.md), [docs/RUNS.md](docs/RUNS.md).
 
@@ -144,7 +128,7 @@ JevBench tiers v8's Brier is 0.0007 vs v6's 0.000, a small price.
 
 ## Latency methodology
 
-Not re-measured for v8. v8 has the same architecture and parameter count as v6, so speed should match v6-nvfp4's measured 53.3 ms p50 / 18.6 decisions/s (and 74.9 ms bf16).
+@@LATENCY@@
 
 ## Known limitations
 
@@ -159,18 +143,16 @@ Not re-measured for v8. v8 has the same architecture and parameter count as v6, 
   JevBench hard, 0.532). It is validated empirically, not derived.
 * **Synthetic and LLM-generated sources.** The Hermes-style set is generated by our own code; the public datasets are partly LLM-generated.
   Gains on our own generators overstate real-world gains.
-* **Calibration of the quantised variant** uses the same scalar temperatures as the bf16 build; the held-out tables above are measured on the NVFP4 build itself.
+* **Calibration of the quantised variant** @@NVFP4_CAL_NOTE@@
 * Everything v6's card lists still applies: HF in-process serving is slow on this hybrid backbone (use vLLM), the state-cache optimisation does not
   apply, sensitivity to option order and definition, English only, per-pack test counts are small, single seed, no confidence intervals.
 * A statistical caution: JevBench hard has 111 items (standard error about 4.7 points), so differences of a few points there are within noise.
 
 ## Safety and deployment requirements
 
-Do not use a model decision as the only authorization control. Deploy with deterministic policy guardrails
-([`open_spark_jev/policy.py`](open_spark_jev/policy.py) is a heuristic starting point, not a security engine), a conservative auto-allow
-threshold (default 0.995), logging, least-privilege credentials, sandboxing and egress controls, human approval or escalation for sensitive
-actions, and a kill switch. Unsupported input, parsing errors, an unavailable evaluator, low confidence, or a rule conflict must resolve to
-`ask` or `deny`, never automatic execution; the bundled gate does this. See [SECURITY.md](SECURITY.md).
+"""
+    + secs["Safety and deployment requirements"].strip().split("## Reproducibility")[0].strip()
+    + """
 
 ## Reproducibility
 
@@ -180,7 +162,7 @@ actions, and a kill switch. Unsupported input, parsing errors, an unavailable ev
 * Evaluation: `python -m open_spark_jev.eval.osdg`, `python -m open_spark_jev.eval.external`, `scripts/run_jevbench.sh`; calibration report
   `scripts/analysis/calib_report.py`, `scripts/analysis/jevbench_calib.py`. NVFP4: `scripts/quant/ptq_nvfp4.py` (NVFP4_MLP_ONLY_CFG, calibration
   prompts `runs/quant/calib_prompts_v8.jsonl`), served with vLLM and scored with `scripts/run_jevbench_quant.sh`.
-* Weights hash: `model.safetensors` sha256 `dccffb72a26e747aa983c969da334e6c6066cab7465a9b4222901380028f2439`.
+* Weights hash: `model.safetensors` sha256 `@@SHA_NVFP4@@`.
 * Seeds: single seed per configuration; no confidence intervals. Hardware: one NVIDIA DGX Spark (GB10).
 
 ## Versioning and lineage
@@ -188,3 +170,13 @@ actions, and a kill switch. Unsupported input, parsing errors, an unavailable ev
 Release ids are `spark-s1-<size>-v<n>`. Lineage and parents: [docs/model_lineage.yaml](docs/model_lineage.yaml); changes:
 [CHANGELOG.md](CHANGELOG.md). Backbone: `Qwen/Qwen3.5-4B` (Apache-2.0). Parents: `spark-s1-4b-v6` (averaged) and an unreleased SFT run on the
 v7.11 mix.
+"""
+)
+for k, v in F.items():
+    card = card.replace(f"@@{k}@@", v)
+GH = "https://github.com/abhishek085/open-spark-jev/blob/main/"
+if len(sys.argv) >= 3:  # HF copy: make repo-relative links absolute
+    card = re.sub(r"\]\((?!http|#)([^)]+)\)", lambda m: "](" + GH + m.group(1) + ")", card)
+left = re.findall(r"@@[A-Z0-9_]+@@", card)
+open("MODEL_CARD.md" if len(sys.argv) < 3 else sys.argv[2], "w").write(card)
+print("written; unfilled tokens:", sorted(set(left)))

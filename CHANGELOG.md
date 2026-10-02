@@ -2,6 +2,29 @@
 
 Format follows Keep a Changelog. Release ids are `spark-s1-<size>-v<n>`.
 
+## [0.4.0] - 2026-10-02
+
+### Added
+- `spark-s1-4b-v8-nvfp4` (NVFP4, MLP-only; the only published v8 build): a 50/50 weight average of `spark-s1-4b-v6` and a new SFT run from the
+  Qwen3.5-4B base on 32,500 rows (v5 sample, five redesigned programmatic families, synthetic Hermes-style agent decisions, ~8,000 rows converted from
+  public datasets, KL replay toward v6), with a re-fitted calibration temperature (choice 2.5, score 1.192, noul 1.495). Adds agent-harness
+  coverage (next tool / `finish`, call-ask-refuse, command risk, tool-output injection screening) and much lower confident-wrong rates.
+  Not a clean win: JevBench hard 0.586 vs `spark-s1-4b-v6-nvfp4`'s 0.622 (bf16 builds tie at 0.595); quantisation cost 0.9 Intelligence points
+  (v6's cost none). See MODEL_CARD.md.
+- Data tooling: `scripts/data/build_agent_public.py` (public agent datasets -> typed decisions), `os_datagen.programmatic.v2_*` families and
+  `v2_hermes.py`, `v2_long.py` (long-document generators; used for an unshipped experiment).
+- Analysis: `scripts/analysis/calib_report.py`, `jevbench_calib.py`, `calib_lengthT.py`; eval-source overlap fingerprints
+  (`data/benchmarks/eval_fingerprints.json`) alongside the JevBench ones.
+- NOTICE: attribution for the public training datasets (When2Call, xlam-irrelevance, ToolACE, Gandalf).
+
+### Changed
+- `OpenAICompletionsBackend` default timeout 60 s -> 900 s so a thermal-guard pause does not kill a running evaluation.
+
+### Notes
+- Training silently drops rows longer than `max_len`; a follow-up with 4,500 long-document rows (max_len 4096) learned its own data but did not
+  transfer to JevBench (hard 0.523) and was not shipped.
+- v6's card states a shipped choice temperature of 2.491; the shipped `calibration.json` is 1.481 (2.491 is the own-split fit).
+
 ## [0.3.0] - 2026-09-22
 
 ### Added

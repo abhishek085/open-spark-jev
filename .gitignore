@@ -11,6 +11,11 @@ venv/
 data/raw/*
 data/synthetic/*
 data/benchmarks/*
+data/mixes/
+data/public/
+data/public_eval/
+data/public_raw/
+data/private/
 !data/**/README.md
 runs/
 checkpoints/
@@ -25,3 +30,4 @@ gguf_out/
 models/
 .hf/
 .triton_cache/
+release/v8/facts.json
