@@ -15,8 +15,10 @@ from ..schema import Answer, Choice, Noul, Score, State
 
 
 def is_contract(body: dict[str, Any]) -> bool:
+    # Discriminate on the question shape only (contract: "instructions"; native: "prompt"). Never inspect `state`:
+    # a substring/key test on it misroutes any state containing the word "content" into the native path -> HTTP 500.
     qs = body.get("questions")
-    return isinstance(qs, list) and bool(qs) and all(isinstance(q, dict) and "instructions" in q for q in qs) and "content" not in (body.get("state") or {})
+    return isinstance(qs, list) and bool(qs) and all(isinstance(q, dict) and "instructions" in q for q in qs)
 
 
 def parse(body: dict[str, Any]):

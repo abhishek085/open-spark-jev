@@ -22,6 +22,12 @@ def test_detects_contract_shape_but_not_native():
     assert not contract.is_contract(native)
 
 
+@pytest.mark.parametrize("state", ["the content is here", "discontented", "Content", {"content": "x"}, {"a": "content"}, [{"role": "user", "content": "hi"}]])
+def test_state_text_never_changes_routing(state):
+    # regression: a "content" substring/key in state used to flip contract requests onto the native path (HTTP 500)
+    assert contract.is_contract({**BODY, "state": state})
+
+
 def test_parse_maps_types_and_appends_definitions():
     state, qs, ids = contract.parse(BODY)
     assert ids == ["dept", "refund", "urgency"]

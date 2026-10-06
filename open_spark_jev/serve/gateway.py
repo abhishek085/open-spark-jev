@@ -31,7 +31,7 @@ from typing import Any
 import yaml
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from ..gate import GateRequest
 from ..schema import Answer, Choice, DecisionRequest, DecisionResponse, Noul, Score, State
@@ -192,9 +192,12 @@ def decide(body: dict[str, Any] = Body(...)):
         ms = (time.perf_counter() - t0) * 1000
         return {"model": getattr(backend, "release_id", getattr(backend, "model_id", getattr(backend, "name", "?"))),
                 "decisions": {i: contract.format_answer(a, ms / len(qs)) for i, a in zip(ids, answers)}, "latency_ms": round(ms, 2)}
-    req = DecisionRequest(**body)
+    try:
+        req = DecisionRequest(**body)
+        qs = req.parsed_questions()
+    except (ValidationError, ValueError, TypeError) as e:  # malformed body is the caller's error, not a server fault
+        raise HTTPException(422, f"invalid request: {e}") from e
     backend = get_backend(req.model)
-    qs = req.parsed_questions()
     t0 = time.perf_counter()
     with _GPU_LOCK:
         answers = backend.decide(req.state, qs, temperature=req.temperature, return_logits=req.return_logits)
