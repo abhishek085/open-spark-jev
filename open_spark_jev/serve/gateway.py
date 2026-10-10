@@ -12,9 +12,12 @@ Backends (``--backend``):
   hf       in-process MenuScorer (dev / small-batch)
   openai   an OpenAI-compatible chat server, normally trtllm-serve on the same Spark (production)
   trtllm   in-process TensorRT-LLM Python API (run inside the TRT-LLM container; full-vocab logits)
+  ollama   Ollama's native /api/generate (raw prompt + top_logprobs) on a GGUF build
 
 Run:
   python -m open_spark_jev.serve.gateway --backend openai --upstream http://localhost:8355/v1 --port 8400
+  python -m open_spark_jev.serve.gateway --backend openai --openai-mode completions --upstream http://localhost:8080/v1 --model <dir with calibration.json>   # llama-server
+  python -m open_spark_jev.serve.gateway --backend ollama --upstream http://localhost:11434 --upstream-model spark-s1-4b-v6:q8_0 --model <dir with calibration.json>
 """
 
 from __future__ import annotations
@@ -357,27 +360,35 @@ def gate_endpoint(req: GateRequest):
     return res.model_dump()
 
 
-def build_backend(kind: str, model: str | None, upstream: str | None, max_state_chars: int = 12_000):
+def build_backend(kind: str, model: str | None, upstream: str | None, max_state_chars: int = 12_000,
+                  upstream_model: str | None = None, openai_mode: str = "chat"):
     global BACKEND, BACKEND_KIND
     if kind == "hf":
         from ..model import MenuScorer
 
         BACKEND = MenuScorer(model or os.environ.get("OSJ_MODEL", "models/Qwen3-1.7B"))
     elif kind == "trtllm":
-        from ..model import Calibration
+        from ..calibration import Calibration
         from .trtllm_backend import TRTLLMBackend
 
         path = model or os.environ.get("OSJ_MODEL", "models/Qwen3-1.7B")
         cal = Calibration.load(os.path.join(path, "calibration.json")) if os.path.exists(os.path.join(path, "calibration.json")) else None
         BACKEND = TRTLLMBackend(path, calibration=cal)
     else:
-        from ..model import Calibration
+        from ..calibration import Calibration
         from .client import OpenAICompletionsBackend
 
         cal = None
         if model and os.path.exists(os.path.join(model, "calibration.json")):
             cal = Calibration.load(os.path.join(model, "calibration.json"))
-        BACKEND = OpenAICompletionsBackend(upstream or "http://localhost:8355/v1", calibration=cal, max_state_chars=max_state_chars)
+        if kind == "ollama":
+            from .client import OllamaBackend
+
+            BACKEND = OllamaBackend(upstream or "http://localhost:11434", model=upstream_model or "spark-s1-4b-v6:q8_0",
+                                    calibration=cal, max_state_chars=max_state_chars)
+        else:
+            BACKEND = OpenAICompletionsBackend(upstream or "http://localhost:8355/v1", model=upstream_model, calibration=cal,
+                                               mode=openai_mode, max_state_chars=max_state_chars)
     BACKEND_KIND = kind
 
 
@@ -385,9 +396,11 @@ def main(argv: list[str] | None = None) -> None:
     import uvicorn
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", choices=["hf", "openai", "trtllm"], default="openai")
+    ap.add_argument("--backend", choices=["hf", "openai", "trtllm", "ollama"], default="openai")
     ap.add_argument("--model", help="HF path (also used to load calibration.json for openai backend)")
-    ap.add_argument("--upstream", default="http://localhost:8355/v1")
+    ap.add_argument("--upstream", default=None, help="upstream server URL (default: http://localhost:8355/v1; ollama: http://localhost:11434)")
+    ap.add_argument("--upstream-model", help="model name on the upstream server (required for ollama, e.g. spark-s1-4b-v6:q8_0)")
+    ap.add_argument("--openai-mode", choices=["chat", "completions"], default="chat", help="openai backend: completions sends the raw prompt (vLLM, SGLang, llama-server)")
     ap.add_argument("--default-model", help="hf backend: default model id (see configs/serve/models.yaml); the UI can switch per request")
     ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 or your Tailscale IP to reach it from another machine")
     ap.add_argument("--port", type=int, default=8400)
@@ -413,7 +426,7 @@ def main(argv: list[str] | None = None) -> None:
             except Exception:  # noqa: BLE001
                 pass
     else:
-        build_backend(a.backend, a.model, a.upstream, a.max_state_chars)
+        build_backend(a.backend, a.model, a.upstream, a.max_state_chars, a.upstream_model, a.openai_mode)
     try:
         import uvloop  # noqa: F401
 

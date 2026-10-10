@@ -27,40 +27,20 @@ than the LM head?") but it is *not* servable by trtllm-serve; keep it off for de
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import time
 from collections.abc import Sequence
-from dataclasses import dataclass, field
 
 import torch
 import torch.nn.functional as F
 from torch import nn
 
+from .calibration import Calibration  # noqa: F401  (re-exported: torch-free home in calibration.py)
 from .prompting import LabelSpace, render_prefix, render_suffix
 from .schema import MAX_OPTIONS, Answer, Question, State
 
 log = logging.getLogger(__name__)
-
-
-@dataclass
-class Calibration:
-    """Per-question-type temperatures learned on a held-out split (see train/sft.py)."""
-
-    temperature: dict[str, float] = field(default_factory=lambda: {"choice": 1.0, "score": 1.0, "noul": 1.0})
-
-    @classmethod
-    def load(cls, path: str) -> Calibration:
-        with open(path) as f:
-            return cls(**json.load(f))
-
-    def save(self, path: str) -> None:
-        with open(path, "w") as f:
-            json.dump({"temperature": self.temperature}, f, indent=2)
-
-    def t(self, qtype: str) -> float:
-        return float(self.temperature.get(qtype, 1.0))
 
 
 def gather_label_logits(

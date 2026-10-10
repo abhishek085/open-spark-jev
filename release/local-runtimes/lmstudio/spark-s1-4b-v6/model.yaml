@@ -1,0 +1,35 @@
+# LM Studio Hub entry (metadata only; weights stay on Hugging Face). Publish with: lms login && lms push (from this folder)
+model: abhishek085/spark-s1-4b-v6
+base:
+  - key: abhishek085/spark-s1-4b-v6-gguf
+    sources:
+      - type: huggingface
+        user: abhishek085
+        repo: spark-s1-4b-v6-GGUF
+metadataOverrides:
+  domain: llm
+  architectures:
+    - qwen35
+  compatibilityTypes:
+    - gguf
+  paramsStrings:
+    - 4B
+  minMemoryUsageBytes: 4600000000
+  contextLengths:
+    - 16384
+  vision: false
+  reasoning: false
+  trainedForToolUse: false
+config:
+  operation:
+    fields:
+      - key: llm.prediction.temperature
+        value: 0
+      - key: llm.prediction.maxPredictedTokens
+        value:
+          checked: true
+          value: 1
+  load:
+    fields:
+      - key: llm.load.contextLength
+        value: 16384

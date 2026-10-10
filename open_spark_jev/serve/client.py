@@ -7,7 +7,8 @@ system+user messages from ``prompting.render_messages``, ``chat_template_kwargs=
 rendered prompt is byte-identical to what HF sees, the server returns the top-N first-token
 logprobs, we pick the label tokens out of them and renormalise. ``mode="completions"`` sends
 the raw prompt to ``/v1/completions`` for servers that support ``logprobs`` there (vLLM,
-SGLang; trtllm-serve 1.2.1 does not).
+SGLang, llama.cpp ``llama-server``; trtllm-serve 1.2.1 does not). ``OllamaBackend`` does the
+same over Ollama's native ``/api/generate`` (``raw`` prompt + ``top_logprobs``).
 
 Caveat: OpenAI-style ``top_logprobs`` is capped (20 on trtllm-serve). Labels outside the top-N
 get ``floor_logprob``; for menus with more than ~15 options or exact full-vocab gathering use
@@ -27,7 +28,7 @@ from collections.abc import Sequence
 
 import httpx
 
-from ..model import Calibration
+from ..calibration import Calibration
 from ..prompting import label_texts, render_messages, render_prompt
 from ..schema import Answer, Question, State
 
@@ -74,7 +75,8 @@ class OpenAICompletionsBackend:
 
     def _parse(self, data: dict) -> dict[str, float]:
         lp = data["choices"][0]["logprobs"]
-        if self.mode == "chat":
+        # llama-server returns the chat-style ``content[]`` shape on /v1/completions too
+        if self.mode == "chat" or "content" in lp:
             content = lp["content"]
             return {t["token"]: float(t["logprob"]) for t in content[0]["top_logprobs"]} if content else {}
         return {k: float(v) for k, v in ((lp.get("top_logprobs") or [{}])[0]).items()}
@@ -122,6 +124,73 @@ class OpenAICompletionsBackend:
         self, state: State, questions: Sequence[Question], temperature: float | None = None, return_logits: bool = False
     ) -> list[Answer]:
         return [self._answer(q, self._label_logits(state, q, label_texts(q)), temperature, return_logits) for q in questions]
+
+
+class OllamaBackend(OpenAICompletionsBackend):
+    """Menu scoring against Ollama's native ``/api/generate`` (Ollama >= 0.12 for logprobs).
+
+    ``raw=true`` sends the rendered prompt untouched (no Modelfile template), ``num_predict=1``,
+    ``logprobs=true``, ``top_logprobs<=20`` (Ollama's cap). Same top-N caveat as the OpenAI path.
+    ``base_url`` is the Ollama root (``http://localhost:11434``), not ``/v1``.
+    """
+
+    def __init__(
+        self,
+        base_url: str = "http://localhost:11434",
+        model: str = "spark-s1-4b-v6:q8_0",
+        calibration: Calibration | None = None,
+        top_logprobs: int = 20,
+        timeout: float = 900.0,
+        floor_logprob: float = -30.0,
+        max_state_chars: int = 12_000,
+        num_ctx: int = 16_384,
+    ):
+        self.base_url = base_url.rstrip("/").removesuffix("/v1")
+        self.client = httpx.Client(base_url=self.base_url, timeout=timeout)
+        self.aclient = httpx.AsyncClient(base_url=self.base_url, timeout=timeout,
+                                         limits=httpx.Limits(max_connections=64, max_keepalive_connections=32, keepalive_expiry=300))
+        self.last_prompt_tokens = 0
+        self.model = model
+        self.calibration = calibration or Calibration()
+        self.top_logprobs = min(top_logprobs, 20)
+        self.floor = floor_logprob
+        self.mode = "ollama"
+        self.max_state_chars = max_state_chars
+        self.num_ctx = num_ctx  # Ollama's default context is small; a longer state would be silently truncated
+        self.name = self.model
+
+    def _request(self, state: State, q: Question) -> tuple[str, dict]:
+        return "/api/generate", {
+            "model": self.model,
+            "prompt": render_prompt(state, q, max_chars=self.max_state_chars),
+            "raw": True,
+            "stream": False,
+            "logprobs": True,
+            "top_logprobs": self.top_logprobs,
+            "options": {"num_predict": 1, "temperature": 0, "num_ctx": self.num_ctx},
+        }
+
+    def _parse(self, data: dict) -> dict[str, float]:
+        lp = data.get("logprobs")
+        if not lp:
+            raise RuntimeError(f"Ollama returned no logprobs (needs Ollama >= 0.12): {str(data)[:200]}")
+        return {t["token"]: float(t["logprob"]) for t in lp[0]["top_logprobs"]}
+
+    def _top_logprobs(self, state: State, q: Question) -> dict[str, float]:
+        path, body = self._request(state, q)
+        r = self.client.post(path, json=body)
+        r.raise_for_status()
+        data = r.json()
+        self.last_prompt_tokens = int(data.get("prompt_eval_count") or 0)
+        return self._parse(data)
+
+    async def _alabel_logits(self, state: State, q: Question) -> tuple[list[float], int]:
+        path, body = self._request(state, q)
+        r = await self.aclient.post(path, json=body)
+        r.raise_for_status()
+        data = r.json()
+        top = self._parse(data)
+        return [top.get(t, self.floor) for t in label_texts(q)], int(data.get("prompt_eval_count") or 0)
 
 
 class GatewayClient:

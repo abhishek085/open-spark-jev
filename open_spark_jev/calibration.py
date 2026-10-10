@@ -20,10 +20,32 @@ type is the default in ``configs/train/*.yaml``; it is stored in the checkpoint'
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
+
+
+@dataclass
+class Calibration:
+    """Per-question-type temperatures learned on a held-out split (see train/sft.py).
+
+    Lives here (numpy-only) so the HTTP backends can load ``calibration.json`` without torch."""
+
+    temperature: dict[str, float] = field(default_factory=lambda: {"choice": 1.0, "score": 1.0, "noul": 1.0})
+
+    @classmethod
+    def load(cls, path: str) -> Calibration:
+        with open(path) as f:
+            return cls(**json.load(f))
+
+    def save(self, path: str) -> None:
+        with open(path, "w") as f:
+            json.dump({"temperature": self.temperature}, f, indent=2)
+
+    def t(self, qtype: str) -> float:
+        return float(self.temperature.get(qtype, 1.0))
 
 
 def _np(x) -> np.ndarray:

@@ -37,6 +37,21 @@ Routes a support ticket, scores urgency and checks a claim from one state (one c
 
 Uses the Jev-style wire format against the local gateway (`POST /v1/evaluate`). See [API.md](API.md#post-v1evaluate-jev-compatible) for the compatibility scope and deviations.
 
-## 6. MCP tool-approval (design sketch, not implemented)
+## 6. llama.cpp and Ollama (GGUF builds)
+
+The gateway can sit in front of a GGUF build instead of vLLM, without torch (`pip install -e ".[serve]"`):
+
+```bash
+llama-server -hf abhishek085/spark-s1-4b-v6-GGUF:Q8_0 -c 16384 --port 8080
+python -m open_spark_jev.serve.gateway --backend openai --openai-mode completions --upstream http://localhost:8080/v1 --model <dir with calibration.json>
+
+ollama pull hf.co/abhishek085/spark-s1-4b-v6-GGUF:Q8_0      # Ollama >= 0.12 (logprobs)
+python -m open_spark_jev.serve.gateway --backend ollama --upstream http://localhost:11434 --upstream-model hf.co/abhishek085/spark-s1-4b-v6-GGUF:Q8_0 --model <dir with calibration.json>
+```
+
+Both read the top 20 first-token logprobs, so menus with more than 20 options need the HF backend. Use Q8_0: Q4_K_M keeps accuracy but
+not calibration. Builds, parity numbers and listings: [release/local-runtimes/README.md](../release/local-runtimes/README.md).
+
+## 7. MCP tool-approval (design sketch, not implemented)
 
 A wrapper MCP server would intercept `tools/call` requests, send `{tool, arguments}` to `POST /v1/gate`, forward the call to the real server only when `policy_action == "allow"`, and return a structured refusal (`ask` or `deny`, with `policy_trace`) otherwise. The sketch is deliberately not shipped: an interceptor must fail closed on timeouts and unknown tools, log decisions, and never proxy on `ask` without an approval channel. Contributions welcome, see [CONTRIBUTION_IDEAS.md](CONTRIBUTION_IDEAS.md).
