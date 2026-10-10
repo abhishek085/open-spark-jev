@@ -38,6 +38,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--group", choices=sorted(GROUPS), required=True)
 ap.add_argument("--private", action="store_true", help="create the repos private (flip to public on the Hub after a look)")
 ap.add_argument("--dry-run", action="store_true")
+ap.add_argument("--resume", action="store_true",
+                help="continue an interrupted run: an existing target is allowed only if every file in it is one this script uploads")
 a = ap.parse_args()
 
 targets = GROUPS[a.group]
@@ -54,12 +56,16 @@ if a.dry_run:
 from huggingface_hub import HfApi  # noqa: E402
 
 api = HfApi(token=os.environ["HF_TOKEN"])
-existing = [t["repo"] for t in targets if api.repo_exists(t["repo"], repo_type="model")]
-if existing:
-    sys.exit(f"refusing: these repos already exist and this script never modifies existing repos: {existing}")
+existing = [t for t in targets if api.repo_exists(t["repo"], repo_type="model")]
+for t in existing:
+    foreign = set(api.list_repo_files(t["repo"])) - set(t["files"]) - {".gitattributes", "README.md"}
+    if not a.resume or foreign:
+        sys.exit(f"refusing: {t['repo']} already exists" + (f" with files this script did not upload: {sorted(foreign)}" if foreign else
+                 " (pass --resume to continue an interrupted upload of this script's own files)"))
 
 for t in targets:
-    api.create_repo(t["repo"], repo_type="model", private=a.private, exist_ok=False)
+    if t not in existing:
+        api.create_repo(t["repo"], repo_type="model", private=a.private, exist_ok=False)
     for dst, src in t["files"].items():
         print("uploading", t["repo"], dst)
         api.upload_file(path_or_fileobj=src, path_in_repo=dst, repo_id=t["repo"], repo_type="model")
