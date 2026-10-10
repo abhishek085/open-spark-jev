@@ -1,4 +1,4 @@
-# ollama.com/abhishek085/spark-s1:4b-v6  (built from the Q8_0 GGUF; see ../README.md)
+# ollama.com/abhishekrai085/spark-s1:4b-v6  (built from the Q8_0 GGUF; see ../README.md)
 # Decision model, not a chat model: send the fully rendered prompt with "raw": true and read top_logprobs of the
 # first token. The answer is softmax(logprob / 1.481) over the option letters (calibrated choice temperature).
 FROM ../../../gguf_out/spark-s1-4b-v6-Q8_0.gguf

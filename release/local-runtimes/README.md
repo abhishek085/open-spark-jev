@@ -26,14 +26,14 @@ HF_TOKEN=... python scripts/publish_local_runtimes.py --group v8             # a
 Add `--private` to inspect before flipping public. Once public, these work with no further submission: `ollama run hf.co/...:Q8_0`,
 `llama-server -hf ...:Q8_0`, `docker model pull hf.co/...`, LM Studio / Jan "Use this model".
 
-## 2. ollama.com (`abhishek085/spark-s1`)
+## 2. ollama.com (`abhishekrai085/spark-s1`)
 
 Needs an ollama.com account with this machine's `~/.ollama/id_ed25519.pub` added under Settings > Ollama keys.
 
 ```bash
 cd release/local-runtimes/ollama
-ollama create abhishek085/spark-s1:4b-v6 -f Modelfile.v6 && ollama push abhishek085/spark-s1:4b-v6
-ollama create abhishek085/spark-s1:4b-v8 -f Modelfile.v8 && ollama push abhishek085/spark-s1:4b-v8
+ollama create abhishekrai085/spark-s1:4b-v6 -f Modelfile.v6 && ollama push abhishekrai085/spark-s1:4b-v6
+ollama create abhishekrai085/spark-s1:4b-v8 -f Modelfile.v8 && ollama push abhishekrai085/spark-s1:4b-v8
 ```
 
 Paste the "How to use" section of the GGUF card into the model's description on ollama.com: it is not a chat model.
@@ -50,7 +50,7 @@ first-token logprobs; if it does not, LM Studio users can download the model but
 
 ## 4. LocalAI gallery
 
-PR `localai/gallery-entry.yaml` into `mudler/LocalAI` `gallery/index.yaml` (pin the HF revision first; see the comments in the file).
+Opened as https://github.com/mudler/LocalAI/pull/12609 (entry: `localai/gallery-entry.yaml`, pinned to the v6-GGUF commit).
 
 ## 5. Decision Index and Featherless
 
