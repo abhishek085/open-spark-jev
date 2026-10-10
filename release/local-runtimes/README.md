@@ -50,7 +50,7 @@ first-token logprobs; if it does not, LM Studio users can download the model but
 
 ## 4. LocalAI gallery
 
-Opened as https://github.com/mudler/LocalAI/pull/12609 (entry: `localai/gallery-entry.yaml`, pinned to the v6-GGUF commit).
+Merged 2026-10-10 as https://github.com/mudler/LocalAI/pull/12609 (`local-ai models install spark-s1-4b-v6`). Upstream changed the description to `logprobs: true` + `top_logprobs: 20`: LocalAI treats a numeric `logprobs` as an on/off flag and then returns only one token.
 
 ## 5. Decision Index and Featherless
 
