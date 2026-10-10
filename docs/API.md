@@ -95,6 +95,28 @@ Supported: `choice` (2 to 26 options, definitions optional), `boolean`, `score` 
 
 Accepts `{"state", "questions": {name: {type, instructions, criteria}}}` and returns `{"answers": {name: {...}}}` so client code written for Jev's hosted API can point at a local server with a URL change. Scope: `noul`/`boolean`, `choice` and `score` only; response fields follow the same names but this is a re-implementation, not a guarantee of identical behaviour. See `examples/jev_compatible_client.py`.
 
+`POST /v1/systemone` is the same handler under the hosted route name. Details of the shared contract:
+
+- **State** may be a plain string or any JSON value on `/v1/evaluate`, `/v1/systemone` and `/v1/decide`.
+- **`score` criteria** is either a list of descriptions (levels `0..n-1`) or an ordered `{label: description}` map, lowest level first. The response `legend` maps level index to your label (map form) or your description (list form); map form also returns `label`, the most likely level. `score` is the probability-weighted level index.
+- **`usage.input_tokens`** is the total prompt tokens the model server processed for the request (all questions); `output_tokens` is 0.
+- **Concurrency:** the questions of one request are sent to the model server at the same time over a pooled connection, so latency grows more slowly than the question count (3 questions about 114 ms versus about 55 ms for one, against 165 ms when sequential).
+
+### Auth and errors
+
+Set `OSJ_API_KEY` (comma-separated for several) or pass `--api-key` to require `Authorization: Bearer <key>` on every `/v1` route; a missing or wrong key returns 401. With no key configured the API is open and the gateway logs a warning at startup. `/healthz` is always open.
+
+| Status | Meaning |
+|---|---|
+| 401 | missing or wrong API key |
+| 413 | state is longer than the model server's context window |
+| 400 / 422 | malformed request |
+| 502 / 504 | model server returned an error, was unreachable, or timed out |
+
+### Long states
+
+`--max-state-chars` (or `OSJ_STATE_MAX_CHARS`; default 12000, the training distribution) sets how much of the state is kept; longer states are cut in the middle. The model server must be started with a matching `--max-model-len` (`MAX_LEN=65536 deploy/spark/vllm_jev.sh`). Measured on the tool-call-risk holdout with the call at the end of a benign transcript: accuracy stayed 100% with confidence at least 0.996 up to about 50K tokens, but that set is easy, so check your own data before trusting probabilities at that length. Latency is prefill-bound: about 0.4 s at 4K tokens, 1.5 s at 13K, 3.3 s at 27K, 7 s at 50K. See `scripts/eval_longctx.py`.
+
 ## Python
 
 ```python

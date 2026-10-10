@@ -20,6 +20,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+import hmac
 import logging
 import os
 import threading
@@ -28,8 +29,10 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
+import httpx
 import yaml
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, Depends, FastAPI, Header, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ValidationError
 
@@ -121,6 +124,49 @@ def get_backend(model: str | None):
         return _LOADED[mid]
 
 
+API_KEYS: set[str] = {k for k in os.environ.get("OSJ_API_KEY", "").split(",") if k}  # empty = auth disabled (logged at startup)
+
+
+def require_key(authorization: str | None = Header(default=None)) -> None:
+    """Bearer-token check for the /v1 API. Constant-time compare; 401 with WWW-Authenticate on a missing or wrong key."""
+    if not API_KEYS:
+        return
+    tok = authorization[7:].strip() if authorization and authorization[:7].lower() == "bearer " else ""
+    if not any(hmac.compare_digest(tok.encode(), k.encode()) for k in API_KEYS):
+        raise HTTPException(401, "invalid or missing API key", headers={"WWW-Authenticate": "Bearer"})
+
+
+AUTH = [Depends(require_key)]
+
+
+async def run_decide(backend, state, qs, **kw) -> tuple[list[Answer], int | None]:
+    """Upstream failures become client-meaningful statuses (413 context too long, 502/504 upstream down/slow) instead of a bare 500."""
+    try:
+        return await _run_decide(backend, state, qs, **kw)
+    except httpx.HTTPStatusError as e:
+        code, text = e.response.status_code, e.response.text[:300]
+        if code == 400 and ("maximum context length" in text or "max_model_len" in text or "too long" in text):
+            raise HTTPException(413, f"state too long for the served model's context window: {text}") from e
+        raise HTTPException(502 if code >= 500 else 400, f"upstream model server returned {code}: {text}") from e
+    except httpx.TimeoutException as e:
+        raise HTTPException(504, "upstream model server timed out") from e
+    except httpx.TransportError as e:
+        raise HTTPException(502, f"upstream model server unreachable: {e}") from e
+
+
+async def _run_decide(backend, state, qs, **kw) -> tuple[list[Answer], int | None]:
+    """Run a decision. Async backends fan the questions out concurrently on the event loop; in-process
+    backends (hf / trtllm) run in a worker thread under the GPU lock so they never block the loop."""
+    if hasattr(backend, "adecide"):
+        return await backend.adecide(state, qs, **kw)
+
+    def work():
+        with _GPU_LOCK:
+            return backend.decide(state, qs, **kw)
+
+    return await run_in_threadpool(work), None
+
+
 class JevQuestion(BaseModel):
     type: str
     instructions: str
@@ -141,21 +187,33 @@ def _from_jev(name: str, jq: JevQuestion):
             raise HTTPException(400, f"{name}: choice needs criteria map")
         return Choice(id=name, prompt=jq.instructions + "\n" + "\n".join(f"- {k}: {v}" for k, v in jq.criteria.items()), options=list(jq.criteria))
     if jq.type == "score":
-        if not isinstance(jq.criteria, list):
-            raise HTTPException(400, f"{name}: score needs criteria list")
-        return Score(id=name, prompt=jq.instructions, levels=[str(i) for i in range(len(jq.criteria))],
-                     rubric="\n".join(f"{i}: {d}" for i, d in enumerate(jq.criteria)))
+        crit = jq.criteria
+        if isinstance(crit, dict) and len(crit) >= 2:  # {"low": "...", "high": "..."}: ordered, lowest first; your labels are the levels
+            return Score(id=name, prompt=jq.instructions, levels=[str(k) for k in crit], rubric="\n".join(f"{k}: {d}" for k, d in crit.items()))
+        if isinstance(crit, list) and len(crit) >= 2:
+            return Score(id=name, prompt=jq.instructions, levels=[str(i) for i in range(len(crit))],
+                         rubric="\n".join(f"{i}: {d}" for i, d in enumerate(crit)))
+        raise HTTPException(400, f"{name}: score needs criteria as a list of descriptions or an ordered {{label: description}} map (2+ levels)")
     raise HTTPException(400, f"{name}: unknown type {jq.type}")
 
 
-def _to_jev(a: Answer, q) -> dict[str, Any]:
+def _to_jev(a: Answer, q, jq: JevQuestion | None = None) -> dict[str, Any]:
     if a.type == "noul":
         return {"type": "noul", "noul": a.probability, "probability": a.probability}
     if a.type == "choice":
         return {"type": "choice", "choice": a.selected, "probabilities": dict(zip(a.labels, a.probs)), "confidence": a.confidence}
-    legend = {str(i): lvl for i, lvl in enumerate(q.labels)}
-    return {"type": "score", "score": a.expected_value, "legend": legend,
-            "probabilities": dict(zip(a.labels, a.probs)), "confidence": a.confidence}
+    crit = (jq.criteria if jq is not None else None)
+    if isinstance(crit, dict):  # caller's own labels
+        legend = {str(i): str(k) for i, k in enumerate(crit)}
+    elif isinstance(crit, list):  # index -> the description the caller gave for that level
+        legend = {str(i): str(d) for i, d in enumerate(crit)}
+    else:
+        legend = {str(i): lvl for i, lvl in enumerate(q.labels)}
+    out = {"type": "score", "score": a.expected_value, "legend": legend,
+           "probabilities": dict(zip(a.labels, a.probs)), "confidence": a.confidence}
+    if isinstance(crit, dict):
+        out["label"] = a.selected
+    return out
 
 
 @app.get("/healthz")
@@ -168,7 +226,7 @@ def ui():
     return FileResponse(UI_DIR / "index.html")
 
 
-@app.get("/v1/models")
+@app.get("/v1/models", dependencies=AUTH)
 def models():
     if BACKEND_KIND != "hf":
         return {"object": "list", "default": None, "data": [{"id": getattr(BACKEND, "name", "open-spark-jev"), "object": "model", "name": "served model", "note": "", "loaded": True}]}
@@ -176,8 +234,8 @@ def models():
             "data": [{"id": k, "object": "model", "name": v["name"], "note": v["note"], "loaded": k in _LOADED} for k, v in discover_models().items()]}
 
 
-@app.post("/v1/decide")
-def decide(body: dict[str, Any] = Body(...)):
+@app.post("/v1/decide", dependencies=AUTH)
+async def decide(body: dict[str, Any] = Body(...)):
     from . import contract
 
     if contract.is_contract(body):
@@ -187,11 +245,13 @@ def decide(body: dict[str, Any] = Body(...)):
         except (KeyError, ValueError) as e:
             raise HTTPException(400, str(e)) from e
         t0 = time.perf_counter()
-        with _GPU_LOCK:
-            answers = backend.decide(state, qs)
+        answers, n_in = await run_decide(backend, state, qs)
         ms = (time.perf_counter() - t0) * 1000
         return {"model": getattr(backend, "release_id", getattr(backend, "model_id", getattr(backend, "name", "?"))),
-                "decisions": {i: contract.format_answer(a, ms / len(qs)) for i, a in zip(ids, answers)}, "latency_ms": round(ms, 2)}
+                "decisions": {i: contract.format_answer(a, ms) for i, a in zip(ids, answers)}, "latency_ms": round(ms, 2),
+                "usage": {"input_tokens": n_in, "output_tokens": 0}}
+    if isinstance(body.get("state"), str):  # plain-string state, as /v1/evaluate accepts
+        body = {**body, "state": {"content": body["state"]}}
     try:
         req = DecisionRequest(**body)
         qs = req.parsed_questions()
@@ -199,26 +259,24 @@ def decide(body: dict[str, Any] = Body(...)):
         raise HTTPException(422, f"invalid request: {e}") from e
     backend = get_backend(req.model)
     t0 = time.perf_counter()
-    with _GPU_LOCK:
-        answers = backend.decide(req.state, qs, temperature=req.temperature, return_logits=req.return_logits)
+    answers, n_in = await run_decide(backend, req.state, qs, temperature=req.temperature, return_logits=req.return_logits)
     ms = (time.perf_counter() - t0) * 1000
-    return DecisionResponse(answers=answers, model=getattr(backend, "model_id", getattr(backend, "name", "?")), latency_ms=ms, state_tokens=-1, backend=BACKEND_KIND).model_dump()
+    return DecisionResponse(answers=answers, model=getattr(backend, "model_id", getattr(backend, "name", "?")), latency_ms=ms, state_tokens=n_in if n_in is not None else -1, backend=BACKEND_KIND).model_dump()
 
 
-@app.post("/v1/systemone", include_in_schema=False)  # alias: clients written for the hosted TypeSafe route (e.g. benchmark harnesses) work unchanged
-@app.post("/v1/evaluate")
-def evaluate(req: JevRequest):
+@app.post("/v1/systemone", dependencies=AUTH)  # same handler as /v1/evaluate: clients written for the hosted TypeSafe route work unchanged
+@app.post("/v1/evaluate", dependencies=AUTH)
+async def evaluate(req: JevRequest):
     backend = get_backend(req.model)
     state = State(content=req.state)
     names = list(req.questions)
     qs = [_from_jev(n, req.questions[n]) for n in names]
     t0 = time.perf_counter()
-    with _GPU_LOCK:
-        answers = backend.decide(state, qs)
+    answers, n_in = await run_decide(backend, state, qs)
     ms = (time.perf_counter() - t0) * 1000
     return {"model": getattr(backend, "model_id", getattr(backend, "name", "open-spark-jev")),
-            "answers": {n: _to_jev(a, q) for n, a, q in zip(names, answers, qs)},
-            "usage": {"input_tokens": None, "output_tokens": 0}, "latency_ms": round(ms, 1)}
+            "answers": {n: _to_jev(a, q, req.questions[n]) for n, a, q in zip(names, answers, qs)},
+            "usage": {"input_tokens": n_in, "output_tokens": 0}, "latency_ms": round(ms, 1)}
 
 
 LAB_DATA = Path(__file__).parent / "lab_data"
@@ -280,7 +338,7 @@ def lab_resolve(req: ResolveRequest):
     return {"policy_action": action, "policy_trace": trace, "detections": [{"rule": m.rule, "floor": m.floor, "detail": m.detail} for m in f.matches]}
 
 
-@app.post("/v1/gate")
+@app.post("/v1/gate", dependencies=AUTH)
 def gate_endpoint(req: GateRequest):
     """Tool-call gate: spark-s1 allow/ask/deny distribution + deterministic policy. Never executes anything. model="none" = policy rules only."""
     from ..gate import gate as run_gate
@@ -299,7 +357,7 @@ def gate_endpoint(req: GateRequest):
     return res.model_dump()
 
 
-def build_backend(kind: str, model: str | None, upstream: str | None):
+def build_backend(kind: str, model: str | None, upstream: str | None, max_state_chars: int = 12_000):
     global BACKEND, BACKEND_KIND
     if kind == "hf":
         from ..model import MenuScorer
@@ -319,7 +377,7 @@ def build_backend(kind: str, model: str | None, upstream: str | None):
         cal = None
         if model and os.path.exists(os.path.join(model, "calibration.json")):
             cal = Calibration.load(os.path.join(model, "calibration.json"))
-        BACKEND = OpenAICompletionsBackend(upstream or "http://localhost:8355/v1", calibration=cal)
+        BACKEND = OpenAICompletionsBackend(upstream or "http://localhost:8355/v1", calibration=cal, max_state_chars=max_state_chars)
     BACKEND_KIND = kind
 
 
@@ -333,10 +391,15 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--default-model", help="hf backend: default model id (see configs/serve/models.yaml); the UI can switch per request")
     ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 or your Tailscale IP to reach it from another machine")
     ap.add_argument("--port", type=int, default=8400)
+    ap.add_argument("--api-key", action="append", default=[], help="require this Bearer key on /v1 (repeatable; also OSJ_API_KEY, comma-separated)")
+    ap.add_argument("--max-state-chars", type=int, default=int(os.environ.get("OSJ_STATE_MAX_CHARS", "12000")), help="openai backend: state truncation (default 12000 = training distribution; ~4 chars/token)")
     ap.add_argument("--lab", action="store_true", help="Decision Lab: start even with no checkpoints (recorded/policy-only fixture mode)")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
     global DEFAULT_MODEL, BACKEND_KIND
+    API_KEYS.update(k for k in a.api_key if k)
+    if not API_KEYS:
+        log.warning("no API key configured (--api-key / OSJ_API_KEY): /v1 is OPEN to anyone who can reach this port")
     if a.backend == "hf":
         BACKEND_KIND = "hf"
         avail = discover_models()
@@ -350,8 +413,14 @@ def main(argv: list[str] | None = None) -> None:
             except Exception:  # noqa: BLE001
                 pass
     else:
-        build_backend(a.backend, a.model, a.upstream)
-    uvicorn.run(app, host=a.host, port=a.port)
+        build_backend(a.backend, a.model, a.upstream, a.max_state_chars)
+    try:
+        import uvloop  # noqa: F401
+
+        loop = "uvloop"
+    except ImportError:
+        loop = "auto"
+    uvicorn.run(app, host=a.host, port=a.port, loop=loop, access_log=False)
 
 
 if __name__ == "__main__":

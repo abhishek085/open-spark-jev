@@ -21,6 +21,7 @@ state cache: all questions for one state share the prefix, so send them together
 
 from __future__ import annotations
 
+import asyncio
 import math
 from collections.abc import Sequence
 
@@ -42,53 +43,85 @@ class OpenAICompletionsBackend:
         api_key: str = "EMPTY",
         floor_logprob: float = -30.0,
         mode: str = "chat",
+        max_state_chars: int = 12_000,
     ):
         self.base_url = base_url.rstrip("/")
-        self.client = httpx.Client(base_url=self.base_url, timeout=timeout, headers={"Authorization": f"Bearer {api_key}"})
+        headers = {"Authorization": f"Bearer {api_key}"}
+        self.client = httpx.Client(base_url=self.base_url, timeout=timeout, headers=headers)
+        self.aclient = httpx.AsyncClient(base_url=self.base_url, timeout=timeout, headers=headers,
+                                         limits=httpx.Limits(max_connections=64, max_keepalive_connections=32, keepalive_expiry=300))
+        self.last_prompt_tokens = 0
         self.model = model or self.client.get("/models").json()["data"][0]["id"]
         self.calibration = calibration or Calibration()
         self.top_logprobs = top_logprobs
         self.floor = floor_logprob
         self.mode = mode
+        self.max_state_chars = max_state_chars  # the model was trained with 12k-char states; raise only after checking calibration
         self.name = self.model
 
-    def _top_logprobs(self, state: State, q: Question) -> dict[str, float]:
+    def _request(self, state: State, q: Question) -> tuple[str, dict]:
         if self.mode == "chat":
-            body = {
+            return "/chat/completions", {
                 "model": self.model,
-                "messages": render_messages(state, q),
+                "messages": render_messages(state, q, max_chars=self.max_state_chars),
                 "max_tokens": 1,
                 "temperature": 0.0,
                 "logprobs": True,
                 "top_logprobs": self.top_logprobs,
                 "chat_template_kwargs": {"enable_thinking": False},
             }
-            r = self.client.post("/chat/completions", json=body)
-            r.raise_for_status()
-            content = r.json()["choices"][0]["logprobs"]["content"]
+        return "/completions", {"model": self.model, "prompt": render_prompt(state, q, max_chars=self.max_state_chars), "max_tokens": 1, "temperature": 0.0, "logprobs": self.top_logprobs}
+
+    def _parse(self, data: dict) -> dict[str, float]:
+        lp = data["choices"][0]["logprobs"]
+        if self.mode == "chat":
+            content = lp["content"]
             return {t["token"]: float(t["logprob"]) for t in content[0]["top_logprobs"]} if content else {}
-        body = {"model": self.model, "prompt": render_prompt(state, q), "max_tokens": 1, "temperature": 0.0, "logprobs": self.top_logprobs}
-        r = self.client.post("/completions", json=body)
-        r.raise_for_status()
-        lp = r.json()["choices"][0]["logprobs"]
         return {k: float(v) for k, v in ((lp.get("top_logprobs") or [{}])[0]).items()}
+
+    def _top_logprobs(self, state: State, q: Question) -> dict[str, float]:
+        path, body = self._request(state, q)
+        r = self.client.post(path, json=body)
+        r.raise_for_status()
+        data = r.json()
+        self.last_prompt_tokens = int((data.get("usage") or {}).get("prompt_tokens") or 0)
+        return self._parse(data)
 
     def _label_logits(self, state: State, q: Question, labels: list[str]) -> list[float]:
         top = self._top_logprobs(state, q)
         return [top[t] if t in top else self.floor for t in labels]
 
+    # --- async path: one pooled keep-alive connection set, all questions of a state in flight at once ---
+    async def _alabel_logits(self, state: State, q: Question) -> tuple[list[float], int]:
+        path, body = self._request(state, q)
+        r = await self.aclient.post(path, json=body)
+        r.raise_for_status()
+        data = r.json()
+        top = self._parse(data)
+        return [top.get(t, self.floor) for t in label_texts(q)], int((data.get("usage") or {}).get("prompt_tokens") or 0)
+
+    async def adecide(
+        self, state: State, questions: Sequence[Question], temperature: float | None = None, return_logits: bool = False
+    ) -> tuple[list[Answer], int]:
+        """Concurrent ``decide``. Returns (answers, total prompt tokens the server processed)."""
+        res = await asyncio.gather(*(self._alabel_logits(state, q) for q in questions))
+        answers = [self._answer(q, z, temperature, return_logits) for q, (z, _) in zip(questions, res)]
+        return answers, sum(n for _, n in res)
+
+    async def aclose(self) -> None:
+        await self.aclient.aclose()
+
+    def _answer(self, q: Question, z: list[float], temperature: float | None, return_logits: bool) -> Answer:
+        t = temperature if temperature is not None else self.calibration.t(q.type)
+        m = max(z)
+        e = [math.exp((x - m) / t) for x in z]
+        s = sum(e)
+        return Answer.from_probs(q, [x / s for x in e], raw_logits=z if return_logits else None)
+
     def decide(
         self, state: State, questions: Sequence[Question], temperature: float | None = None, return_logits: bool = False
     ) -> list[Answer]:
-        answers = []
-        for q in questions:
-            z = self._label_logits(state, q, label_texts(q))
-            t = temperature if temperature is not None else self.calibration.t(q.type)
-            m = max(z)
-            e = [math.exp((x - m) / t) for x in z]
-            s = sum(e)
-            answers.append(Answer.from_probs(q, [x / s for x in e], raw_logits=z if return_logits else None))
-        return answers
+        return [self._answer(q, self._label_logits(state, q, label_texts(q)), temperature, return_logits) for q in questions]
 
 
 class GatewayClient:
