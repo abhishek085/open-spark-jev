@@ -1,0 +1,41 @@
+spec_version: "0.1"
+model: spark-s1-4b-v6-nvfp4
+namespace: open-spark-jev
+category: system-one
+architecture: spark-s1
+summary: "NVFP4 (MLP-only) build of spark-s1-4b-v6 for vLLM on Blackwell-class GPUs: 1.4x faster than bf16 with no measurable JevBench public-item cost."
+base_model: open-spark-jev/spark-s1-4b-v6
+license: apache-2.0
+capabilities:
+  - choice
+  - score
+  - noul
+tags:
+  - system-one
+  - qwen
+  - nvfp4
+  - quantized
+  - vllm
+  - 4b
+runtime:
+  framework: pytorch
+  hardware: gpu
+availability: open-weights
+artifacts:
+  - kind: huggingface
+    uri: https://huggingface.co/abhishek085/spark-s1-4b-v6-nvfp4/resolve/13fae85becaeb909ac34ab7fa8255433624f0530/model.safetensors
+    filename: model.safetensors
+    sha256: 34a9ae3e91f6688a0f9360f4115cd2a122a74f280773857119f1f2b791c9bc47
+  - kind: huggingface
+    uri: https://huggingface.co/abhishek085/spark-s1-4b-v6-nvfp4/resolve/13fae85becaeb909ac34ab7fa8255433624f0530/hf_quant_config.json
+    filename: hf_quant_config.json
+    sha256: 2f38d94fdc75743134a61173cdad580cc852e2c74d3feda14dba3bfd74f5f238
+  - kind: huggingface
+    uri: https://huggingface.co/abhishek085/spark-s1-4b-v6/resolve/93d49ddbfb29212e3296635a75a3e80cf69da027/calibration.json
+    filename: calibration.json
+    sha256: 50ef30d473a413b2b15ae7f891201068cf1b87a67a43cc53206db20caf1cb65f
+evaluation:
+  suite: "JevBench v1.2 public items only (231 of 534); accuracy on the public items, NOT the official JevBench Score"
+  suite_version: "1.2"
+  decision_accuracy: 0.81
+  median_latency_ms: 53.3

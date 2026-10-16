@@ -1,0 +1,41 @@
+spec_version: "0.1"
+model: spark-s1-4b-v8-nvfp4
+namespace: open-spark-jev
+category: system-one
+architecture: spark-s1
+summary: "NVFP4 (MLP-only) build of spark-s1-4b-v8 for vLLM on Blackwell-class GPUs; agent-harness decisions with better-calibrated confidence than v6."
+base_model: open-spark-jev/spark-s1-4b-v8
+license: apache-2.0
+capabilities:
+  - choice
+  - score
+  - noul
+tags:
+  - system-one
+  - qwen
+  - agent
+  - nvfp4
+  - quantized
+  - vllm
+  - 4b
+runtime:
+  framework: pytorch
+  hardware: gpu
+availability: open-weights
+artifacts:
+  - kind: huggingface
+    uri: https://huggingface.co/abhishek085/spark-s1-4b-v8-nvfp4/resolve/5c48a5eb22c69e5d588a65cde31b1e0f300c7a24/model.safetensors
+    filename: model.safetensors
+    sha256: dccffb72a26e747aa983c969da334e6c6066cab7465a9b4222901380028f2439
+  - kind: huggingface
+    uri: https://huggingface.co/abhishek085/spark-s1-4b-v8-nvfp4/resolve/5c48a5eb22c69e5d588a65cde31b1e0f300c7a24/calibration.json
+    filename: calibration.json
+    sha256: ee570c39f3f4046b7ce598b081b8bd3c2521710ebcb8df4a06af66503bd2f82d
+  - kind: huggingface
+    uri: https://huggingface.co/abhishek085/spark-s1-4b-v8-nvfp4/resolve/5c48a5eb22c69e5d588a65cde31b1e0f300c7a24/hf_quant_config.json
+    filename: hf_quant_config.json
+    sha256: 2f38d94fdc75743134a61173cdad580cc852e2c74d3feda14dba3bfd74f5f238
+evaluation:
+  suite: "JevBench v1.2 public items only (231 of 534); accuracy on the public items, NOT the official JevBench Score"
+  suite_version: "1.2"
+  decision_accuracy: 0.797

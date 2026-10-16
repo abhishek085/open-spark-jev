@@ -3,7 +3,7 @@ model: spark-s1-4b-v8
 namespace: open-spark-jev
 category: system-one
 architecture: spark-s1
-summary: Qwen3.5-4B decision model for agent-harness decisions (tool choice, finish, command risk, tool-output screening); far fewer confident wrong answers than v6.
+summary: "Qwen3.5-4B decision model for agent-harness decisions (tool choice, finish, command risk, tool-output screening); far fewer confident wrong answers than v6."
 base_model: qwen/qwen3.5-4b
 base_model_source: huggingface
 license: apache-2.0
@@ -34,6 +34,14 @@ artifacts:
     uri: https://huggingface.co/abhishek085/spark-s1-4b-v8-GGUF/resolve/63cbbac25432992f0bfb05e411ae93393739be56/spark-s1-4b-v8-Q8_0.gguf
     filename: spark-s1-4b-v8-Q8_0.gguf
     sha256: 81726df4d00ba2af58a049767ccdfc64b4097cc3f8fbe6b885113697e69ad564
+  - kind: huggingface
+    uri: https://huggingface.co/abhishek085/spark-s1-4b-v8-GGUF/resolve/63cbbac25432992f0bfb05e411ae93393739be56/spark-s1-4b-v8-Q6_K.gguf
+    filename: spark-s1-4b-v8-Q6_K.gguf
+    sha256: 6f6b3475ece03253f3406681f0fe726031c1bab799570428d845dcb0c3c29f22
+  - kind: huggingface
+    uri: https://huggingface.co/abhishek085/spark-s1-4b-v8-GGUF/resolve/63cbbac25432992f0bfb05e411ae93393739be56/spark-s1-4b-v8-bf16.gguf
+    filename: spark-s1-4b-v8-bf16.gguf
+    sha256: 2c9485c091b5e6752d93f6d4d4f642f71effcd5a1b348d398933a1c9c2c731aa
 evaluation:
   suite: "Open Spark Jev locked held-out test, bf16 build (own split; not an external benchmark)"
   decision_accuracy: 0.928

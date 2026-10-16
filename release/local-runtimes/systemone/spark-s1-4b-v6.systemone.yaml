@@ -3,7 +3,7 @@ model: spark-s1-4b-v6
 namespace: open-spark-jev
 category: system-one
 architecture: spark-s1
-summary: Qwen3.5-4B LoRA decision model for agent harnesses; one forward pass gives a probability per option. Open weights, GGUF builds for llama.cpp/Ollama.
+summary: "Qwen3.5-4B LoRA decision model for agent harnesses; one forward pass gives a probability per option. Open weights, GGUF builds for llama.cpp/Ollama."
 base_model: qwen/qwen3.5-4b
 base_model_source: huggingface
 license: apache-2.0
@@ -35,7 +35,15 @@ artifacts:
     uri: https://huggingface.co/abhishek085/spark-s1-4b-v6-GGUF/resolve/01395673bbd6f54353af8316eec47f44c4b26a4d/spark-s1-4b-v6-Q8_0.gguf
     filename: spark-s1-4b-v6-Q8_0.gguf
     sha256: 05c34c9cfa4b18583fa3b9144a8aee5b9f8a5f0fc236c3eb4f23e914e080633e
+  - kind: huggingface
+    uri: https://huggingface.co/abhishek085/spark-s1-4b-v6-GGUF/resolve/01395673bbd6f54353af8316eec47f44c4b26a4d/spark-s1-4b-v6-Q6_K.gguf
+    filename: spark-s1-4b-v6-Q6_K.gguf
+    sha256: 7bf7757d9f0bbc88d23995ec7245aa318f7f846a5fb36a6d705ccf93fb050253
+  - kind: huggingface
+    uri: https://huggingface.co/abhishek085/spark-s1-4b-v6-GGUF/resolve/01395673bbd6f54353af8316eec47f44c4b26a4d/spark-s1-4b-v6-bf16.gguf
+    filename: spark-s1-4b-v6-bf16.gguf
+    sha256: 106677ea4ddb3444886c5b3a00b89d6440a39a2f9fb71e5a72d1ebff655be394
 evaluation:
-  suite: "Open Spark Jev locked held-out test (own split; not an external benchmark)"
-  decision_accuracy: 0.929
-  median_latency_ms: 74.9   # vLLM, bf16, one NVIDIA DGX Spark (GB10), single request
+  suite: "JevBench v1.6.1 official (Benchmark Heaven, measured 2026-10-05, open board): Capability 54.0, Composite 44.9; Intelligence 43.2, Calibration 64.8, Speed 87.0, Cost 60.4 (each 0-100)"
+  suite_version: "1.6.1"
+  median_latency_ms: 128.6
